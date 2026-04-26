@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Propuesta de Servicio - Sistema de Reservaciones Cafe Jade</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #111c33;
+        --text: #e8eefc;
+        --muted: #b6c3e6;
+        --line: rgba(255,255,255,.12);
+        --accent: #3b82f6;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: linear-gradient(180deg, var(--bg), #070b14);
+        color: var(--text);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 32px 18px 64px; }
+      header {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: radial-gradient(1200px 300px at 10% 0%, rgba(59,130,246,.22), transparent 60%),
+          radial-gradient(800px 250px at 90% 0%, rgba(16,185,129,.10), transparent 55%),
+          var(--card);
+      }
+      h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: .2px; }
+      .subtitle { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.35; }
+      .grid { display: grid; gap: 14px; margin-top: 14px; }
+      .card {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(17,28,51,.92);
+      }
+      h2 { margin: 0 0 10px; font-size: 16px; color: #ffffff; }
+      p { margin: 0 0 10px; color: var(--text); line-height: 1.55; }
+      .muted { color: var(--muted); }
+      ul { margin: 10px 0 0; padding: 0 0 0 18px; color: var(--text); line-height: 1.6; }
+      li { margin: 6px 0; }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 860px) {
+        .two { grid-template-columns: 1fr 1fr; }
+      }
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(59,130,246,.12);
+        color: #dbeafe;
+        font-size: 12px;
+      }
+      .foot {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .kv { display: grid; grid-template-columns: 170px 1fr; gap: 8px 12px; }
+      .k { color: var(--muted); }
+      .v { color: var(--text); }
+      @media print {
+        body { background: #ffffff; color: #111827; }
+        header, .card { background: #ffffff; border-color: #e5e7eb; }
+        .subtitle, .muted, .k { color: #4b5563; }
+        .pill { border-color: #e5e7eb; background: #eff6ff; color: #1d4ed8; }
+        a { color: #111827; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="pill">Propuesta de Servicio</div>
+        <h1>Sistema de Reservaciones y Control Operativo – Cafe Jade</h1>
+        <p class="subtitle">
+          Solución para registrar, organizar y operar reservaciones con control por roles, croquis de mesas y flujo de atención.
+        </p>
+      </header>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Objetivo</h2>
+          <p>
+            Implementar un sistema web para el control de reservaciones y operación diaria del restaurante, incluyendo selección de mesa
+            mediante croquis, registro de clientes, y flujo de estados de atención, con control de acceso por roles.
+          </p>
+        </div>
+
+        <div class="two">
+          <div class="card">
+            <h2>Alcance funcional</h2>
+            <ul>
+              <li>Creación de reservaciones con fecha/hora (pasos de 15 minutos) y registro de datos del cliente.</li>
+              <li>Campo de personas (tamaño de grupo) para cada reservación.</li>
+              <li>Asignación opcional de mesa al crear la reservación.</li>
+              <li>Croquis (mapa) de mesas para seleccionar rápidamente mesa y filtrar por mesa.</li>
+              <li>Estados de reservación: WAITING, RESERVED, SEATED, COMPLETED, CANCELLED, NO_SHOW.</li>
+              <li>Estados de mesa: LIBRE, OCUPADA, RESERVADA, POR_LIMPIAR.</li>
+              <li>Vista de Hostess para alta de reservaciones y control de lista.</li>
+              <li>Vista de Caja para operación en tiempo real y cierre/liberación de mesas.</li>
+              <li>Vista Admin para métricas y supervisión operativa.</li>
+              <li>Configuración de WhatsApp API/WhatsApp Business para automatizaciones operativas (proveedor por definir).</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Seguridad y roles</h2>
+            <ul>
+              <li>Inicio de sesión con Firebase Authentication (correo/contraseña).</li>
+              <li>Sesión segura con cookie httpOnly en el servidor.</li>
+              <li>Control de acceso por rol: ADMIN, DIRECTOR, HOSTESS, CAJA.</li>
+              <li>Permisos de operación:
+                <ul>
+                  <li>HOSTESS: crear reservaciones y sentar/gestionar atención inicial.</li>
+                  <li>CAJA: cierre de reservaciones y liberación de mesa.</li>
+                  <li>ADMIN/DIRECTOR: acceso a administración y reportes.</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="card">
+            <h2>Tecnología</h2>
+            <div class="kv">
+              <div class="k">Frontend</div><div class="v">Next.js (App Router)</div>
+              <div class="k">Backend</div><div class="v">API Routes (Next.js) + Firebase Admin SDK</div>
+              <div class="k">Base de datos</div><div class="v">Cloud Firestore</div>
+              <div class="k">Autenticación</div><div class="v">Firebase Auth</div>
+              <div class="k">Hosting</div><div class="v">Firebase Hosting (configuración para producción)</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Entregables</h2>
+            <ul>
+              <li>Sistema funcional desplegable para operación diaria.</li>
+              <li>Configuración de ambiente y variables para producción.</li>
+              <li>Configuración de WhatsApp API/WhatsApp Business para el flujo acordado (proveedor por definir).</li>
+              <li>Capacitación al personal tras la implementación.</li>
+              <li>Documentación operativa y técnica básica para uso y mantenimiento.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Calendario</h2>
+          <ul>
+            <li>Tiempo de entrega: <strong>3 semanas</strong> a partir del día de hoy.</li>
+            <li>Nota: ya se realizó el levantamiento y diseño de arquitectura.</li>
+          </ul>
+          <div class="foot">
+            Este documento es una propuesta de servicio. Para la propuesta económica consulta <strong>propuestaeco.html</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

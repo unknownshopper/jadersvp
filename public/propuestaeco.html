@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Propuesta Económica - Sistema de Reservaciones Cafe Jade</title>
+    <style>
+      :root {
+        --page: #0b1220;
+        --surface: rgba(17, 28, 51, 0.92);
+        --text: #e8eefc;
+        --muted: #b6c3e6;
+        --line: rgba(255, 255, 255, 0.12);
+        --accent: #3b82f6;
+        --accent2: #22c55e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: linear-gradient(180deg, var(--page), #070b14);
+        color: var(--text);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 72px; }
+
+      .doc {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .doc-pad { padding: 18px 20px; }
+
+      .doc-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        background:
+          radial-gradient(1100px 280px at 10% 0%, rgba(59, 130, 246, 0.20), transparent 60%),
+          radial-gradient(900px 260px at 90% 0%, rgba(34, 197, 94, 0.12), transparent 55%),
+          rgba(17, 28, 51, 0.85);
+      }
+
+      .doc-header .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 260px;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        object-fit: contain;
+        background: #0b1220;
+      }
+
+      .brand .title { font-weight: 900; letter-spacing: .2px; }
+      .brand .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+      .vendor {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .vendor img {
+        width: 140px;
+        height: 38px;
+        border-radius: 10px;
+        object-fit: contain;
+        background: #ffffff;
+      }
+
+      h1 { margin: 10px 0 0; font-size: 22px; letter-spacing: .2px; }
+      .subtitle { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+      .section { padding: 16px 20px; border-top: 1px solid var(--line); }
+      .section:first-of-type { border-top: 0; }
+
+      h2 { margin: 0 0 10px; font-size: 14px; letter-spacing: .2px; }
+      p { margin: 0 0 10px; color: var(--text); line-height: 1.55; }
+
+      .meta {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px 14px;
+        margin-top: 10px;
+      }
+
+      @media (min-width: 860px) {
+        .meta { grid-template-columns: 1fr 1fr; }
+      }
+
+      .meta .item {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(11, 18, 32, 0.35);
+      }
+
+      .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+      .v { margin-top: 4px; font-size: 13px; color: var(--text); }
+
+      table { width: 100%; border-collapse: collapse; }
+      th, td {
+        text-align: left;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+      .amount { text-align: right; white-space: nowrap; font-weight: 800; }
+
+      .total {
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .total .label { color: var(--muted); }
+      .total .value { font-weight: 900; font-size: 18px; }
+
+      ul { margin: 8px 0 0; padding: 0 0 0 18px; line-height: 1.6; }
+      li { margin: 6px 0; }
+
+      .note {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(34, 197, 94, 0.10);
+        color: #dcfce7;
+        font-size: 13px;
+      }
+
+      .sign {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 8px;
+      }
+
+      @media (min-width: 860px) {
+        .sign { grid-template-columns: 1fr 1fr; }
+      }
+
+      .sig-box {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: rgba(11, 18, 32, 0.35);
+        min-height: 130px;
+      }
+
+      .sig-line {
+        margin-top: 46px;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .doc-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .doc-footer strong { color: var(--text); }
+
+      .actions {
+        position: sticky;
+        top: 10px;
+        z-index: 5;
+        display: flex;
+        justify-content: flex-end;
+        padding: 10px 0 0;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(59, 130, 246, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .btn:hover { background: rgba(59, 130, 246, 0.26); }
+
+      @media print {
+        body { background: #ffffff; color: #111827; }
+        .wrap { padding: 0; }
+        .doc { border-color: #e5e7eb; border-radius: 0; }
+        .doc-header { background: #ffffff; border-bottom-color: #e5e7eb; }
+        .section, .doc-footer { border-color: #e5e7eb; }
+        .subtitle, .k, th, .doc-footer, .sig-line { color: #4b5563 !important; }
+        .meta .item, .sig-box { border-color: #e5e7eb; background: #ffffff; }
+        .note { border-color: #e5e7eb; background: #f0fdf4; color: #14532d; }
+        td, th { border-bottom-color: #e5e7eb; }
+        .actions { display: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="actions">
+        <button class="btn" type="button" onclick="window.print()">Descargar PDF</button>
+      </div>
+      <div class="doc">
+        <div class="doc-header">
+          <div class="row">
+            <div class="brand">
+              <img src="/logo.jpg" alt="Café Jade" />
+              <div>
+                <div class="title">Café Jade</div>
+                <div class="sub">Sistema de Reservaciones y Control Operativo</div>
+              </div>
+            </div>
+            <div class="vendor">
+              <div style="text-align:right; min-width: 210px;">
+                <div style="font-weight: 800;">Propuesta Económica</div>
+                <div class="sub">Documento para autorización</div>
+              </div>
+              <img src="/tus.jpg" alt="The Unknown Shopper" />
+            </div>
+          </div>
+          <h1>Implementación del Sistema – Café Jade</h1>
+          <p class="subtitle">Montos por etapa, alcance de entrega y condiciones generales.</p>
+        </div>
+
+        <div class="section">
+          <h2>Datos del documento</h2>
+          <div class="meta">
+            <div class="item">
+              <div class="k">Cliente</div>
+              <div class="v">Café Jade</div>
+            </div>
+            <div class="item">
+              <div class="k">Proyecto</div>
+              <div class="v">Sistema de Reservaciones y Control Operativo</div>
+            </div>
+            <div class="item">
+              <div class="k">Fecha</div>
+              <div class="v" id="docDate">—</div>
+            </div>
+            <div class="item">
+              <div class="k">Vigencia de la propuesta</div>
+              <div class="v">15 días naturales</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Inversión</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th class="amount">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <strong>Levantamiento y diseño de arquitectura</strong>
+                  <div style="color: var(--muted); font-size: 13px; margin-top: 4px;">
+                    Incluye levantamiento de requerimientos, definición de flujo operativo, y diseño de arquitectura.
+                  </div>
+                </td>
+                <td class="amount">$4,000 MXN</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Desarrollo e implementación</strong>
+                  <div style="color: var(--muted); font-size: 13px; margin-top: 4px;">
+                    Desarrollo del sistema, configuración, pruebas y puesta en marcha.
+                  </div>
+                </td>
+                <td class="amount">$4,000 MXN</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="total">
+            <div class="label">Total</div>
+            <div class="value">$8,000 MXN</div>
+          </div>
+
+          <div class="note">Nota: ya se realizó el levantamiento y diseño de arquitectura.</div>
+        </div>
+
+        <div class="section">
+          <h2>Plazo de entrega</h2>
+          <ul>
+            <li>Entrega en <strong>3 semanas</strong> a partir del día de hoy.</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Incluye</h2>
+          <ul>
+            <li>Implementación del sistema de reservaciones y flujo operativo.</li>
+            <li>Configuración y puesta en marcha.</li>
+            <li>Capacitación al personal después de la implementación.</li>
+            <li>Documentación de uso y operación del sistema.</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Condiciones generales</h2>
+          <ul>
+            <li>
+              El alcance y entregables se describen en la propuesta de servicio (
+              <a href="/propuesta.html" style="color: inherit; font-weight: 800;">propuesta.html</a>
+              ).
+            </li>
+            <li>Los montos están expresados en pesos mexicanos (MXN).</li>
+            <li>El calendario de entrega inicia a partir de la confirmación y disponibilidad de accesos necesarios.</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Aceptación</h2>
+          <p class="muted" style="color: var(--muted);">
+            Al firmar este documento, el cliente autoriza el inicio/continuidad del proyecto bajo los montos y condiciones descritas.
+          </p>
+          <div class="sign">
+            <div class="sig-box">
+              <div class="k">Por parte del cliente</div>
+              <div class="sig-line">Nombre, firma y fecha</div>
+            </div>
+            <div class="sig-box">
+              <div class="k">Por parte del proveedor</div>
+              <div class="sig-line">Nombre, firma y fecha</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-footer">
+          <div>
+            <strong>Café Jade</strong> · Propuesta Económica
+          </div>
+          <div>
+            Referencia: <strong>propuestaeco.html</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var el = document.getElementById("docDate");
+        if (!el) return;
+        try {
+          var d = new Date();
+          var opts = { year: "numeric", month: "2-digit", day: "2-digit" };
+          var date = d.toLocaleDateString("es-MX", opts);
+          var time = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+          el.textContent = date + " " + time;
+        } catch {
+          el.textContent = String(new Date());
+        }
+      })();
+    </script>
+  </body>
+</html>

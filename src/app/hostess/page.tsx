@@ -1,0 +1,111 @@
+import { firebaseReady, listTables, listWaitingReservations } from "@/lib/firestore";
+import HostessForm from "./HostessForm";
+import { requireRole } from "@/lib/serverAuth";
+import { redirect } from "next/navigation";
+
+function badgeClass(status: string) {
+  if (status === "LIBRE") return "badge libre";
+  if (status === "OCUPADA") return "badge ocupada";
+  if (status === "RESERVADA") return "badge reservada";
+  return "badge porlimpiar";
+}
+
+function formatDDMMYY(d: Date) {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+}
+
+function formatHHMM(d: Date) {
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+export default async function HostessPage({
+  searchParams
+}: {
+  searchParams?: { tableId?: string };
+}) {
+  try {
+    await requireRole(["HOSTESS", "ADMIN"]);
+  } catch {
+    redirect("/login");
+  }
+
+  const selectedTableId = searchParams?.tableId ? String(searchParams.tableId) : null;
+
+  const ready = firebaseReady();
+  const tables = ready ? await listTables() : [];
+  const waitingWrapped = ready
+    ? await listWaitingReservations({ tableId: selectedTableId, allStatuses: true })
+    : [];
+  const waiting = waitingWrapped.map((w) => ({
+    id: w.reservation.id,
+    status: w.reservation.status,
+    source: w.reservation.source,
+    reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+    customer: w.customer,
+    table: w.table ?? null
+  }));
+
+  return (
+    <div className="grid" style={{ gap: 16 }}>
+      <HostessForm tables={tables} initialTableId={selectedTableId ?? ""} />
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Lista de espera / Reservas</h3>
+        <div className="grid">
+          {waiting.length === 0 ? <div className="small">Sin registros</div> : null}
+          {waiting.map((r) => (
+            <div key={r.id} className="card" style={{ background: "#0b1220" }}>
+              <div className="row">
+                <div>
+                  <div style={{ fontWeight: 800 }}>{r.customer.name}</div>
+                  <div className="small">
+                    {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}
+                  </div>
+                  <div className="small">
+                    {r.status} · {r.source}
+                    {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}, ${formatHHMM(r.reservedFor)}` : ""}
+                  </div>
+                </div>
+                <div style={{ flex: "0 0 auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {r.status !== "SEATED" ? (
+                    <form action="/api/reservations/seat" method="post">
+                      <input type="hidden" name="reservationId" value={r.id} />
+                      {r.table?.id || selectedTableId ? (
+                        <input
+                          type="hidden"
+                          name="tableId"
+                          value={r.table?.id ?? selectedTableId ?? ""}
+                        />
+                      ) : (
+                        <select className="input" name="tableId" required defaultValue="" style={{ minWidth: 160 }}>
+                          <option value="" disabled>
+                            Mesa...
+                          </option>
+                          {tables
+                            .filter((t) => t.status === "LIBRE")
+                            .map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                              </option>
+                            ))}
+                        </select>
+                      )}
+                      <button className="btn" type="submit" style={{ marginTop: 8 }}>
+                        Sentar
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
