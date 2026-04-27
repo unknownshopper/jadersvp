@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import LogoutButton from "./LogoutButton";
 
 export const metadata: Metadata = {
   title: "Café Jade — Reservas",
@@ -38,6 +39,7 @@ export default async function RootLayout({
               <Link className="badge" href="/admin">
                 Admin
               </Link>
+              <LogoutButton />
             </div>
           </div>
         </div>
