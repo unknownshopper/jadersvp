@@ -59,7 +59,7 @@ const pos: Record<string, { x: number; y: number }> = {
   "4": { x: 34, y: 35 },
   "5": { x: 34, y: 43 },
   "6": { x: 34, y: 51 },
-  "7": { x: 34, y: 59 },
+  "7": { x: 25, y: 84 },
   "8": { x: 25, y: 78 },
   "9": { x: 25, y: 72 },
   "10": { x: 18, y: 46 },
@@ -68,7 +68,7 @@ const pos: Record<string, { x: number; y: number }> = {
   "13": { x: 18, y: 54 },
 
   // Terraza frontal (top right)
-  "14": { x: 60, y: 30 },
+  "14": { x: 72, y: 30 },
   "15": { x: 72, y: 18 },
   "16": { x: 82, y: 18 },
   "17": { x: 92, y: 18 },
@@ -79,6 +79,7 @@ function statusClass(status: string) {
   if (status === "LIBRE") return "libre";
   if (status === "OCUPADA") return "ocupada";
   if (status === "RESERVADA") return "reservada";
+  if (status === "PROXIMA") return "proxima";
   return "porlimpiar";
 }
 
@@ -90,9 +91,14 @@ function effectiveStatus(t: CafeTable) {
   }
   const now = Date.now();
   const windowMs = 3 * 60 * 60 * 1000;
+  const soonMs = 30 * 60 * 1000;
 
   const inWindow = next - now <= windowMs && next - now >= -windowMs;
-  if (inWindow) return "RESERVADA";
+  if (inWindow) {
+    const diff = next - now;
+    if (diff > 0 && diff <= soonMs) return "PROXIMA";
+    return "RESERVADA";
+  }
 
   // Legacy/backfill behavior: if a future reservation had set status=RESERVADA,
   // allow operating today by treating it as free until it's within the window.

@@ -144,8 +144,21 @@ a { color: inherit; text-decoration: none; }
 }
 
 .table-chip.libre { border-color: #1e8449; box-shadow: 0 0 0 1px rgba(30, 132, 73, 0.15); }
-.table-chip.ocupada { border-color: #b03a2e; opacity: 0.55; cursor: not-allowed; }
-.table-chip.reservada { border-color: #7d3c98; opacity: 0.65; cursor: not-allowed; }
+.table-chip.proxima { border-color: #f39c12; box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.18); }
+.table-chip.ocupada {
+  border-color: #ff3b30;
+  background: rgba(255, 59, 48, 0.92);
+  color: #ffffff;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.table-chip.reservada {
+  border-color: #7d3c98;
+  background: rgba(125, 60, 152, 0.50);
+  color: #ffffff;
+  opacity: 1;
+  cursor: not-allowed;
+}
 .table-chip.porlimpiar { border-color: #b7950b; opacity: 0.65; cursor: not-allowed; }
 
 .table-chip.selected {
