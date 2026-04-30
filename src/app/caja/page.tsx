@@ -26,10 +26,17 @@ export default async function CajaPage() {
   const tables = ready ? await listTables() : [];
   const occupied = tables.filter((t) => t.status === "OCUPADA");
 
+  const now = Date.now();
+  const recentlyFreedWindowMs = 10 * 60 * 1000;
+  const recentlyFreed = tables
+    .filter((t) => t.status === "LIBRE" && typeof (t as any).lastFreedAt === "number")
+    .filter((t) => now - Number((t as any).lastFreedAt) <= recentlyFreedWindowMs)
+    .sort((a, b) => Number((b as any).lastFreedAt) - Number((a as any).lastFreedAt))
+    .slice(0, 12);
+
   // Caja should only surface reservations relevant "right now".
   // We fetch recent reservations and filter in-memory to avoid Firestore composite indexes.
   const wrapped = ready ? await listWaitingReservations({ allStatuses: true }) : [];
-  const now = Date.now();
   const start = now - 60 * 60 * 1000;
   const end = now + 3 * 60 * 60 * 1000;
   const active = wrapped
@@ -103,6 +110,30 @@ export default async function CajaPage() {
           ))}
         </div>
       </div>
+
+      {recentlyFreed.length > 0 ? (
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Liberadas recientemente</h3>
+          <div className="small">Se muestran por 10 minutos para referencia visual.</div>
+          <div className="grid" style={{ marginTop: 8 }}>
+            {recentlyFreed.map((t) => (
+              <div
+                key={t.id}
+                className="row"
+                style={{ justifyContent: "space-between", alignItems: "center", opacity: 0.55 }}
+              >
+                <div>
+                  <div style={{ fontWeight: 800 }}>{t.name}</div>
+                  <div className="small">{t.area}</div>
+                </div>
+                <div className="small" style={{ flex: "0 0 auto" }}>
+                  Liberada
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

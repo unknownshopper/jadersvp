@@ -53,4 +53,24 @@ En la lista de espera, abre una reserva y usa "Abrir WhatsApp" para generar el m
 ## Nube
 
 Para nube con Firebase, despliega en Vercel y configura las variables `FIREBASE_*` en el panel.
+
+## Deploy (Firebase)
+
+Comandos comunes:
+
+```bash
+# Deploy de todo lo configurado en firebase.json (App Hosting + Hosting)
+firebase deploy
+
+# Deploy solo del sistema (Next.js SSR) en Firebase App Hosting
+firebase deploy --only apphosting
+
+# Deploy solo de archivos estáticos en Firebase Hosting (public/)
+firebase deploy --only hosting
+```
+
+Notas:
+
+- `apphosting` tarda más porque hace build y rollout (SSR).
+- `hosting` es rápido y sirve documentos estáticos (ej. `public/propuesta.html`).
 # jadersvp

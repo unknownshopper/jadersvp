@@ -17,6 +17,7 @@ export type CafeTable = {
   area: Area;
   status: TableStatus;
   nextReservedFor?: number | null;
+  lastFreedAt?: number | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -112,6 +113,43 @@ export async function listTables(): Promise<CafeTable[]> {
     const bn = Number.parseInt(String(b.name), 10);
     if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
     return String(a.name).localeCompare(String(b.name));
+  });
+}
+
+export async function markNoShow(params: { reservationId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationRef = db.collection("reservations").doc(params.reservationId);
+
+  await db.runTransaction(async (tx: any) => {
+    const resDoc = await tx.get(reservationRef);
+    if (!resDoc.exists) throw new Error("Reservation not found");
+
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+
+    const ts = nowMs();
+    tx.update(reservationRef, { status: "NO_SHOW", updatedAt: ts });
+
+    const tableId = reservation.tableId ? String(reservation.tableId) : "";
+    if (!tableId) return;
+
+    const tableRef = db.collection("tables").doc(tableId);
+    const tableDoc = await tx.get(tableRef);
+    if (!tableDoc.exists) return;
+
+    // Free the table and clear the next reservation pointer if it points to this reservation's time.
+    const table = tableDoc.data() as CafeTable;
+    const next = (table as any).nextReservedFor as number | null | undefined;
+    const reservedFor = reservation.reservedFor ? Number(reservation.reservedFor) : null;
+    const clearNext = reservedFor && next && next === reservedFor;
+
+    tx.update(tableRef, {
+      status: "LIBRE",
+      ...(clearNext ? { nextReservedFor: null } : {}),
+      lastFreedAt: ts,
+      updatedAt: ts
+    });
   });
 }
 
@@ -481,12 +519,11 @@ export async function freeTable(params: { tableId: string }) {
         .collection("reservations")
         .where("tableId", "==", params.tableId)
         .where("status", "==", "SEATED")
-        .orderBy("createdAt", "desc")
         .limit(1)
     );
 
     const ts = nowMs();
-    tx.update(tableRef, { status: "LIBRE", updatedAt: ts });
+    tx.update(tableRef, { status: "LIBRE", lastFreedAt: ts, updatedAt: ts });
 
     if (!activeSnap.empty) {
       const resDoc = activeSnap.docs[0];

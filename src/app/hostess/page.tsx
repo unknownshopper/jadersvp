@@ -26,7 +26,7 @@ function formatHHMM(d: Date) {
 export default async function HostessPage({
   searchParams
 }: {
-  searchParams?: { tableId?: string };
+  searchParams?: { tableId?: string; ok?: string; err?: string };
 }) {
   try {
     await requireRole(["HOSTESS", "ADMIN"]);
@@ -41,17 +41,35 @@ export default async function HostessPage({
   const waitingWrapped = ready
     ? await listWaitingReservations({ tableId: selectedTableId, allStatuses: true })
     : [];
-  const waiting = waitingWrapped.map((w) => ({
-    id: w.reservation.id,
-    status: w.reservation.status,
-    source: w.reservation.source,
-    reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
-    customer: w.customer,
-    table: w.table ?? null
-  }));
+  const waiting = waitingWrapped
+    .filter((w) => w.reservation.status === "WAITING" || w.reservation.status === "RESERVED")
+    .map((w) => ({
+      id: w.reservation.id,
+      status: w.reservation.status,
+      source: w.reservation.source,
+      reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+      customer: w.customer,
+      table: w.table ?? null
+    }));
+
+  const now = Date.now();
+  const noShowAfterMs = 10 * 60 * 1000;
 
   return (
     <div className="grid" style={{ gap: 16 }}>
+      {searchParams?.err ? (
+        <div className="card" style={{ borderColor: "rgba(255, 59, 48, 0.35)" }}>
+          <div style={{ fontWeight: 800 }}>Error</div>
+          <div className="small">{String(searchParams.err)}</div>
+        </div>
+      ) : null}
+      {searchParams?.ok ? (
+        <div className="card" style={{ borderColor: "rgba(34, 197, 94, 0.35)" }}>
+          <div style={{ fontWeight: 800 }}>Listo</div>
+          <div className="small">{String(searchParams.ok)}</div>
+        </div>
+      ) : null}
+
       <HostessForm tables={tables} initialTableId={selectedTableId ?? ""} />
 
       <div className="card">
@@ -59,7 +77,7 @@ export default async function HostessPage({
         <div className="grid">
           {waiting.length === 0 ? <div className="small">Sin registros</div> : null}
           {waiting.map((r) => (
-            <div key={r.id} className="card" style={{ background: "#0b1220" }}>
+            <div key={r.id} className="card">
               <div className="row">
                 <div>
                   <div style={{ fontWeight: 800 }}>{r.customer.name}</div>
@@ -97,6 +115,15 @@ export default async function HostessPage({
                       )}
                       <button className="btn" type="submit" style={{ marginTop: 8 }}>
                         Sentar
+                      </button>
+                    </form>
+                  ) : null}
+
+                  {r.status !== "SEATED" && r.reservedFor && now - r.reservedFor.getTime() >= noShowAfterMs ? (
+                    <form action="/api/reservations/noshow" method="post" style={{ flex: "0 0 auto" }}>
+                      <input type="hidden" name="reservationId" value={r.id} />
+                      <button className="btn secondary" type="submit" style={{ marginTop: 8 }}>
+                        No llegó
                       </button>
                     </form>
                   ) : null}

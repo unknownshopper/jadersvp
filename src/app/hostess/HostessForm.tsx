@@ -59,9 +59,9 @@ const pos: Record<string, { x: number; y: number }> = {
   "4": { x: 34, y: 35 },
   "5": { x: 34, y: 43 },
   "6": { x: 34, y: 51 },
-  "7": { x: 25, y: 84 },
-  "8": { x: 25, y: 78 },
-  "9": { x: 25, y: 72 },
+  "7": { x: 24, y: 86 },
+  "8": { x: 24, y: 77 },
+  "9": { x: 24, y: 68 },
   "10": { x: 18, y: 46 },
   "11": { x: 18, y: 30 },
   "12": { x: 18, y: 38 },
@@ -140,7 +140,7 @@ export default function HostessForm({
   );
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+    <div className="hostess-form-grid">
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Crear reserva / Asignar mesa</h3>
         <form className="grid" action="/api/reservations/create" method="post">
