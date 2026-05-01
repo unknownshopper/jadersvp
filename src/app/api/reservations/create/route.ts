@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createReservation, findOrCreateCustomer, reserveTable } from "@/lib/firestore";
 
+function getBaseUrl(req: Request) {
+  const env = process.env.APP_BASE_URL;
+  if (env) return env;
+  const h = req.headers;
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  return host ? `${proto}://${host}` : "https://cafejadersvp.web.app";
+}
+
 function combineLocalDateTime(dateStr: string, timeStr: string): Date | null {
   if (!dateStr || !timeStr) return null;
   // Interpret as local time.
@@ -11,6 +20,8 @@ function combineLocalDateTime(dateStr: string, timeStr: string): Date | null {
 
 export async function POST(req: Request) {
   const form = await req.formData();
+
+  const baseUrl = getBaseUrl(req);
 
   const name = String(form.get("name") ?? "").trim();
   const phone = String(form.get("phone") ?? "").trim();
@@ -24,11 +35,11 @@ export async function POST(req: Request) {
   const reservedFor = combineLocalDateTime(dateStr, timeStr);
 
   if (!name) {
-    return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", req.url));
+    return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", baseUrl));
   }
 
   if (!reservedFor) {
-    return NextResponse.redirect(new URL("/hostess?err=Selecciona+fecha+y+hora", req.url));
+    return NextResponse.redirect(new URL("/hostess?err=Selecciona+fecha+y+hora", baseUrl));
   }
 
   // If a table was selected, reserve the table for that datetime.
@@ -43,12 +54,13 @@ export async function POST(req: Request) {
       partySize,
       customerId: customer.id
     });
-    return NextResponse.redirect(new URL("/hostess?ok=Reservado", req.url));
+    return NextResponse.redirect(new URL("/hostess?ok=Reservado", baseUrl));
   }
 
   const { customer } = await findOrCreateCustomer({ name, phone, email });
   await createReservation({
     customerId: customer.id,
+    customerNameSnapshot: name,
     tableId: null,
     partySize,
     reservedFor: reservedFor.getTime(),
@@ -57,5 +69,5 @@ export async function POST(req: Request) {
     notes: null
   });
 
-  return NextResponse.redirect(new URL("/hostess?ok=Reservado", req.url));
+  return NextResponse.redirect(new URL("/hostess?ok=Reservado", baseUrl));
 }

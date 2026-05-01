@@ -49,6 +49,7 @@ export default async function HostessPage({
       status: w.reservation.status,
       source: w.reservation.source,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+      customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
       customer: w.customer,
       table: w.table ?? null
     }));
@@ -85,7 +86,7 @@ export default async function HostessPage({
               <div className="row">
                 <div>
                   <div className="row" style={{ fontWeight: 800, gap: 8, flexWrap: "wrap" }}>
-                    <div>{r.customer.name}</div>
+                    <div>{r.customerNameSnapshot || r.customer.name}</div>
                     {r.customer.isRecurrent ? <span className="badge">Recurrente</span> : null}
                   </div>
                   <div className="small">

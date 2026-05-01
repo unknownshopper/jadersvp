@@ -10,8 +10,19 @@ function parseLocalDateTime(input: string): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+function getBaseUrl(req: Request) {
+  const env = process.env.APP_BASE_URL;
+  if (env) return env;
+  const h = req.headers;
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  return host ? `${proto}://${host}` : "https://cafejadersvp.web.app";
+}
+
 export async function POST(req: Request) {
   const form = await req.formData();
+
+  const baseUrl = getBaseUrl(req);
 
   const name = String(form.get("name") ?? "").trim();
   const phone = String(form.get("phone") ?? "").trim();
@@ -21,7 +32,7 @@ export async function POST(req: Request) {
   const reservedFor = parseLocalDateTime(reservedForRaw);
 
   if (!name || !phone || !reservedFor) {
-    return NextResponse.redirect(new URL("/hostess", req.url));
+    return NextResponse.redirect(new URL("/hostess", baseUrl));
   }
 
   const customer = await createCustomer({ name, phone, email });
@@ -35,5 +46,5 @@ export async function POST(req: Request) {
     notes: null
   });
 
-  return NextResponse.redirect(new URL("/hostess", req.url));
+  return NextResponse.redirect(new URL("/hostess", baseUrl));
 }

@@ -35,6 +35,7 @@ export type Customer = {
 export type Reservation = {
   id: string;
   customerId: string;
+  customerNameSnapshot?: string | null;
   tableId?: string | null;
   partySize?: number | null;
   reservedFor?: number | null;
@@ -556,6 +557,7 @@ export async function walkInAssign(params: {
     const reservationRef = db.collection("reservations").doc();
     tx.set(reservationRef, {
       customerId: customerRef.id,
+      customerNameSnapshot: params.name,
       tableId: params.tableId,
       status: "SEATED",
       source: "WALK_IN",
@@ -640,6 +642,7 @@ export async function reserveTable(params: {
     const reservationRef = db.collection("reservations").doc();
     tx.set(reservationRef, {
       customerId: customerRef.id,
+      customerNameSnapshot: params.name,
       tableId: params.tableId,
       status: "RESERVED",
       source: "CALL",
