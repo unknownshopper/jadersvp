@@ -80,7 +80,10 @@ export default async function HostessPage({
             <div key={r.id} className="card">
               <div className="row">
                 <div>
-                  <div style={{ fontWeight: 800 }}>{r.customer.name}</div>
+                  <div className="row" style={{ fontWeight: 800, gap: 8, flexWrap: "wrap" }}>
+                    <div>{r.customer.name}</div>
+                    {r.customer.isRecurrent ? <span className="badge">Recurrente</span> : null}
+                  </div>
                   <div className="small">
                     {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}
                   </div>

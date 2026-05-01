@@ -92,6 +92,38 @@ export default async function AdminPage({
           ))}
         </div>
       </div>
+
+      {summary?.features?.marketingEnabled ? (
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Módulo marketing (adicional)</h3>
+          <div className="small" style={{ marginBottom: 10 }}>
+            Disponible como módulo opcional con costo extra (requiere registrar consumos y catálogo de productos).
+          </div>
+          <div className="grid grid-3">
+            <div className="card" style={{ opacity: 0.65 }}>
+              <div className="small">Top productos más vendidos</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>—</div>
+              <div className="small" style={{ marginTop: 6 }}>
+                Comida · Bebidas · Postres
+              </div>
+            </div>
+            <div className="card" style={{ opacity: 0.65 }}>
+              <div className="small">Top productos menos vendidos</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>—</div>
+              <div className="small" style={{ marginTop: 6 }}>
+                Detecta oportunidades de menú
+              </div>
+            </div>
+            <div className="card" style={{ opacity: 0.65 }}>
+              <div className="small">Top mayor consumo / visita</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>—</div>
+              <div className="small" style={{ marginTop: 6 }}>
+                Ticket promedio + segmentación
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

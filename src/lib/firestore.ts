@@ -27,6 +27,7 @@ export type Customer = {
   name: string;
   phone: string;
   email?: string | null;
+  isRecurrent?: boolean | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -52,8 +53,22 @@ export type SurveyResponse = {
   createdAt: number;
 };
 
+export type FeatureFlags = {
+  marketingEnabled: boolean;
+};
+
 function nowMs() {
   return Date.now();
+}
+
+export async function getFeatureFlags(): Promise<FeatureFlags> {
+  const db = getFirestore();
+  if (!db) return { marketingEnabled: true };
+
+  const doc = await db.collection("config").doc("features").get();
+  const raw = doc.exists ? (doc.data() as any) : null;
+  const marketingEnabled = typeof raw?.marketingEnabled === "boolean" ? raw.marketingEnabled : true;
+  return { marketingEnabled };
 }
 
 export async function ensureTablesSeeded() {
@@ -292,6 +307,7 @@ export async function createCustomer(input: {
     name: input.name,
     phone: String(input.phone ?? ""),
     email: input.email ?? null,
+    isRecurrent: false,
     createdAt: ts,
     updatedAt: ts
   });
@@ -301,8 +317,74 @@ export async function createCustomer(input: {
     name: input.name,
     phone: String(input.phone ?? ""),
     email: input.email ?? null,
+    isRecurrent: false,
     createdAt: ts,
     updatedAt: ts
+  };
+}
+
+export async function findCustomerByContact(input: {
+  phone?: string | null;
+  email?: string | null;
+}): Promise<Customer | null> {
+  const db = getFirestore();
+  if (!db) return null;
+
+  const phone = String(input.phone ?? "").trim();
+  const email = String(input.email ?? "").trim();
+
+  if (phone) {
+    const snap = await db.collection("customers").where("phone", "==", phone).limit(1).get();
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...(d.data() as Omit<Customer, "id">) } as Customer;
+    }
+  }
+
+  if (email) {
+    const snap = await db.collection("customers").where("email", "==", email).limit(1).get();
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...(d.data() as Omit<Customer, "id">) } as Customer;
+    }
+  }
+
+  return null;
+}
+
+export async function findOrCreateCustomer(input: {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+}): Promise<{ customer: Customer; existing: boolean }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const existing = await findCustomerByContact({ phone: input.phone, email: input.email });
+  if (!existing) {
+    const customer = await createCustomer({ name: input.name, phone: input.phone ?? "", email: input.email ?? null });
+    return { customer, existing: false };
+  }
+
+  const ts = nowMs();
+  await db
+    .collection("customers")
+    .doc(existing.id)
+    .set(
+      {
+        name: input.name || existing.name,
+        ...(String(input.phone ?? "").trim() ? { phone: String(input.phone ?? "").trim() } : {}),
+        ...(String(input.email ?? "").trim() ? { email: String(input.email ?? "").trim() } : {}),
+        isRecurrent: true,
+        updatedAt: ts
+      },
+      { merge: true }
+    );
+
+  const refreshed = await db.collection("customers").doc(existing.id).get();
+  return {
+    customer: { id: refreshed.id, ...(refreshed.data() as Omit<Customer, "id">) } as Customer,
+    existing: true
   };
 }
 
@@ -417,6 +499,7 @@ export async function walkInAssign(params: {
   phone: string;
   email?: string | null;
   tableId: string;
+  customerId?: string | null;
 }) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
@@ -431,14 +514,44 @@ export async function walkInAssign(params: {
     if (table.status !== "LIBRE") throw new Error("Table not free");
 
     const ts = nowMs();
-    const customerRef = db.collection("customers").doc();
-    tx.set(customerRef, {
-      name: params.name,
-      phone: params.phone,
-      email: params.email ?? null,
-      createdAt: ts,
-      updatedAt: ts
-    });
+    const customerRef = params.customerId
+      ? db.collection("customers").doc(params.customerId)
+      : db.collection("customers").doc();
+
+    if (params.customerId) {
+      const existingCustomerDoc = await tx.get(customerRef);
+      if (existingCustomerDoc.exists) {
+        tx.set(
+          customerRef,
+          {
+            name: params.name,
+            ...(String(params.phone ?? "").trim() ? { phone: String(params.phone ?? "").trim() } : {}),
+            ...(String(params.email ?? "").trim() ? { email: String(params.email ?? "").trim() } : {}),
+            isRecurrent: true,
+            updatedAt: ts
+          },
+          { merge: true }
+        );
+      } else {
+        tx.set(customerRef, {
+          name: params.name,
+          phone: String(params.phone ?? ""),
+          email: params.email ?? null,
+          isRecurrent: false,
+          createdAt: ts,
+          updatedAt: ts
+        });
+      }
+    } else {
+      tx.set(customerRef, {
+        name: params.name,
+        phone: String(params.phone ?? ""),
+        email: params.email ?? null,
+        isRecurrent: false,
+        createdAt: ts,
+        updatedAt: ts
+      });
+    }
 
     const reservationRef = db.collection("reservations").doc();
     tx.set(reservationRef, {
@@ -464,6 +577,7 @@ export async function reserveTable(params: {
   tableId: string;
   reservedFor: number;
   partySize?: number | null;
+  customerId?: string | null;
 }) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
@@ -484,14 +598,44 @@ export async function reserveTable(params: {
     }
 
     const ts = nowMs();
-    const customerRef = db.collection("customers").doc();
-    tx.set(customerRef, {
-      name: params.name,
-      phone: params.phone,
-      email: params.email ?? null,
-      createdAt: ts,
-      updatedAt: ts
-    });
+    const customerRef = params.customerId
+      ? db.collection("customers").doc(params.customerId)
+      : db.collection("customers").doc();
+
+    if (params.customerId) {
+      const existingCustomerDoc = await tx.get(customerRef);
+      if (existingCustomerDoc.exists) {
+        tx.set(
+          customerRef,
+          {
+            name: params.name,
+            ...(String(params.phone ?? "").trim() ? { phone: String(params.phone ?? "").trim() } : {}),
+            ...(String(params.email ?? "").trim() ? { email: String(params.email ?? "").trim() } : {}),
+            isRecurrent: true,
+            updatedAt: ts
+          },
+          { merge: true }
+        );
+      } else {
+        tx.set(customerRef, {
+          name: params.name,
+          phone: String(params.phone ?? ""),
+          email: params.email ?? null,
+          isRecurrent: false,
+          createdAt: ts,
+          updatedAt: ts
+        });
+      }
+    } else {
+      tx.set(customerRef, {
+        name: params.name,
+        phone: String(params.phone ?? ""),
+        email: params.email ?? null,
+        isRecurrent: false,
+        createdAt: ts,
+        updatedAt: ts
+      });
+    }
 
     const reservationRef = db.collection("reservations").doc();
     tx.set(reservationRef, {
@@ -594,10 +738,13 @@ export async function adminSummary(range: "day" | "week" | "month") {
       completedCount: 0,
       noShowCount: 0,
       customersCount: 0,
+      features: { marketingEnabled: true } as FeatureFlags,
       latestCustomers: [] as Customer[],
       latestSurveys: [] as Array<{ survey: SurveyResponse; customerName: string }>
     };
   }
+
+  const features = await getFeatureFlags();
 
   const now = nowMs();
   const from = (() => {
@@ -663,6 +810,7 @@ export async function adminSummary(range: "day" | "week" | "month") {
     completedCount,
     noShowCount,
     customersCount,
+    features,
     latestCustomers,
     latestSurveys
   };

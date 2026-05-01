@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createCustomer, createReservation, reserveTable } from "@/lib/firestore";
+import { createReservation, findOrCreateCustomer, reserveTable } from "@/lib/firestore";
 
 function combineLocalDateTime(dateStr: string, timeStr: string): Date | null {
   if (!dateStr || !timeStr) return null;
@@ -33,11 +33,20 @@ export async function POST(req: Request) {
 
   // If a table was selected, reserve the table for that datetime.
   if (tableId) {
-    await reserveTable({ name, phone, email, tableId, reservedFor: reservedFor.getTime(), partySize });
+    const { customer } = await findOrCreateCustomer({ name, phone, email });
+    await reserveTable({
+      name,
+      phone,
+      email,
+      tableId,
+      reservedFor: reservedFor.getTime(),
+      partySize,
+      customerId: customer.id
+    });
     return NextResponse.redirect(new URL("/hostess?ok=Reservado", req.url));
   }
 
-  const customer = await createCustomer({ name, phone, email });
+  const { customer } = await findOrCreateCustomer({ name, phone, email });
   await createReservation({
     customerId: customer.id,
     tableId: null,
