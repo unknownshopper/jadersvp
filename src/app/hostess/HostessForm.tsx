@@ -118,6 +118,8 @@ export default function HostessForm({
   const [reservedDate, setReservedDate] = useState<string>(defaults.date);
   const [reservedTime, setReservedTime] = useState<string>(defaults.time);
   const [tableId, setTableId] = useState<string>(initialTableId ?? "");
+  const [phone, setPhone] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
     setTableId(initialTableId ?? "");
@@ -143,18 +145,38 @@ export default function HostessForm({
     <div className="hostess-form-grid">
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Crear reserva / Asignar mesa</h3>
-        <form className="grid" action="/api/reservations/create" method="post">
+        <form
+          className="grid"
+          action="/api/reservations/create"
+          method="post"
+          onSubmit={(e) => {
+            const hasPhone = phone.trim().length > 0;
+            const hasEmail = email.trim().length > 0;
+            if (!hasPhone && !hasEmail) {
+              const ok = window.confirm(
+                "Estás a punto de guardar una reserva SIN datos de contacto (WhatsApp/correo).\n\nCualquiera podría reclamar la reservación. ¿Deseas continuar?"
+              );
+              if (!ok) e.preventDefault();
+            }
+          }}
+        >
           <div>
             <label className="label">Nombre</label>
             <input className="input" name="name" required />
           </div>
           <div>
             <label className="label">Teléfono (WhatsApp)</label>
-            <input className="input" name="phone" required />
+            <input className="input" name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div>
             <label className="label">Correo (opcional)</label>
-            <input className="input" name="email" type="email" />
+            <input
+              className="input"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div>
             <label className="label">Personas</label>

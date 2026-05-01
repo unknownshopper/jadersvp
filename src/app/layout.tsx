@@ -3,9 +3,36 @@ import "./globals.css";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 
+const appBaseUrl = process.env.APP_BASE_URL
+  ? new URL(process.env.APP_BASE_URL)
+  : new URL("https://cafejadersvp--cafejadersvp.us-central1.hosted.app");
+
 export const metadata: Metadata = {
   title: "Café Jade — Reservas",
-  description: "Sistema de reservas y mesas"
+  description: "Sistema de reservas y mesas",
+  metadataBase: appBaseUrl,
+  openGraph: {
+    title: "Café Jade — Reservas",
+    description: "Sistema de reservas y mesas",
+    url: "/",
+    siteName: "Café Jade",
+    locale: "es_MX",
+    type: "website",
+    images: [
+      {
+        url: "/logo.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Café Jade"
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Café Jade — Reservas",
+    description: "Sistema de reservas y mesas",
+    images: ["/logo.jpg"]
+  }
 };
 
 export default async function RootLayout({

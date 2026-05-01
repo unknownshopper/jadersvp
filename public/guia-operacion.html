@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Jade — Guía rápida de operación</title>
+    <meta name="description" content="Guía rápida para operar reservaciones, hostess y caja en el sistema de Café Jade." />
+
+    <style>
+      :root{
+        --jade:#22c55e;
+        --jade-dark:#15803d;
+        --wood:#6b4a2c;
+        --wood-dark:#2d1c0e;
+        --paper:#ffffff;
+        --ink:#0f172a;
+        --muted:#475569;
+        --border: rgba(15, 23, 42, 0.12);
+        --shadow: 0 18px 40px rgba(15,23,42,0.10);
+      }
+
+      *{box-sizing:border-box}
+      body{
+        margin:0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+        color:var(--ink);
+        background:
+          radial-gradient(1200px 700px at 20% 10%, rgba(34,197,94,0.10), transparent 60%),
+          radial-gradient(900px 500px at 90% 0%, rgba(245,158,11,0.10), transparent 55%),
+          linear-gradient(180deg, rgba(252,249,242,1), rgba(241,247,237,1));
+      }
+
+      .wrap{max-width:980px; margin:0 auto; padding:28px 16px 56px;}
+
+      .top{
+        display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+        padding:14px 16px;
+        border:1px solid rgba(255,255,255,0.35);
+        border-radius:16px;
+        background:
+          radial-gradient(900px 240px at 15% 0%, rgba(34,197,94,0.16), transparent 60%),
+          radial-gradient(900px 240px at 85% 0%, rgba(245,158,11,0.14), transparent 58%),
+          linear-gradient(180deg, rgba(69, 44, 22, 0.72), rgba(45, 28, 14, 0.62));
+        color: rgba(255,255,255,0.94);
+        box-shadow: var(--shadow);
+      }
+
+      .brand{display:flex; align-items:center; gap:12px; min-width:260px;}
+      .logo{
+        width:42px; height:42px; border-radius:12px;
+        background: rgba(6,17,12,0.32);
+        border:1px solid rgba(255,255,255,0.24);
+        display:flex; align-items:center; justify-content:center;
+        overflow:hidden;
+      }
+      .logo img{width:100%; height:100%; object-fit:cover;}
+      .title{line-height:1.15}
+      .title b{display:block; font-size:16px;}
+      .title span{display:block; font-size:12px; opacity:0.9;}
+
+      .actions{display:flex; gap:10px; flex-wrap:wrap;}
+      .btn{
+        appearance:none;
+        border:1px solid rgba(255,255,255,0.22);
+        border-radius:999px;
+        background: rgba(6,17,12,0.22);
+        color: rgba(255,255,255,0.94);
+        padding:10px 12px;
+        font-weight:700;
+        cursor:pointer;
+      }
+      .btn:hover{background: rgba(34,197,94,0.18)}
+
+      .card{
+        margin-top:16px;
+        background: rgba(255,255,255,0.86);
+        border:1px solid var(--border);
+        border-radius:16px;
+        box-shadow: 0 12px 30px rgba(15,23,42,0.08);
+        padding:16px;
+      }
+
+      h1{margin:0; font-size:20px}
+      h2{margin:0 0 8px; font-size:16px}
+      p{margin:8px 0; color:var(--muted); line-height:1.45}
+      .grid{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;}
+      @media (max-width: 840px){.grid{grid-template-columns:1fr}}
+
+      .step{padding:14px; border:1px solid var(--border); border-radius:14px; background: rgba(255,255,255,0.78)}
+      .step b{display:block; margin-bottom:6px}
+      .pill{display:inline-block; padding:2px 10px; border-radius:999px; border:1px solid rgba(34,197,94,0.28); background: rgba(34,197,94,0.10); font-weight:800; font-size:12px; color: var(--jade-dark);}
+
+      .role{display:flex; align-items:flex-start; gap:12px;}
+      .role .tag{min-width:110px}
+      .role ul{margin:0; padding-left:18px; color:var(--muted)}
+      .role li{margin:4px 0}
+
+      .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+      .callout{border-left:4px solid rgba(34,197,94,0.55); background: rgba(34,197,94,0.06); padding:12px 14px; border-radius:12px; color: var(--muted)}
+
+      @media print{
+        body{background:#fff}
+        .top{box-shadow:none}
+        .btn{display:none}
+        .card{box-shadow:none}
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <div class="brand">
+          <div class="logo">
+            <img src="/logo.jpg" alt="Logo Café Jade" />
+          </div>
+          <div class="title">
+            <b>Café Jade — Guía rápida</b>
+            <span>Operación de reservaciones, hostess y caja</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="window.print()">Descargar / Imprimir PDF</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h1>Cómo usar el sistema (paso a paso)</h1>
+        <p>Esta guía es para operar el sistema diariamente. Si algo no cuadra con el proceso real del restaurante, se ajusta el flujo en el sistema.</p>
+
+        <div class="grid" style="margin-top:12px">
+          <div class="step">
+            <b>1) Iniciar sesión</b>
+            <p>Entra al enlace del sistema y usa tu correo y contraseña. Según tu rol, verás tu pantalla.</p>
+          </div>
+          <div class="step">
+            <b>2) Crear reserva / asignar mesa (Hostess)</b>
+            <p>Captura nombre y <span class="pill">WhatsApp (obligatorio)</span>. Correo es opcional.</p>
+            <p>Si ya sabes la mesa, selecciónala en el mapa o en el selector.</p>
+          </div>
+          <div class="step">
+            <b>3) Sentar</b>
+            <p>En <b>Lista de espera / Reservas</b>, elige la mesa (si no estaba asignada) y presiona <b>Sentar</b>.</p>
+          </div>
+          <div class="step">
+            <b>4) No Show (no llegó)</b>
+            <p>Si pasaron <b>10 min</b> después de la hora reservada y el cliente no llegó, presiona <b>No llegó</b>.</p>
+          </div>
+          <div class="step">
+            <b>5) Liberar mesa (Caja)</b>
+            <p>Después del pago, en <b>Caja</b> presiona <b>Liberar</b>. La mesa queda disponible para reasignar.</p>
+          </div>
+          <div class="step">
+            <b>6) Reasignar mesas</b>
+            <p>Hostess puede reasignar (sentar) en otra mesa si es necesario, según disponibilidad.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Roles y permisos (hoy)</h2>
+        <div class="role" style="margin-top:10px">
+          <div class="tag"><span class="pill">HOSTESS</span></div>
+          <ul>
+            <li>Crear reservas y asignar mesa</li>
+            <li>Sentar clientes</li>
+            <li>Marcar <b>No llegó</b> (No Show)</li>
+          </ul>
+        </div>
+        <div class="role" style="margin-top:10px">
+          <div class="tag"><span class="pill">CAJA</span></div>
+          <ul>
+            <li>Liberar mesa después del pago</li>
+          </ul>
+        </div>
+        <div class="role" style="margin-top:10px">
+          <div class="tag"><span class="pill">ADMIN</span></div>
+          <ul>
+            <li>Puede operar como hostess y como caja</li>
+          </ul>
+        </div>
+
+        <div class="callout" style="margin-top:12px">
+          <b>Notas</b>
+          <p style="margin:6px 0 0">Host y hostv (turnos distintos) usan el mismo rol <span class="mono">HOSTESS</span>. Los campos de turno (ej. MAÑANA/TARDE) son informativos por ahora.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Mensaje sugerido para enviar por WhatsApp (manual)</h2>
+        <p>Copiar/pegar:</p>
+        <div class="step" style="background: rgba(255,255,255,0.92)">
+          <div class="mono" style="white-space:pre-wrap; line-height:1.45">
+Hola, buen día. Te comparto el acceso al sistema de reservaciones de Café Jade:
+
+ENLACE: (pega aquí el enlace)
+
+Roles:
+- Hostess: crear/sentar/no-show
+- Caja: liberar mesas después del pago
+
+Guía rápida (PDF): (pega aquí el enlace a esta guía)
+
+Cualquier detalle me dices y lo ajustamos.
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

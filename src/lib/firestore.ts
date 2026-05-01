@@ -281,7 +281,7 @@ export async function migrateFloorplanV2(): Promise<{
 
 export async function createCustomer(input: {
   name: string;
-  phone: string;
+  phone?: string;
   email?: string | null;
 }): Promise<Customer> {
   const db = getFirestore();
@@ -290,13 +290,20 @@ export async function createCustomer(input: {
   const ts = nowMs();
   const ref = await db.collection("customers").add({
     name: input.name,
-    phone: input.phone,
+    phone: String(input.phone ?? ""),
     email: input.email ?? null,
     createdAt: ts,
     updatedAt: ts
   });
 
-  return { id: ref.id, name: input.name, phone: input.phone, email: input.email ?? null, createdAt: ts, updatedAt: ts };
+  return {
+    id: ref.id,
+    name: input.name,
+    phone: String(input.phone ?? ""),
+    email: input.email ?? null,
+    createdAt: ts,
+    updatedAt: ts
+  };
 }
 
 export async function createReservation(input: Omit<Reservation, "id" | "createdAt" | "updatedAt">) {

@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const timeStr = String(form.get("reservedTime") ?? "").trim();
   const reservedFor = combineLocalDateTime(dateStr, timeStr);
 
-  if (!name || !phone) {
+  if (!name) {
     return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", req.url));
   }
 
