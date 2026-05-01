@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Jade — Formato de contingencia (sin internet / sin luz)</title>
+    <meta name="description" content="Formato imprimible para operar manualmente cuando no hay internet o energía." />
+    <style>
+      :root{
+        --ink:#0f172a;
+        --muted:#475569;
+        --border: rgba(15,23,42,0.20);
+      }
+      *{box-sizing:border-box}
+      body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--ink); background:#fff;}
+      .wrap{max-width:980px; margin:0 auto; padding:22px 16px 40px;}
+      .head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+      h1{margin:0; font-size:18px}
+      .small{color:var(--muted); font-size:12px;}
+      .btn{appearance:none; border:1px solid var(--border); background:#fff; border-radius:10px; padding:10px 12px; font-weight:800; cursor:pointer;}
+      .btn:hover{background:#f8fafc}
+      .card{margin-top:12px; border:1px solid var(--border); border-radius:12px; padding:12px;}
+      table{width:100%; border-collapse:collapse;}
+      th, td{border:1px solid var(--border); padding:10px 8px; font-size:12px; vertical-align:top;}
+      th{background:#f8fafc; text-align:left;}
+      .line{display:inline-block; min-width:120px; border-bottom:1px solid var(--border); height:14px; vertical-align:baseline;}
+
+      @media print{
+        .btn{display:none}
+        .wrap{padding:0}
+        .card{border:none; padding:0}
+        th{background:#fff}
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="head">
+        <div>
+          <h1>Café Jade — Formato de contingencia</h1>
+          <div class="small">Usar cuando no haya internet o energía. Al regresar, capturar en el sistema lo pendiente.</div>
+        </div>
+        <button class="btn" onclick="window.print()">Imprimir / Guardar PDF</button>
+      </div>
+
+      <div class="card">
+        <div class="small" style="margin-bottom:10px">
+          Fecha: <span class="line"></span> &nbsp; Turno: <span class="line"></span> &nbsp; Hostess: <span class="line"></span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px">Hora</th>
+              <th style="width:90px">Mesa</th>
+              <th>Nombre</th>
+              <th style="width:90px">Personas</th>
+              <th style="width:160px">WhatsApp</th>
+              <th style="width:200px">Notas</th>
+              <th style="width:160px">Caja (pago / liberar)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td style="height:44px"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+
+        <div class="small" style="margin-top:10px">
+          Sugerencia: si hay velas y no hay sistema, prioriza anotar <b>hora + mesa + nombre + WhatsApp</b>. El resto se completa después.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

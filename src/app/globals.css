@@ -135,6 +135,17 @@ a { color: inherit; text-decoration: none; }
 
 .small { font-size: 12px; opacity: 0.85; }
 
+.offline-banner {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(255, 251, 235, 0.88);
+}
+
+html[data-offline="true"] .requires-online {
+  pointer-events: none;
+  opacity: 0.55;
+  filter: grayscale(0.05);
+}
+
 .hostess-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

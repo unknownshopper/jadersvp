@@ -2,6 +2,7 @@ import { firebaseReady, listTables, listWaitingReservations } from "@/lib/firest
 import HostessForm from "./HostessForm";
 import { requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
+import OfflineBanner from "../OfflineBanner";
 
 function badgeClass(status: string) {
   if (status === "LIBRE") return "badge libre";
@@ -57,6 +58,7 @@ export default async function HostessPage({
 
   return (
     <div className="grid" style={{ gap: 16 }}>
+      <OfflineBanner />
       {searchParams?.err ? (
         <div className="card" style={{ borderColor: "rgba(255, 59, 48, 0.35)" }}>
           <div style={{ fontWeight: 800 }}>Error</div>
@@ -70,9 +72,11 @@ export default async function HostessPage({
         </div>
       ) : null}
 
-      <HostessForm tables={tables} initialTableId={selectedTableId ?? ""} />
+      <div className="requires-online">
+        <HostessForm tables={tables} initialTableId={selectedTableId ?? ""} />
+      </div>
 
-      <div className="card">
+      <div className="card requires-online">
         <h3 style={{ marginTop: 0 }}>Lista de espera / Reservas</h3>
         <div className="grid">
           {waiting.length === 0 ? <div className="small">Sin registros</div> : null}

@@ -1,6 +1,7 @@
 import { firebaseReady, listTables, listWaitingReservations } from "@/lib/firestore";
 import { requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
+import OfflineBanner from "../OfflineBanner";
 
 function formatDDMMYY(d: Date) {
   const dd = String(d.getDate()).padStart(2, "0");
@@ -58,12 +59,13 @@ export default async function CajaPage() {
 
   return (
     <div className="grid" style={{ gap: 16, maxWidth: 720 }}>
+      <OfflineBanner />
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Caja — Liberar mesa</h2>
         <div className="small">Al cobrar, libera la mesa para que hostess la reasigne.</div>
       </div>
 
-      <div className="card">
+      <div className="card requires-online">
         <h3 style={{ marginTop: 0 }}>Reservas activas (ventana de tiempo)</h3>
         <div className="small">Mostrando solo lo relevante para operar ahora.</div>
         {active.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
@@ -90,7 +92,7 @@ export default async function CajaPage() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card requires-online">
         <h3 style={{ marginTop: 0 }}>Mesas ocupadas</h3>
         {occupied.length === 0 ? <div className="small">No hay mesas ocupadas</div> : null}
         <div className="grid">
