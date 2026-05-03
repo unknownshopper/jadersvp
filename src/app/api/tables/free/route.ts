@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { freeTable } from "@/lib/firestore";
+import { enqueueSurveyOutbox, freeTable, getReservationDetail } from "@/lib/firestore";
 import { requireRole } from "@/lib/serverAuth";
 
 function getBaseUrl(req: Request) {
@@ -22,7 +22,15 @@ export async function POST(req: Request) {
     const tableId = String(form.get("tableId") ?? "");
     if (!tableId) return NextResponse.redirect(new URL("/caja?err=Falta+mesa", baseUrl));
 
-    await freeTable({ tableId });
+    const { completedReservationId } = await freeTable({ tableId });
+
+    if (completedReservationId) {
+      const detail = await getReservationDetail(completedReservationId);
+      const customer = detail?.customer ?? null;
+
+      const suggestedChannel = customer?.phone ? "WHATSAPP" : customer?.email ? "EMAIL" : "NONE";
+      await enqueueSurveyOutbox({ reservationId: completedReservationId, suggestedChannel });
+    }
 
     return NextResponse.redirect(new URL("/caja?ok=Liberada", baseUrl));
   } catch (err: any) {

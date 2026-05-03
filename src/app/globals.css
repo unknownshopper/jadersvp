@@ -94,7 +94,7 @@ a { color: inherit; text-decoration: none; }
 
 .badge.libre { border-color: #1e8449; }
 .badge.ocupada { border-color: #b03a2e; }
-.badge.reservada { border-color: #7d3c98; }
+.badge.reservada { border-color: #6d28d9; }
 .badge.porlimpiar { border-color: #b7950b; }
 
 .topbar {
@@ -127,6 +127,75 @@ a { color: inherit; text-decoration: none; }
 .topbar .badge {
   border-color: rgba(255, 255, 255, 0.24);
   background: rgba(6, 17, 12, 0.22);
+}
+
+.rating-scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.rating-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 163, 74, 0.28);
+  background: rgba(255, 255, 255, 0.82);
+  color: #0f172a;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rating-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rating-pill:has(input:checked) {
+  border-color: rgba(34, 197, 94, 0.95);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.92), rgba(16, 185, 129, 0.82));
+  color: #06220f;
+}
+
+.yn-scale {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.yn-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 163, 74, 0.28);
+  background: rgba(255, 255, 255, 0.82);
+  color: #0f172a;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+  font-size: 18px;
+}
+
+.yn-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.yn-pill:has(input:checked) {
+  border-color: rgba(34, 197, 94, 0.95);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.24), rgba(255, 255, 255, 0.86));
+}
+
+@media (max-width: 520px) {
+  .rating-scale { gap: 8px; }
+  .rating-pill { height: 42px; }
 }
 
 .topbar .badge:hover {
@@ -240,10 +309,13 @@ html[data-offline="true"] .requires-online {
   cursor: not-allowed;
 }
 .table-chip.reservada {
-  border-color: #7d3c98;
-  background: rgba(125, 60, 152, 0.50);
+  border-color: #6d28d9;
+  background: rgba(109, 40, 217, 0.92);
   color: #ffffff;
   opacity: 1;
+  box-shadow:
+    0 0 0 2px rgba(109, 40, 217, 0.35),
+    0 10px 22px rgba(0, 0, 0, 0.18);
   cursor: not-allowed;
 }
 .table-chip.porlimpiar { border-color: #b7950b; opacity: 0.65; cursor: not-allowed; }

@@ -16,7 +16,11 @@ function formatHHMM(d: Date) {
   return `${hh}:${mm}`;
 }
 
-export default async function CajaPage() {
+export default async function CajaPage({
+  searchParams
+}: {
+  searchParams?: { ok?: string; err?: string };
+}) {
   try {
     await requireRole(["CAJA", "ADMIN"]);
   } catch {
@@ -60,6 +64,21 @@ export default async function CajaPage() {
   return (
     <div className="grid" style={{ gap: 16, maxWidth: 720 }}>
       <OfflineBanner />
+      {searchParams?.err || searchParams?.ok ? (
+        <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+          {searchParams?.ok ? (
+            <span className="badge" style={{ borderColor: "rgba(34, 197, 94, 0.55)" }}>
+              {String(searchParams.ok)}
+            </span>
+          ) : null}
+          {searchParams?.err ? (
+            <span className="badge" style={{ borderColor: "rgba(255, 59, 48, 0.55)" }}>
+              {String(searchParams.err)}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Caja — Liberar mesa</h2>
         <div className="small">Al cobrar, libera la mesa para que hostess la reasigne.</div>

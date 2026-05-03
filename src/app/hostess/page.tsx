@@ -50,6 +50,7 @@ export default async function HostessPage({
       source: w.reservation.source,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
       customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
+      notes: w.reservation.notes ?? null,
       customer: w.customer,
       table: w.table ?? null
     }));
@@ -96,6 +97,7 @@ export default async function HostessPage({
                     {r.status} · {r.source}
                     {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}, ${formatHHMM(r.reservedFor)}` : ""}
                   </div>
+                  {r.notes ? <div className="small">{r.notes}</div> : null}
                 </div>
                 <div style={{ flex: "0 0 auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {r.status !== "SEATED" ? (

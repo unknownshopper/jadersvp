@@ -51,7 +51,21 @@ export type SurveyResponse = {
   reservationId: string;
   rating: number;
   comment?: string | null;
+  answers?: Record<string, string> | null;
   createdAt: number;
+};
+
+export type SurveyConfig = {
+  questions: string[];
+};
+
+export type SurveyOutboxItem = {
+  id: string;
+  reservationId: string;
+  status: "PENDING" | "SENT";
+  suggestedChannel: "WHATSAPP" | "EMAIL" | "NONE";
+  createdAt: number;
+  sentAt?: number | null;
 };
 
 export type FeatureFlags = {
@@ -70,6 +84,72 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
   const raw = doc.exists ? (doc.data() as any) : null;
   const marketingEnabled = typeof raw?.marketingEnabled === "boolean" ? raw.marketingEnabled : true;
   return { marketingEnabled };
+}
+
+export async function getSurveyConfig(): Promise<SurveyConfig> {
+  const db = getFirestore();
+  if (!db) return { questions: [] };
+
+  const doc = await db.collection("config").doc("survey").get();
+  const raw = doc.exists ? (doc.data() as any) : null;
+  const questions = Array.isArray(raw?.questions) ? raw.questions.map((q: any) => String(q)).filter(Boolean) : [];
+  return { questions };
+}
+
+export async function setSurveyConfig(input: SurveyConfig) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const questions = (input.questions ?? []).map((q) => String(q).trim()).filter(Boolean);
+  await db.collection("config").doc("survey").set({ questions, updatedAt: nowMs() }, { merge: true });
+}
+
+export async function listSurveysForDashboard(params?: { limit?: number }): Promise<SurveyResponse[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  const limit = Math.max(1, Math.min(1000, Number(params?.limit ?? 200)));
+  const snap = await db.collection("surveys").orderBy("createdAt", "desc").limit(limit).get();
+  return snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as Omit<SurveyResponse, "id">) }) as SurveyResponse);
+}
+
+export async function enqueueSurveyOutbox(params: {
+  reservationId: string;
+  suggestedChannel: "WHATSAPP" | "EMAIL" | "NONE";
+}) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const ts = nowMs();
+  const ref = await db.collection("surveyOutbox").add({
+    reservationId: params.reservationId,
+    status: "PENDING",
+    suggestedChannel: params.suggestedChannel,
+    createdAt: ts,
+    sentAt: null
+  });
+
+  return ref.id;
+}
+
+export async function listPendingSurveyOutbox(params?: { limit?: number }): Promise<SurveyOutboxItem[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  const limit = Math.max(1, Math.min(500, Number(params?.limit ?? 100)));
+  const snap = await db.collection("surveyOutbox").where("status", "==", "PENDING").limit(limit).get();
+
+  return snap.docs
+    .map((d: any) => ({ id: d.id, ...(d.data() as Omit<SurveyOutboxItem, "id">) }) as SurveyOutboxItem)
+    .sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
+}
+
+export async function markSurveyOutboxSent(params: { outboxId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const ts = nowMs();
+  await db.collection("surveyOutbox").doc(params.outboxId).set({ status: "SENT", sentAt: ts }, { merge: true });
 }
 
 export async function ensureTablesSeeded() {
@@ -489,8 +569,13 @@ export async function seatReservation(params: { reservationId: string; tableId: 
     const table = tableDoc.data() as CafeTable;
     if (table.status !== "LIBRE") throw new Error("Table not free");
 
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+    const next = (table as any).nextReservedFor as number | null | undefined;
+    const reservedFor = reservation.reservedFor ? Number(reservation.reservedFor) : null;
+    const nextReservedFor = reservedFor && next && next === reservedFor ? null : next ?? null;
+
     const ts = nowMs();
-    tx.update(tableRef, { status: "OCUPADA", nextReservedFor: null, updatedAt: ts });
+    tx.update(tableRef, { status: "OCUPADA", nextReservedFor, updatedAt: ts });
     tx.update(reservationRef, { tableId: params.tableId, status: "SEATED", updatedAt: ts });
   });
 }
@@ -568,7 +653,8 @@ export async function walkInAssign(params: {
       updatedAt: ts
     });
 
-    tx.update(tableRef, { status: "OCUPADA", nextReservedFor: null, updatedAt: ts });
+    // Do not clear nextReservedFor: there may be a future reservation scheduled for this table.
+    tx.update(tableRef, { status: "OCUPADA", updatedAt: ts });
   });
 }
 
@@ -579,6 +665,7 @@ export async function reserveTable(params: {
   tableId: string;
   reservedFor: number;
   partySize?: number | null;
+  notes?: string | null;
   customerId?: string | null;
 }) {
   const db = getFirestore();
@@ -648,7 +735,7 @@ export async function reserveTable(params: {
       source: "CALL",
       reservedFor: params.reservedFor,
       partySize: params.partySize ?? null,
-      notes: null,
+      notes: params.notes ?? null,
       createdAt: ts,
       updatedAt: ts
     });
@@ -657,11 +744,13 @@ export async function reserveTable(params: {
   });
 }
 
-export async function freeTable(params: { tableId: string }) {
+export async function freeTable(params: { tableId: string }): Promise<{ completedReservationId: string | null }> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
   const tableRef = db.collection("tables").doc(params.tableId);
+
+  let completedReservationId: string | null = null;
 
   await db.runTransaction(async (tx: any) => {
     const tableDoc = await tx.get(tableRef);
@@ -681,9 +770,12 @@ export async function freeTable(params: { tableId: string }) {
 
     if (!activeSnap.empty) {
       const resDoc = activeSnap.docs[0];
+      completedReservationId = String(resDoc.id);
       tx.update(resDoc.ref, { status: "COMPLETED", updatedAt: ts });
     }
   });
+
+  return { completedReservationId };
 }
 
 export async function getReservationDetail(reservationId: string) {
@@ -719,7 +811,12 @@ export async function getReservationDetail(reservationId: string) {
   return { reservation, customer, table, survey };
 }
 
-export async function createSurvey(input: { reservationId: string; rating: number; comment?: string | null }) {
+export async function createSurvey(input: {
+  reservationId: string;
+  rating: number;
+  comment?: string | null;
+  answers?: Record<string, string> | null;
+}) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
@@ -727,6 +824,7 @@ export async function createSurvey(input: { reservationId: string; rating: numbe
     reservationId: input.reservationId,
     rating: input.rating,
     comment: input.comment ?? null,
+    answers: input.answers ?? null,
     createdAt: nowMs()
   });
 

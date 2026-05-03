@@ -107,6 +107,15 @@ function effectiveStatus(t: CafeTable) {
   return t.status;
 }
 
+function effectiveStatusAt(t: CafeTable, targetMs: number | null) {
+  const next = (t as any).nextReservedFor as number | null | undefined;
+  if (targetMs && next) {
+    const toleranceMs = 15 * 60 * 1000;
+    if (Math.abs(next - targetMs) <= toleranceMs) return "RESERVADA";
+  }
+  return effectiveStatus(t);
+}
+
 export default function HostessForm({
   tables,
   initialTableId
@@ -120,6 +129,22 @@ export default function HostessForm({
   const [tableId, setTableId] = useState<string>(initialTableId ?? "");
   const [phone, setPhone] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+
+  const reservedForMs = useMemo(() => {
+    const ds = String(reservedDate || "").trim();
+    const ts = String(reservedTime || "").trim();
+    const m = ds.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const t = ts.match(/^(\d{2}):(\d{2})$/);
+    if (!m || !t) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    const hh = Number(t[1]);
+    const mm = Number(t[2]);
+    const dt = new Date(y, mo - 1, d, hh, mm, 0, 0);
+    const ms = dt.getTime();
+    return Number.isNaN(ms) ? null : ms;
+  }, [reservedDate, reservedTime]);
 
   useEffect(() => {
     setTableId(initialTableId ?? "");
@@ -183,6 +208,10 @@ export default function HostessForm({
             <input className="input" name="partySize" type="number" min={1} step={1} inputMode="numeric" />
           </div>
           <div>
+            <label className="label">Indicaciones especiales / notas</label>
+            <textarea className="input" name="notes" rows={3} placeholder="Cumpleaños, celebración, alergias, etc." />
+          </div>
+          <div>
             <label className="label">Fecha</label>
             <select
               className="input"
@@ -220,7 +249,7 @@ export default function HostessForm({
             <select className="input" value={tableId} onChange={(e) => setTableId(e.target.value)}>
               <option value="">(sin asignar)</option>
               {tablesForPicker.map((t) => {
-                const s = effectiveStatus(t);
+                const s = effectiveStatusAt(t, reservedForMs);
                 return (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.area}) · {s}
@@ -244,19 +273,21 @@ export default function HostessForm({
           <div className="table-map" role="group" aria-label="Croquis de mesas">
             {tables.map((t) => {
               const p = pos[String(t.name)] ?? null;
-              const s = effectiveStatus(t);
+              const s = effectiveStatusAt(t, reservedForMs);
               const cls = `table-chip ${statusClass(s)} ${tableId === t.id ? "selected" : ""}`;
               return (
                 <button
                   key={t.id}
                   type="button"
                   className={cls}
+                  disabled={s !== "LIBRE"}
                   style={
                     p
                       ? ({ left: `${p.x}%`, top: `${p.y}%` } as any)
                       : ({ position: "static" } as any)
                   }
                   onClick={() => {
+                    if (s !== "LIBRE") return;
                     setTableId(t.id);
                     const url = new URL(window.location.href);
                     url.searchParams.set("tableId", t.id);

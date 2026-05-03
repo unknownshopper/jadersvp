@@ -29,6 +29,7 @@ export async function POST(req: Request) {
   const tableId = String(form.get("tableId") ?? "").trim() || null;
   const partySizeRaw = String(form.get("partySize") ?? "").trim();
   const partySize = partySizeRaw ? Number.parseInt(partySizeRaw, 10) : null;
+  const notes = String(form.get("notes") ?? "").trim() || null;
 
   const dateStr = String(form.get("reservedDate") ?? "").trim();
   const timeStr = String(form.get("reservedTime") ?? "").trim();
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
       tableId,
       reservedFor: reservedFor.getTime(),
       partySize,
+      notes,
       customerId: customer.id
     });
     return NextResponse.redirect(new URL("/hostess?ok=Reservado", baseUrl));
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
     reservedFor: reservedFor.getTime(),
     status: "RESERVED",
     source: "CALL",
-    notes: null
+    notes
   });
 
   return NextResponse.redirect(new URL("/hostess?ok=Reservado", baseUrl));

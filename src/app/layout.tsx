@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
+import { getSessionUser } from "@/lib/serverAuth";
 
 const appBaseUrl = process.env.APP_BASE_URL
   ? new URL(process.env.APP_BASE_URL)
@@ -38,6 +39,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getSessionUser();
+
   return (
     <html lang="es">
       <body>
@@ -66,6 +69,16 @@ export default async function RootLayout({
               <Link className="badge" href="/admin">
                 Admin
               </Link>
+              {user?.role === "ADMIN" ? (
+                <>
+                  <Link className="badge" href="/admin/encuesta">
+                    Encuesta
+                  </Link>
+                  <Link className="badge" href="/admin/encuestas-pendientes">
+                    Pendientes
+                  </Link>
+                </>
+              ) : null}
               <LogoutButton />
             </div>
           </div>
