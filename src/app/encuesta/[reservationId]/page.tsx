@@ -1,5 +1,6 @@
 import { getReservationDetail, getSurveyConfig } from "@/lib/firestore";
 import SurveyQuestionsClient from "./SurveyQuestionsClient";
+import SurveyRatingClient from "./SurveyRatingClient";
 
 export default async function SurveyPage({
   params,
@@ -75,20 +76,7 @@ export default async function SurveyPage({
 
         <form className="grid" action="/api/surveys" method="post" style={{ marginTop: 10 }}>
           <input type="hidden" name="reservationId" value={reservation.id} />
-          <div>
-            <label className="label">En general, ¿cómo calificarías tu visita?</label>
-            <div className="rating-scale" role="radiogroup" aria-label="Calificación 1 a 5">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <label key={n} className="rating-pill">
-                  <input type="radio" name="rating" value={String(n)} defaultChecked={n === 5} required />
-                  <span>{n}</span>
-                </label>
-              ))}
-            </div>
-            <div className="small" style={{ marginTop: 6, opacity: 0.8 }}>
-              1 = Muy mala · 5 = Excelente
-            </div>
-          </div>
+          <SurveyRatingClient />
 
           <SurveyQuestionsClient questions={questions} />
 

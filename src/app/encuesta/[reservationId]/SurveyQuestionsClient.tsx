@@ -6,6 +6,14 @@ function keyFor(idx: number) {
   return `q_${idx + 1}`;
 }
 
+function detailPlaceholder(question: string) {
+  const q = String(question || "").toLowerCase();
+  if (q.includes("atendieron") && q.includes("amable")) return "Coméntenos su experiencia";
+  if (q.includes("qué no") && q.includes("gust")) return "Coméntenos su experiencia";
+  if (q.includes("recomendar")) return "¿Por qué?";
+  return "Cuéntanos qué pasó (opcional)";
+}
+
 export default function SurveyQuestionsClient({ questions }: { questions: string[] }) {
   const keys = useMemo(() => questions.map((_, idx) => keyFor(idx)), [questions]);
   const [choices, setChoices] = useState<Record<string, "SI" | "NO">>(() => {
@@ -51,7 +59,7 @@ export default function SurveyQuestionsClient({ questions }: { questions: string
                   className="input"
                   name={`${k}_detail`}
                   rows={3}
-                  placeholder="Cuéntanos qué pasó (opcional)"
+                  placeholder={detailPlaceholder(q)}
                 />
               </div>
             ) : null}

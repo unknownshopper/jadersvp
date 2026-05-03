@@ -18,6 +18,8 @@ export async function POST(req: Request) {
   const rating = Number(form.get("rating"));
   const comment = String(form.get("comment") ?? "").trim() || null;
   const answers: Record<string, string> = {};
+  const ratingDetail = String(form.get("rating_detail") ?? "").trim();
+  if (ratingDetail) answers["rating_detail"] = ratingDetail;
   for (const [k, v] of form.entries()) {
     const key = String(k);
     const val = String(v ?? "").trim();

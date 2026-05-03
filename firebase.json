@@ -16,6 +16,71 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/_next/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/encuesta/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/hostess/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/caja/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/admin/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/reservations/**",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/login",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      }
     ]
   }
 }
