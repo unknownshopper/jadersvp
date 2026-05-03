@@ -40,28 +40,35 @@
         }
       },
       {
-        "source": "/hostess/**",
+        "source": "/encuesta{,/**}",
         "run": {
           "serviceId": "cafejadersvp",
           "region": "us-central1"
         }
       },
       {
-        "source": "/caja/**",
+        "source": "/hostess{,/**}",
         "run": {
           "serviceId": "cafejadersvp",
           "region": "us-central1"
         }
       },
       {
-        "source": "/admin/**",
+        "source": "/caja{,/**}",
         "run": {
           "serviceId": "cafejadersvp",
           "region": "us-central1"
         }
       },
       {
-        "source": "/reservations/**",
+        "source": "/admin{,/**}",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/reservations{,/**}",
         "run": {
           "serviceId": "cafejadersvp",
           "region": "us-central1"

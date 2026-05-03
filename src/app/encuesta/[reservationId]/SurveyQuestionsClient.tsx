@@ -8,10 +8,10 @@ function keyFor(idx: number) {
 
 function detailPlaceholder(question: string) {
   const q = String(question || "").toLowerCase();
-  if (q.includes("atendieron") && q.includes("amable")) return "Coméntenos su experiencia";
-  if (q.includes("qué no") && q.includes("gust")) return "Coméntenos su experiencia";
+  if (q.includes("atendieron") && q.includes("amable")) return "Nos interesa su opinión.";
+  if (q.includes("qué no") && q.includes("gust")) return "Nos interesa su opinión.";
   if (q.includes("recomendar")) return "¿Por qué?";
-  return "Cuéntanos qué pasó (opcional)";
+  return null;
 }
 
 export default function SurveyQuestionsClient({ questions }: { questions: string[] }) {
@@ -53,13 +53,13 @@ export default function SurveyQuestionsClient({ questions }: { questions: string
               </label>
             </div>
 
-            {v === "NO" ? (
+            {v === "NO" && detailPlaceholder(q) ? (
               <div style={{ marginTop: 8 }}>
                 <textarea
                   className="input"
                   name={`${k}_detail`}
                   rows={3}
-                  placeholder={detailPlaceholder(q)}
+                  placeholder={detailPlaceholder(q) ?? ""}
                 />
               </div>
             ) : null}

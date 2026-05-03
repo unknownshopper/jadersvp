@@ -57,31 +57,11 @@ export default async function AdminPage({
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Base de datos (clientes)</h3>
-        <div className="small" style={{ marginBottom: 10 }}>
-          Total: {summary?.customersCount ?? 0}
-        </div>
-        <div className="grid">
-          {(summary?.latestCustomers ?? []).map((c) => (
-            <div key={c.id} className="row" style={{ justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontWeight: 800 }}>{c.name}</div>
-                <div className="small">
-                  {c.phone} {c.email ? `· ${c.email}` : ""}
-                </div>
-              </div>
-              <div className="small">{new Date(c.createdAt).toLocaleDateString()}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card">
         <h3 style={{ marginTop: 0 }}>Comentarios / Encuestas (últimas 20)</h3>
         {(summary?.latestSurveys ?? []).length === 0 ? <div className="small">Sin respuestas</div> : null}
         <div className="grid">
           {(summary?.latestSurveys ?? []).map(({ survey, customerName }) => (
-            <div key={survey.id} className="card" style={{ background: "#0b1220" }}>
+            <div key={survey.id} className="card" style={{ background: "rgba(255, 255, 255, 0.72)" }}>
               <div style={{ fontWeight: 900 }}>{survey.rating}/5</div>
               <div className="small">{customerName}</div>
               {survey.comment ? <div style={{ marginTop: 8 }}>{survey.comment}</div> : null}
@@ -124,6 +104,29 @@ export default async function AdminPage({
           </div>
         </div>
       ) : null}
+
+      <details className="card" style={{ opacity: 0.98 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 900 }}>Base de datos (clientes)</summary>
+        <div className="small" style={{ marginTop: 10, marginBottom: 10 }}>
+          Total: {summary?.customersCount ?? 0}
+        </div>
+        <div className="grid">
+          {(summary?.latestCustomers ?? [])
+            .slice()
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base" }))
+            .map((c) => (
+              <div key={c.id} className="row" style={{ justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontWeight: 800 }}>{c.name}</div>
+                  <div className="small">
+                    {c.phone} {c.email ? `· ${c.email}` : ""}
+                  </div>
+                </div>
+                <div className="small">{new Date(c.createdAt).toLocaleDateString()}</div>
+              </div>
+            ))}
+        </div>
+      </details>
     </div>
   );
 }

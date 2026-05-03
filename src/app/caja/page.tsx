@@ -29,7 +29,6 @@ export default async function CajaPage({
 
   const ready = firebaseReady();
   const tables = ready ? await listTables() : [];
-  const occupied = tables.filter((t) => t.status === "OCUPADA");
 
   const now = Date.now();
   const recentlyFreedWindowMs = 10 * 60 * 1000;
@@ -94,7 +93,8 @@ export default async function CajaPage({
               <div>
                 <div style={{ fontWeight: 800 }}>{r.customer.name}</div>
                 <div className="small">
-                  Mesa {r.table?.name ?? "(sin mesa)"} · {r.status}
+                  Mesa {r.table?.name ?? "(sin mesa)"}
+                  {r.table?.area ? ` · ${r.table.area}` : ""} · {r.status}
                   {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}, ${formatHHMM(r.reservedFor)}` : ""}
                 </div>
               </div>
@@ -106,27 +106,6 @@ export default async function CajaPage({
                   </button>
                 </form>
               ) : null}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card requires-online">
-        <h3 style={{ marginTop: 0 }}>Mesas ocupadas</h3>
-        {occupied.length === 0 ? <div className="small">No hay mesas ocupadas</div> : null}
-        <div className="grid">
-          {occupied.map((t) => (
-            <div key={t.id} className="row" style={{ justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontWeight: 800 }}>{t.name}</div>
-                <div className="small">{t.area}</div>
-              </div>
-              <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
-                <input type="hidden" name="tableId" value={t.id} />
-                <button className="btn" type="submit">
-                  Liberar
-                </button>
-              </form>
             </div>
           ))}
         </div>

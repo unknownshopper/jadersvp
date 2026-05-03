@@ -1,6 +1,44 @@
+import type { Metadata } from "next";
 import { getReservationDetail, getSurveyConfig } from "@/lib/firestore";
 import SurveyQuestionsClient from "./SurveyQuestionsClient";
 import SurveyRatingClient from "./SurveyRatingClient";
+
+export async function generateMetadata({
+  params
+}: {
+  params: { reservationId: string };
+}): Promise<Metadata> {
+  const reservationId = String(params.reservationId);
+  const base = process.env.APP_BASE_URL ?? "https://cafejadersvp.web.app";
+  const url = `/encuesta/${reservationId}`;
+
+  return {
+    title: "Queremos saber tu opinión — Café Jade",
+    description: "Tu opinión nos importa. Nos toma menos de 1 minuto.",
+    openGraph: {
+      title: "Queremos saber tu opinión — Café Jade",
+      description: "Tu opinión nos importa. Nos toma menos de 1 minuto.",
+      url,
+      siteName: "Café Jade",
+      locale: "es_MX",
+      type: "website",
+      images: [
+        {
+          url: `${base}/logo.jpg`,
+          width: 1200,
+          height: 630,
+          alt: "Café Jade"
+        }
+      ]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Queremos saber tu opinión — Café Jade",
+      description: "Tu opinión nos importa. Nos toma menos de 1 minuto.",
+      images: [`${base}/logo.jpg`]
+    }
+  };
+}
 
 export default async function SurveyPage({
   params,

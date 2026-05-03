@@ -42,6 +42,8 @@ export default async function AdminEncuestasPendientesPage({
     })
   );
 
+  const pendingToSend = rows.filter((r) => !r.survey);
+
   return (
     <div className="grid" style={{ gap: 16 }}>
       {searchParams?.err || searchParams?.ok ? (
@@ -65,10 +67,9 @@ export default async function AdminEncuestasPendientesPage({
       </div>
 
       <div className="card requires-online">
-        {rows.length === 0 ? <div className="small">Sin pendientes</div> : null}
+        {pendingToSend.length === 0 ? <div className="small">Sin pendientes</div> : null}
         <div className="grid">
-          {rows.map(({ it, customer, survey, link }) => {
-            const hasAnswered = Boolean(survey);
+          {pendingToSend.map(({ it, customer, link }) => {
             const wa = customer?.phone ? normalizePhoneToWa(customer.phone) : "";
             const waText = customer
               ? `Hola ${customer.name}, gracias por tu visita a Café Jade. ¿Nos ayudas con una encuesta rápida?\n\n${link}`
@@ -80,12 +81,13 @@ export default async function AdminEncuestasPendientesPage({
                   <div>
                     <div style={{ fontWeight: 900 }}>
                       {customer?.name || "(Sin cliente)"}
-                      {hasAnswered ? " · Respondida" : ""}
                     </div>
                     <div className="small">
                       Canal sugerido: {it.suggestedChannel} · {new Date(it.createdAt).toLocaleString()}
                     </div>
                     <div className="small">{customer?.phone ? customer.phone : ""} {customer?.email ? `· ${customer.email}` : ""}</div>
+                    <div className="small">Encuesta: {it.reservationId}</div>
+                    <div className="small" style={{ opacity: 0.65 }}>Outbox: {it.id}</div>
                   </div>
                   <form action="/api/admin/survey-outbox/sent" method="post" style={{ flex: "0 0 auto" }}>
                     <input type="hidden" name="outboxId" value={it.id} />

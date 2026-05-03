@@ -55,6 +55,12 @@ export type SurveyResponse = {
   createdAt: number;
 };
 
+export type SurveyWithCustomer = {
+  survey: SurveyResponse;
+  reservation: Reservation | null;
+  customer: Customer | null;
+};
+
 export type SurveyConfig = {
   questions: string[];
 };
@@ -111,6 +117,46 @@ export async function listSurveysForDashboard(params?: { limit?: number }): Prom
   const limit = Math.max(1, Math.min(1000, Number(params?.limit ?? 200)));
   const snap = await db.collection("surveys").orderBy("createdAt", "desc").limit(limit).get();
   return snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as Omit<SurveyResponse, "id">) }) as SurveyResponse);
+}
+
+export async function listSurveysWithCustomer(params?: { limit?: number; fromMs?: number }): Promise<SurveyWithCustomer[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  const limit = Math.max(1, Math.min(1500, Number(params?.limit ?? 500)));
+  let q: any = db.collection("surveys").orderBy("createdAt", "desc");
+  if (typeof params?.fromMs === "number") q = q.where("createdAt", ">=", params.fromMs);
+  const snap = await q.limit(limit).get();
+  const surveys = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as Omit<SurveyResponse, "id">) }) as SurveyResponse);
+
+  const reservationIdsRaw: string[] = surveys.map((s: SurveyResponse) => String(s.reservationId || ""));
+  const reservationIds: string[] = Array.from(
+    new Set(reservationIdsRaw.filter((x: string) => Boolean(x)))
+  );
+  const resDocs = await Promise.all(reservationIds.map((id) => db.collection("reservations").doc(id).get()));
+  const resMap = new Map<string, Reservation>();
+  for (const d of resDocs) {
+    if (d.exists) resMap.set(d.id, { id: d.id, ...(d.data() as Omit<Reservation, "id">) } as Reservation);
+  }
+
+  const customerIds = Array.from(
+    new Set(
+      Array.from(resMap.values())
+        .map((r: Reservation) => String(r.customerId || ""))
+        .filter(Boolean)
+    )
+  );
+  const custDocs = await Promise.all(customerIds.map((id) => db.collection("customers").doc(id).get()));
+  const custMap = new Map<string, Customer>();
+  for (const d of custDocs) {
+    if (d.exists) custMap.set(d.id, { id: d.id, ...(d.data() as Omit<Customer, "id">) } as Customer);
+  }
+
+  return surveys.map((survey: SurveyResponse) => {
+    const reservation = resMap.get(survey.reservationId) ?? null;
+    const customer = reservation ? custMap.get(String(reservation.customerId)) ?? null : null;
+    return { survey, reservation, customer };
+  });
 }
 
 export async function enqueueSurveyOutbox(params: {

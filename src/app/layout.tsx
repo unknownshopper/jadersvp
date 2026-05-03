@@ -69,6 +69,11 @@ export default async function RootLayout({
               <Link className="badge" href="/admin">
                 Admin
               </Link>
+              {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
+                <Link className="badge" href="/admin/encuestas">
+                  Visor
+                </Link>
+              ) : null}
               {user?.role === "ADMIN" ? (
                 <>
                   <Link className="badge" href="/admin/encuesta">

@@ -27,28 +27,6 @@ function defaultDateTime() {
   };
 }
 
-function addDays(dateStr: string, days: number) {
-  const [y, m, d] = dateStr.split("-").map((v) => Number.parseInt(v, 10));
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + days);
-  const yyyy = String(dt.getFullYear());
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function timeOptions15m() {
-  const opts: string[] = [];
-  for (let h = 0; h < 24; h += 1) {
-    for (let m = 0; m < 60; m += 15) {
-      const hh = String(h).padStart(2, "0");
-      const mm = String(m).padStart(2, "0");
-      opts.push(`${hh}:${mm}`);
-    }
-  }
-  return opts;
-}
-
 const pos: Record<string, { x: number; y: number }> = {
   // Interior (center)
   "1": { x: 55, y: 58 },
@@ -150,11 +128,6 @@ export default function HostessForm({
     setTableId(initialTableId ?? "");
   }, [initialTableId]);
 
-  const dateOptions = useMemo(() => Array.from({ length: 15 }, (_, i) => addDays(defaults.date, i)), [
-    defaults.date
-  ]);
-  const timeOptions = useMemo(() => timeOptions15m(), []);
-
   const tablesForPicker = useMemo(
     () =>
       [...tables].sort((a, b) => {
@@ -213,33 +186,25 @@ export default function HostessForm({
           </div>
           <div>
             <label className="label">Fecha</label>
-            <select
+            <input
               className="input"
               name="reservedDate"
               value={reservedDate}
               onChange={(e) => setReservedDate(e.target.value)}
-            >
-              {dateOptions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+              type="date"
+            />
           </div>
           <div>
             <label className="label">Hora</label>
-            <select
+            <input
               className="input"
               name="reservedTime"
               value={reservedTime}
               onChange={(e) => setReservedTime(e.target.value)}
-            >
-              {timeOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              type="time"
+              step={900}
+              inputMode="numeric"
+            />
           </div>
 
           <input type="hidden" name="tableId" value={tableId} />
@@ -292,7 +257,6 @@ export default function HostessForm({
                     const url = new URL(window.location.href);
                     url.searchParams.set("tableId", t.id);
                     window.history.replaceState(null, "", url.toString());
-                    window.location.reload();
                   }}
                   title={`${t.name} · ${t.area} · ${s}`}
                 >
