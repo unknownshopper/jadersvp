@@ -44,7 +44,18 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL("/", baseUrl));
   }
 
-  await createSurvey({ reservationId, rating, comment, answers: Object.keys(answers).length ? answers : null });
+  try {
+    await createSurvey({ reservationId, rating, comment, answers: Object.keys(answers).length ? answers : null });
+  } catch (e: any) {
+    // If the survey already exists, treat it as a successful submission (idempotent).
+    const code = String(e?.code ?? "");
+    if (code === "6" || code === "already-exists" || code === "ALREADY_EXISTS") {
+      return NextResponse.redirect(
+        new URL(`/encuesta/${reservationId}?ok=${encodeURIComponent("Respuesta ya registrada")}`, baseUrl)
+      );
+    }
+    throw e;
+  }
 
   return NextResponse.redirect(
     new URL(`/encuesta/${reservationId}?ok=${encodeURIComponent("Respuesta enviada")}`, baseUrl)

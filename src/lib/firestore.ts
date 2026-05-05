@@ -844,15 +844,23 @@ export async function getReservationDetail(reservationId: string) {
         .then((d: any) => (d.exists ? ({ id: d.id, ...(d.data() as Omit<CafeTable, "id">) } as CafeTable) : null))
     : null;
 
-  const surveySnap = await db
-    .collection("surveys")
-    .where("reservationId", "==", reservationId)
-    .limit(1)
-    .get();
+  // Deterministic ID: surveys/{reservationId}
+  // Backward-compatible: fallback to legacy query if the doc doesn't exist.
+  const surveyDoc = await db.collection("surveys").doc(reservationId).get();
+  let survey: SurveyResponse | null = surveyDoc.exists
+    ? ({ id: surveyDoc.id, ...(surveyDoc.data() as Omit<SurveyResponse, "id">) } as SurveyResponse)
+    : null;
 
-  const survey = surveySnap.empty
-    ? null
-    : ({ id: surveySnap.docs[0].id, ...(surveySnap.docs[0].data() as Omit<SurveyResponse, "id">) } as SurveyResponse);
+  if (!survey) {
+    const legacySnap = await db
+      .collection("surveys")
+      .where("reservationId", "==", reservationId)
+      .limit(1)
+      .get();
+    survey = legacySnap.empty
+      ? null
+      : ({ id: legacySnap.docs[0].id, ...(legacySnap.docs[0].data() as Omit<SurveyResponse, "id">) } as SurveyResponse);
+  }
 
   return { reservation, customer, table, survey };
 }
@@ -866,15 +874,23 @@ export async function createSurvey(input: {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
-  const ref = await db.collection("surveys").add({
-    reservationId: input.reservationId,
-    rating: input.rating,
-    comment: input.comment ?? null,
-    answers: input.answers ?? null,
-    createdAt: nowMs()
-  });
+  const docId = String(input.reservationId || "").trim();
+  if (!docId) throw new Error("Missing reservationId");
 
-  return ref.id;
+  // Deterministic doc id guarantees 1 survey per reservation.
+  // Use create() so we never overwrite an existing response.
+  await db
+    .collection("surveys")
+    .doc(docId)
+    .create({
+      reservationId: docId,
+      rating: input.rating,
+      comment: input.comment ?? null,
+      answers: input.answers ?? null,
+      createdAt: nowMs()
+    });
+
+  return docId;
 }
 
 export async function adminSummary(range: "day" | "week" | "month") {
