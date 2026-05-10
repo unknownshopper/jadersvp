@@ -13,6 +13,29 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const me = await fetch("/api/auth/me", { credentials: "include" }).then((r) => r.json());
+        if (cancelled) return;
+        const role = String(me?.user?.role ?? "");
+        if (!me?.hasSessionCookie || !role) return;
+
+        if (role === "HOSTESS") router.replace("/hostess");
+        else if (role === "CAJA") router.replace("/caja");
+        else router.replace("/admin");
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  useEffect(() => {
     setError(null);
   }, [email, password]);
 
@@ -30,7 +53,8 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken })
+        body: JSON.stringify({ idToken }),
+        credentials: "include"
       });
       if (!res.ok) {
         setError("No se pudo iniciar sesión");
@@ -38,7 +62,7 @@ export default function LoginPage() {
         return;
       }
 
-      const me = await fetch("/api/auth/me").then((r) => r.json());
+      const me = await fetch("/api/auth/me", { credentials: "include" }).then((r) => r.json());
       if (!me?.hasSessionCookie) {
         setError("No se guardó la sesión (cookie). Revisa que estés en http://localhost:3000 y no en otra URL.");
         setLoading(false);

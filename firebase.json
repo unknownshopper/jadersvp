@@ -17,6 +17,13 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/hostess",
+        "type": 302
+      }
+    ],
     "rewrites": [
       {
         "source": "/_next/**",
