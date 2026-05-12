@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { createSurvey } from "@/lib/firestore";
 
 function getBaseUrl(req: Request) {
-  const env = process.env.APP_BASE_URL;
-  if (env) return env;
   const h = req.headers;
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const env = process.env.APP_BASE_URL;
+  if (env && host && !host.includes("localhost") && !host.includes("127.0.0.1")) return env;
   return host ? `${proto}://${host}` : "https://cafejadersvp.web.app";
 }
 

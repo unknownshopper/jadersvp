@@ -1,5 +1,5 @@
-import { adminSummary, firebaseReady } from "@/lib/firestore";
-import { requireRole } from "@/lib/serverAuth";
+import { adminCustomersTable, adminSummary, firebaseReady } from "@/lib/firestore";
+import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 
 function startOfDay(d: Date) {
@@ -17,9 +17,13 @@ export default async function AdminPage({
     redirect("/login");
   }
 
+  const u = await getSessionUser();
+  const canDelete = u?.role === "ADMIN";
+
   const range = (searchParams?.range ?? "day") as "day" | "week" | "month";
   const ready = firebaseReady();
   const summary = ready ? await adminSummary(range) : null;
+  const customersTable = ready ? await adminCustomersTable({ limit: 60 }) : [];
 
   return (
     <div className="grid" style={{ gap: 16 }}>
@@ -110,20 +114,73 @@ export default async function AdminPage({
         <div className="small" style={{ marginTop: 10, marginBottom: 10 }}>
           Total: {summary?.customersCount ?? 0}
         </div>
-        <div className="grid">
-          {(summary?.latestCustomers ?? [])
+        <div className="grid" style={{ gap: 8 }}>
+          <div
+            className="row"
+            style={{
+              fontWeight: 900,
+              opacity: 0.85,
+              gap: 10,
+              alignItems: "flex-end"
+            }}
+          >
+            <div style={{ flex: 2 }}>Nombre</div>
+            <div style={{ flex: 1 }}>Teléfono</div>
+            <div style={{ flex: 2 }}>Correo</div>
+            <div style={{ flex: 1, textAlign: "right" }}>Visitas</div>
+            <div style={{ flex: 1, textAlign: "right" }}>Encuestas</div>
+            {canDelete ? <div style={{ flex: "0 0 90px" }} /> : null}
+          </div>
+
+          {customersTable
             .slice()
             .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base" }))
             .map((c) => (
-              <div key={c.id} className="row" style={{ justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: 800 }}>{c.name}</div>
-                  <div className="small">
-                    {c.phone} {c.email ? `· ${c.email}` : ""}
+              <details key={c.id} className="card" style={{ padding: 10 }}>
+                <summary style={{ cursor: "pointer" }}>
+                  <div className="row" style={{ gap: 10, alignItems: "center" }}>
+                    <div style={{ flex: 2, fontWeight: 800 }}>{c.name || "(Sin nombre)"}</div>
+                    <div style={{ flex: 1 }} className="small">
+                      {c.phone || "—"}
+                    </div>
+                    <div style={{ flex: 2 }} className="small">
+                      {c.email || "—"}
+                    </div>
+                    <div style={{ flex: 1, textAlign: "right" }} className="small">
+                      {c.visitsCount}
+                    </div>
+                    <div style={{ flex: 1, textAlign: "right" }} className="small">
+                      {c.surveysCount}
+                    </div>
+                    {canDelete ? (
+                      <form action="/api/admin/customers/delete" method="post" style={{ flex: "0 0 90px" }}>
+                        <input type="hidden" name="customerId" value={c.id} />
+                        <button className="btn danger" type="submit" style={{ padding: "8px 10px" }}>
+                          Eliminar
+                        </button>
+                      </form>
+                    ) : null}
                   </div>
+                </summary>
+
+                <div className="small" style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(c.visits ?? []).slice(0, 20).map((v) => (
+                    <span key={v.reservationId} className="badge" style={{ display: "inline-flex", gap: 8 }}>
+                      <span>{new Date(v.at).toLocaleString()}</span>
+                      {canDelete ? (
+                        <form action="/api/admin/reservations/delete" method="post">
+                          <input type="hidden" name="reservationId" value={v.reservationId} />
+                          <input type="hidden" name="from" value="admin" />
+                          <button className="btn danger" type="submit" style={{ padding: "2px 6px" }}>
+                            ×
+                          </button>
+                        </form>
+                      ) : null}
+                    </span>
+                  ))}
+                  {(c.visits ?? []).length > 20 ? <span className="badge">+{(c.visits ?? []).length - 20} más</span> : null}
                 </div>
-                <div className="small">{new Date(c.createdAt).toLocaleDateString()}</div>
-              </div>
+              </details>
             ))}
         </div>
       </details>

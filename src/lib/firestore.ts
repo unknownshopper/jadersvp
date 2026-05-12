@@ -41,6 +41,7 @@ export type Reservation = {
   reservedFor?: number | null;
   status: ReservationStatus;
   source: ReservationSource;
+  createdByRole?: string | null;
   notes?: string | null;
   createdAt: number;
   updatedAt: number;
@@ -80,6 +81,26 @@ export type FeatureFlags = {
 
 function nowMs() {
   return Date.now();
+}
+
+function normalizePhone(raw: string | null | undefined): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+
+  const digits = s.replace(/\D/g, "");
+  if (!digits) return "";
+
+  // Mexico normalization used by this app: +52 + 10 digits.
+  // Accept legacy +521XXXXXXXXXX and normalize to +52XXXXXXXXXX.
+  if (digits.startsWith("521") && digits.length >= 13) {
+    return `+52${digits.slice(3, 13)}`;
+  }
+  if (digits.startsWith("52") && digits.length >= 12) {
+    return `+52${digits.slice(2, 12)}`;
+  }
+
+  // Fallback: if it already contained '+', keep E.164-ish shape.
+  return s.includes("+") ? `+${digits}` : digits;
 }
 
 export async function getFeatureFlags(): Promise<FeatureFlags> {
@@ -295,6 +316,111 @@ export async function markNoShow(params: { reservationId: string }) {
   });
 }
 
+export async function deleteReservationAdmin(params: { reservationId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationRef = db.collection("reservations").doc(params.reservationId);
+
+  await db.runTransaction(async (tx: any) => {
+    const resDoc = await tx.get(reservationRef);
+    if (!resDoc.exists) return;
+
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+    if (reservation.status === "SEATED") {
+      throw new Error("No se puede borrar: la mesa está ocupada");
+    }
+
+    const ts = nowMs();
+
+    const tableId = reservation.tableId ? String(reservation.tableId) : "";
+    if (tableId) {
+      const tableRef = db.collection("tables").doc(tableId);
+      const tableDoc = await tx.get(tableRef);
+      if (tableDoc.exists) {
+        const table = { id: tableDoc.id, ...(tableDoc.data() as Omit<CafeTable, "id">) } as CafeTable;
+        const next = (table as any).nextReservedFor as number | null | undefined;
+        const reservedFor = reservation.reservedFor ?? null;
+        const clearNext = Boolean(reservedFor && next && next === reservedFor);
+
+        tx.update(tableRef, {
+          ...(table.status === "RESERVADA" ? { status: "LIBRE" } : {}),
+          ...(clearNext ? { nextReservedFor: null } : {}),
+          updatedAt: ts
+        });
+      }
+    }
+
+    tx.delete(reservationRef);
+  });
+}
+
+export async function clearTableNextReservedFor(params: { tableId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const tableId = String(params.tableId || "");
+  if (!tableId) throw new Error("Falta mesa");
+
+  const tableRef = db.collection("tables").doc(tableId);
+  const ts = nowMs();
+
+  await db.runTransaction(async (tx: any) => {
+    const tableDoc = await tx.get(tableRef);
+    if (!tableDoc.exists) return;
+    const table = tableDoc.data() as CafeTable;
+    const next = (table as any).nextReservedFor as number | null | undefined;
+    if (!next) return;
+    tx.update(tableRef, { nextReservedFor: null, updatedAt: ts });
+  });
+}
+
+export async function deleteCustomerAdmin(params: { customerId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const customerId = String(params.customerId || "");
+  if (!customerId) throw new Error("Falta cliente");
+
+  const customerRef = db.collection("customers").doc(customerId);
+
+  const reservationsSnap = await db
+    .collection("reservations")
+    .where("customerId", "==", customerId)
+    .limit(1000)
+    .get();
+
+  const reservationIds = reservationsSnap.docs.map((d: any) => String(d.id));
+
+  const surveyDocs = reservationIds.length
+    ? await Promise.all(reservationIds.map((id) => db.collection("surveys").doc(id).get()))
+    : [];
+
+  const toDeleteSurveys = surveyDocs.filter((d) => d.exists).map((d) => d.ref);
+
+  const toDeleteReservations = reservationsSnap.docs.map((d: any) => d.ref);
+
+  const toDeleteCount = 1 + toDeleteReservations.length + toDeleteSurveys.length;
+  if (toDeleteCount > 1000) {
+    throw new Error("Demasiados registros para borrar de una sola vez");
+  }
+
+  // Delete in a batch (Firestore limit 500 ops per batch).
+  const ops = [
+    ...toDeleteSurveys.map((ref) => ({ kind: "delete" as const, ref })),
+    ...toDeleteReservations.map((ref) => ({ kind: "delete" as const, ref })),
+    { kind: "delete" as const, ref: customerRef }
+  ];
+
+  const chunkSize = 450;
+  for (let i = 0; i < ops.length; i += chunkSize) {
+    const batch = db.batch();
+    const chunk = ops.slice(i, i + chunkSize);
+    for (const op of chunk) batch.delete(op.ref);
+    await batch.commit();
+  }
+}
+
 export async function migrateFloorplanV2(): Promise<{
   createdTables: number;
   updatedReservations: number;
@@ -430,9 +556,10 @@ export async function createCustomer(input: {
   if (!db) throw new Error("Firestore not configured");
 
   const ts = nowMs();
+  const phone = normalizePhone(input.phone);
   const ref = await db.collection("customers").add({
     name: input.name,
-    phone: String(input.phone ?? ""),
+    phone,
     email: input.email ?? null,
     isRecurrent: false,
     createdAt: ts,
@@ -442,7 +569,7 @@ export async function createCustomer(input: {
   return {
     id: ref.id,
     name: input.name,
-    phone: String(input.phone ?? ""),
+    phone,
     email: input.email ?? null,
     isRecurrent: false,
     createdAt: ts,
@@ -457,7 +584,7 @@ export async function findCustomerByContact(input: {
   const db = getFirestore();
   if (!db) return null;
 
-  const phone = String(input.phone ?? "").trim();
+  const phone = normalizePhone(input.phone);
   const email = String(input.email ?? "").trim();
 
   if (phone) {
@@ -487,9 +614,11 @@ export async function findOrCreateCustomer(input: {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
-  const existing = await findCustomerByContact({ phone: input.phone, email: input.email });
+  const phone = normalizePhone(input.phone);
+
+  const existing = await findCustomerByContact({ phone, email: input.email });
   if (!existing) {
-    const customer = await createCustomer({ name: input.name, phone: input.phone ?? "", email: input.email ?? null });
+    const customer = await createCustomer({ name: input.name, phone, email: input.email ?? null });
     return { customer, existing: false };
   }
 
@@ -500,7 +629,7 @@ export async function findOrCreateCustomer(input: {
     .set(
       {
         name: input.name || existing.name,
-        ...(String(input.phone ?? "").trim() ? { phone: String(input.phone ?? "").trim() } : {}),
+        ...(phone ? { phone } : {}),
         ...(String(input.email ?? "").trim() ? { email: String(input.email ?? "").trim() } : {}),
         isRecurrent: true,
         updatedAt: ts
@@ -528,6 +657,46 @@ export async function createReservation(input: Omit<Reservation, "id" | "created
   return { id: ref.id, ...(input as any), createdAt: ts, updatedAt: ts } as Reservation;
 }
 
+export async function findExistingReservedReservation(params: {
+  customerId?: string | null;
+  tableId?: string | null;
+  reservedFor: number;
+}): Promise<{ reservationId: string | null }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservedFor = Number(params.reservedFor);
+  if (!Number.isFinite(reservedFor) || reservedFor <= 0) return { reservationId: null };
+
+  // 1) Prevent duplicate reservation for the same customer at the same time.
+  if (params.customerId) {
+    const snap = await db
+      .collection("reservations")
+      .where("status", "==", "RESERVED")
+      .where("customerId", "==", String(params.customerId))
+      .where("reservedFor", "==", reservedFor)
+      .limit(1)
+      .get();
+
+    if (!snap.empty) return { reservationId: String(snap.docs[0].id) };
+  }
+
+  // 2) Prevent double-booking the same table at the same time.
+  if (params.tableId) {
+    const snap = await db
+      .collection("reservations")
+      .where("status", "==", "RESERVED")
+      .where("tableId", "==", String(params.tableId))
+      .where("reservedFor", "==", reservedFor)
+      .limit(1)
+      .get();
+
+    if (!snap.empty) return { reservationId: String(snap.docs[0].id) };
+  }
+
+  return { reservationId: null };
+}
+
 export async function listWaitingReservations(params?: {
   tableId?: string | null;
   allStatuses?: boolean;
@@ -549,21 +718,14 @@ export async function listWaitingReservations(params?: {
   if (params?.tableId) {
     q = q.where("tableId", "==", params.tableId);
   }
-  // If we also orderBy createdAt while filtering by tableId, Firestore may require
-  // a composite index. To keep setup simple, we skip orderBy in that case and
-  // sort in-memory.
-  const snap = params?.tableId
-    ? await q.limit(200).get()
-    : await q.orderBy("createdAt", "desc").limit(200).get();
+  // Avoid composite index requirements by not using orderBy when filtering.
+  // We always sort in-memory.
+  const snap = await q.limit(200).get();
 
   const reservationsUnsorted = snap.docs.map(
     (d: any) => ({ id: d.id, ...(d.data() as Omit<Reservation, "id">) }) as Reservation
   );
-  const reservations = (
-    params?.tableId
-      ? reservationsUnsorted.sort((a: Reservation, b: Reservation) => b.createdAt - a.createdAt)
-      : reservationsUnsorted
-  ) as Reservation[];
+  const reservations = reservationsUnsorted.sort((a: Reservation, b: Reservation) => b.createdAt - a.createdAt) as Reservation[];
 
   const customerIds = Array.from(new Set(reservations.map((r: Reservation) => String(r.customerId))));
   const customers = new Map<string, Customer>();
@@ -632,9 +794,12 @@ export async function walkInAssign(params: {
   email?: string | null;
   tableId: string;
   customerId?: string | null;
+  createdByRole?: string | null;
 }) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
+
+  const phone = normalizePhone(params.phone);
 
   const tableRef = db.collection("tables").doc(params.tableId);
 
@@ -657,7 +822,7 @@ export async function walkInAssign(params: {
           customerRef,
           {
             name: params.name,
-            ...(String(params.phone ?? "").trim() ? { phone: String(params.phone ?? "").trim() } : {}),
+            ...(phone ? { phone } : {}),
             ...(String(params.email ?? "").trim() ? { email: String(params.email ?? "").trim() } : {}),
             isRecurrent: true,
             updatedAt: ts
@@ -667,7 +832,7 @@ export async function walkInAssign(params: {
       } else {
         tx.set(customerRef, {
           name: params.name,
-          phone: String(params.phone ?? ""),
+          phone,
           email: params.email ?? null,
           isRecurrent: false,
           createdAt: ts,
@@ -677,7 +842,7 @@ export async function walkInAssign(params: {
     } else {
       tx.set(customerRef, {
         name: params.name,
-        phone: String(params.phone ?? ""),
+        phone,
         email: params.email ?? null,
         isRecurrent: false,
         createdAt: ts,
@@ -692,6 +857,7 @@ export async function walkInAssign(params: {
       tableId: params.tableId,
       status: "SEATED",
       source: "WALK_IN",
+      createdByRole: params.createdByRole ?? null,
       reservedFor: null,
       partySize: null,
       notes: null,
@@ -713,9 +879,12 @@ export async function reserveTable(params: {
   partySize?: number | null;
   notes?: string | null;
   customerId?: string | null;
+  createdByRole?: string | null;
 }) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
+
+  const phone = normalizePhone(params.phone);
 
   const tableRef = db.collection("tables").doc(params.tableId);
 
@@ -723,6 +892,14 @@ export async function reserveTable(params: {
     const tableDoc = await tx.get(tableRef);
     if (!tableDoc.exists) throw new Error("Table not found");
     const table = tableDoc.data() as CafeTable;
+
+    const existingNext = (table as any).nextReservedFor as number | null | undefined;
+    if (existingNext) {
+      const blockMs = (90 + 30) * 60 * 1000;
+      if (Math.abs(Number(existingNext) - Number(params.reservedFor)) < blockMs) {
+        throw new Error("Mesa no disponible por reserva cercana");
+      }
+    }
 
     // Allow scheduling a future reservation even if the table is currently occupied,
     // as long as the reservation is not too close to now.
@@ -744,7 +921,7 @@ export async function reserveTable(params: {
           customerRef,
           {
             name: params.name,
-            ...(String(params.phone ?? "").trim() ? { phone: String(params.phone ?? "").trim() } : {}),
+            ...(phone ? { phone } : {}),
             ...(String(params.email ?? "").trim() ? { email: String(params.email ?? "").trim() } : {}),
             isRecurrent: true,
             updatedAt: ts
@@ -754,7 +931,7 @@ export async function reserveTable(params: {
       } else {
         tx.set(customerRef, {
           name: params.name,
-          phone: String(params.phone ?? ""),
+          phone,
           email: params.email ?? null,
           isRecurrent: false,
           createdAt: ts,
@@ -764,7 +941,7 @@ export async function reserveTable(params: {
     } else {
       tx.set(customerRef, {
         name: params.name,
-        phone: String(params.phone ?? ""),
+        phone,
         email: params.email ?? null,
         isRecurrent: false,
         createdAt: ts,
@@ -779,6 +956,7 @@ export async function reserveTable(params: {
       tableId: params.tableId,
       status: "RESERVED",
       source: "CALL",
+      createdByRole: params.createdByRole ?? null,
       reservedFor: params.reservedFor,
       partySize: params.partySize ?? null,
       notes: params.notes ?? null,
@@ -786,7 +964,10 @@ export async function reserveTable(params: {
       updatedAt: ts
     });
 
-    tx.update(tableRef, { nextReservedFor: params.reservedFor, updatedAt: ts });
+    const nextReservedFor = existingNext
+      ? Math.min(Number(existingNext), Number(params.reservedFor))
+      : Number(params.reservedFor);
+    tx.update(tableRef, { nextReservedFor, updatedAt: ts });
   });
 }
 
@@ -977,4 +1158,69 @@ export async function adminSummary(range: "day" | "week" | "month") {
     latestCustomers,
     latestSurveys
   };
+}
+
+export async function adminCustomersTable(params?: { limit?: number }) {
+  const db = getFirestore();
+  if (!db) return [] as Array<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string | null;
+    visitsCount: number;
+    visits: Array<{ reservationId: string; at: number }>;
+    surveysCount: number;
+  }>;
+
+  const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
+
+  const customersSnap = await db.collection("customers").orderBy("createdAt", "desc").limit(limit).get();
+  const customers = customersSnap.docs.map(
+    (d: any) => ({ id: d.id, ...(d.data() as Omit<Customer, "id">) }) as Customer
+  );
+
+  const rows: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string | null;
+    visitsCount: number;
+    visits: Array<{ reservationId: string; at: number }>;
+    surveysCount: number;
+  }> = [];
+
+  for (const c of customers) {
+    const resSnap = await db
+      .collection("reservations")
+      .where("customerId", "==", c.id)
+      .limit(1000)
+      .get();
+
+    const visits = resSnap.docs
+      .map((d: any) => {
+        const data = d.data() as Reservation;
+        const at = Number(data?.reservedFor ?? data?.createdAt ?? 0);
+        return { reservationId: String(d.id), at };
+      })
+      .filter((v: any) => Number.isFinite(v.at) && v.at > 0)
+      .sort((a: any, b: any) => b.at - a.at);
+
+    const reservationIds = resSnap.docs.map((d: any) => String(d.id));
+    const surveyDocs = reservationIds.length
+      ? await Promise.all(reservationIds.map((id) => db.collection("surveys").doc(id).get()))
+      : [];
+    const surveysCount = surveyDocs.filter((d) => d.exists).length;
+
+    rows.push({
+      id: c.id,
+      name: String(c.name || ""),
+      phone: String(c.phone || ""),
+      email: c.email ? String(c.email) : null,
+      visitsCount: resSnap.size,
+      visits,
+      surveysCount
+    });
+  }
+
+  return rows;
 }

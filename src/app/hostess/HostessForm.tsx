@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CafeTable } from "@/lib/firestore";
 
 function defaultDateTime() {
@@ -87,10 +88,25 @@ function effectiveStatus(t: CafeTable) {
 
 function effectiveStatusAt(t: CafeTable, targetMs: number | null) {
   const next = (t as any).nextReservedFor as number | null | undefined;
-  if (targetMs && next) {
-    const toleranceMs = 15 * 60 * 1000;
-    if (Math.abs(next - targetMs) <= toleranceMs) return "RESERVADA";
+  if (targetMs) {
+    // For planning/scheduling at a chosen date+time, we care about whether this table
+    // has a reservation at that target time (via nextReservedFor).
+    // Keep real-time operational states as-is.
+    if (t.status === "OCUPADA") return "OCUPADA";
+    if (t.status === "POR_LIMPIAR") return "POR_LIMPIAR";
+
+    if (next) {
+      const toleranceMs = 15 * 60 * 1000;
+      if (Math.abs(next - targetMs) <= toleranceMs) return "RESERVADA";
+
+      // Block times that are too close to an existing reservation.
+      // Business rule: duration 90 min + buffer 30 min.
+      const blockMs = (90 + 30) * 60 * 1000;
+      if (Math.abs(next - targetMs) < blockMs) return "RESERVADA";
+    }
+    return "LIBRE";
   }
+
   return effectiveStatus(t);
 }
 
@@ -101,12 +117,25 @@ export default function HostessForm({
   tables: CafeTable[];
   initialTableId?: string;
 }) {
+  const router = useRouter();
   const defaults = useMemo(() => defaultDateTime(), []);
   const [reservedDate, setReservedDate] = useState<string>(defaults.date);
   const [reservedTime, setReservedTime] = useState<string>(defaults.time);
   const [tableId, setTableId] = useState<string>(initialTableId ?? "");
-  const [phone, setPhone] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [phoneCountry, setPhoneCountry] = useState<string>("+52");
+  const [phoneNational, setPhoneNational] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const composedPhone = useMemo(() => {
+    const cc = String(phoneCountry || "").trim();
+    const national = String(phoneNational || "").replace(/\D/g, "");
+    if (!national) return "";
+    const ccDigits = cc.replace(/[^\d+]/g, "");
+    const prefix = ccDigits.startsWith("+") ? ccDigits : `+${ccDigits}`;
+    return `${prefix}${national}`;
+  }, [phoneCountry, phoneNational]);
 
   const reservedForMs = useMemo(() => {
     const ds = String(reservedDate || "").trim();
@@ -145,10 +174,22 @@ export default function HostessForm({
         <h3 style={{ marginTop: 0 }}>Crear reserva / Asignar mesa</h3>
         <form
           className="grid"
-          action="/api/reservations/create"
+          action="/api/reservations/call"
           method="post"
           onSubmit={(e) => {
-            const hasPhone = phone.trim().length > 0;
+            if (isSubmitting) {
+              e.preventDefault();
+              return;
+            }
+            if (!tableId) {
+              const ok = window.confirm("¿No se va a seleccionar mesa?");
+              if (!ok) {
+                e.preventDefault();
+                return;
+              }
+            }
+
+            const hasPhone = composedPhone.trim().length > 0;
             const hasEmail = email.trim().length > 0;
             if (!hasPhone && !hasEmail) {
               const ok = window.confirm(
@@ -156,15 +197,50 @@ export default function HostessForm({
               );
               if (!ok) e.preventDefault();
             }
+
+            setIsSubmitting(true);
           }}
         >
           <div>
             <label className="label">Nombre</label>
-            <input className="input" name="name" required />
+            <input
+              className="input"
+              name="name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value.toUpperCase())}
+            />
           </div>
           <div>
             <label className="label">Teléfono (WhatsApp)</label>
-            <input className="input" name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+              <select
+                className="input"
+                value={phoneCountry}
+                onChange={(e) => setPhoneCountry(e.target.value)}
+                aria-label="País"
+                style={{ maxWidth: 120 }}
+              >
+                <option value="+52">MX +52</option>
+                <option value="+1">US/CA +1</option>
+                <option value="+34">ES +34</option>
+                <option value="+57">CO +57</option>
+                <option value="+54">AR +54</option>
+                <option value="+55">BR +55</option>
+                <option value="+33">FR +33</option>
+                <option value="+44">UK +44</option>
+              </select>
+              <input
+                className="input"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder={phoneCountry === "+52" ? "10 dígitos" : "número"}
+                value={phoneNational}
+                onChange={(e) => setPhoneNational(e.target.value.replace(/\D/g, ""))}
+                style={{ flex: 1, minWidth: 180 }}
+              />
+            </div>
+            <input type="hidden" name="phone" value={composedPhone} />
           </div>
           <div>
             <label className="label">Correo (opcional)</label>
@@ -178,7 +254,7 @@ export default function HostessForm({
           </div>
           <div>
             <label className="label">Personas</label>
-            <input className="input" name="partySize" type="number" min={1} step={1} inputMode="numeric" />
+            <input className="input" name="partySize" type="number" min={1} step={1} inputMode="numeric" defaultValue={1} />
           </div>
           <div>
             <label className="label">Indicaciones especiales / notas</label>
@@ -211,7 +287,11 @@ export default function HostessForm({
 
           <div>
             <label className="label">Mesa (opcional)</label>
-            <select className="input" value={tableId} onChange={(e) => setTableId(e.target.value)}>
+            <select
+              className="input"
+              value={tableId}
+              onChange={(e) => setTableId(e.target.value)}
+            >
               <option value="">(sin asignar)</option>
               {tablesForPicker.map((t) => {
                 const s = effectiveStatusAt(t, reservedForMs);
@@ -224,8 +304,8 @@ export default function HostessForm({
             </select>
           </div>
 
-          <button className="btn" type="submit">
-            Guardar
+          <button className="btn" type="submit" disabled={isSubmitting} style={isSubmitting ? { opacity: 0.7 } : undefined}>
+            {isSubmitting ? "Guardando…" : "Guardar"}
           </button>
         </form>
       </div>
@@ -245,18 +325,20 @@ export default function HostessForm({
                   key={t.id}
                   type="button"
                   className={cls}
-                  disabled={s !== "LIBRE"}
+                  disabled={false}
                   style={
                     p
                       ? ({ left: `${p.x}%`, top: `${p.y}%` } as any)
                       : ({ position: "static" } as any)
                   }
                   onClick={() => {
-                    if (s !== "LIBRE") return;
-                    setTableId(t.id);
                     const url = new URL(window.location.href);
-                    url.searchParams.set("tableId", t.id);
-                    window.history.replaceState(null, "", url.toString());
+                    url.searchParams.set("focusTableId", t.id);
+                    if (s === "LIBRE") {
+                      setTableId(t.id);
+                      url.searchParams.set("tableId", t.id);
+                    }
+                    router.replace(url.pathname + url.search);
                   }}
                   title={`${t.name} · ${t.area} · ${s}`}
                 >
@@ -266,7 +348,33 @@ export default function HostessForm({
             })}
 
             <div className="table-map-legend">
-              <div className="small">Toca una mesa libre para seleccionarla.</div>
+              <div className="small" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot libre" />
+                  Libre
+                </span>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot proxima" />
+                  Próxima (≤30 min)
+                </span>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot ocupada" />
+                  Ocupada
+                </span>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot reservada" />
+                  Reservada
+                </span>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot porlimpiar" />
+                  Por limpiar
+                </span>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot selected" />
+                  Seleccionada
+                </span>
+              </div>
+              <div className="small" style={{ opacity: 0.8 }}>Toca una mesa libre para seleccionarla.</div>
             </div>
           </div>
         )}

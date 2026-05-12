@@ -17,7 +17,7 @@ export default function LoginPage() {
 
     (async () => {
       try {
-        const me = await fetch("/api/auth/me", { credentials: "include" }).then((r) => r.json());
+        const me = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" }).then((r) => r.json());
         if (cancelled) return;
         const role = String(me?.user?.role ?? "");
         if (!me?.hasSessionCookie || !role) return;
@@ -62,7 +62,7 @@ export default function LoginPage() {
         return;
       }
 
-      const me = await fetch("/api/auth/me", { credentials: "include" }).then((r) => r.json());
+      const me = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" }).then((r) => r.json());
       if (!me?.hasSessionCookie) {
         setError("No se guardó la sesión (cookie). Revisa que estés en http://localhost:3000 y no en otra URL.");
         setLoading(false);

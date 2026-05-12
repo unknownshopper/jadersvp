@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { seatReservation } from "@/lib/firestore";
 import { requireRole } from "@/lib/serverAuth";
+import { clearTableNextReservedFor } from "@/lib/firestore";
 
 function getBaseUrl(req: Request) {
   const h = req.headers;
@@ -13,24 +13,19 @@ function getBaseUrl(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
+    await requireRole(["ADMIN"]);
 
     const baseUrl = getBaseUrl(req);
-
     const form = await req.formData();
-
-    const reservationId = String(form.get("reservationId") ?? "");
     const tableId = String(form.get("tableId") ?? "");
 
-    if (!reservationId || !tableId) {
-      return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", baseUrl));
-    }
+    if (!tableId) return NextResponse.redirect(new URL("/hostess?err=Falta+mesa", baseUrl));
 
-    await seatReservation({ reservationId, tableId });
+    await clearTableNextReservedFor({ tableId });
 
-    return NextResponse.redirect(new URL("/hostess?ok=Sentado", baseUrl));
+    return NextResponse.redirect(new URL("/hostess?ok=Reserva+de+mesa+limpiada", baseUrl));
   } catch (err: any) {
-    const msg = typeof err?.message === "string" ? err.message : "No se pudo sentar";
+    const msg = typeof err?.message === "string" ? err.message : "No se pudo limpiar";
     return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
   }
 }

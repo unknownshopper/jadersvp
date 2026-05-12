@@ -40,6 +40,7 @@ export default async function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await getSessionUser();
+  const who = user?.email ? String(user.email) : "";
 
   return (
     <html lang="es">
@@ -60,15 +61,36 @@ export default async function RootLayout({
               </div>
             </div>
             <div className="nav">
-              <Link className="badge" href="/hostess">
-                Hostess
-              </Link>
-              <Link className="badge" href="/caja">
-                Caja
-              </Link>
-              <Link className="badge" href="/admin">
-                Admin
-              </Link>
+              {user ? (
+                <span className="badge" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span aria-hidden style={{ fontSize: 14 }}>📌</span>
+                  <span style={{ fontWeight: 800 }}>{user.role}</span>
+                  {who ? <span style={{ opacity: 0.9 }}>{who}</span> : null}
+                </span>
+              ) : (
+                <Link className="badge" href="/login">
+                  Login
+                </Link>
+              )}
+
+              {user?.role === "HOSTESS" || user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
+                <Link className="badge" href="/hostess">
+                  Hostess
+                </Link>
+              ) : null}
+
+              {user?.role === "CAJA" || user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
+                <Link className="badge" href="/caja">
+                  Caja
+                </Link>
+              ) : null}
+
+              {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
+                <Link className="badge" href="/admin">
+                  Admin
+                </Link>
+              ) : null}
+
               {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
                 <Link className="badge" href="/admin/encuestas">
                   Visor
@@ -84,7 +106,8 @@ export default async function RootLayout({
                   </Link>
                 </>
               ) : null}
-              <LogoutButton />
+
+              {user ? <LogoutButton /> : null}
             </div>
           </div>
         </div>

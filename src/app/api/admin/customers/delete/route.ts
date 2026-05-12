@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { markNoShow } from "@/lib/firestore";
 import { requireRole } from "@/lib/serverAuth";
+import { deleteCustomerAdmin } from "@/lib/firestore";
 
 function getBaseUrl(req: Request) {
   const h = req.headers;
@@ -13,19 +13,19 @@ function getBaseUrl(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
+    await requireRole(["ADMIN"]);
 
     const baseUrl = getBaseUrl(req);
-
     const form = await req.formData();
-    const reservationId = String(form.get("reservationId") ?? "");
-    if (!reservationId) return NextResponse.redirect(new URL("/hostess?err=Falta+reserva", baseUrl));
 
-    await markNoShow({ reservationId });
+    const customerId = String(form.get("customerId") ?? "");
+    if (!customerId) return NextResponse.redirect(new URL("/admin?err=Falta+cliente", baseUrl));
 
-    return NextResponse.redirect(new URL("/hostess?ok=No+show", baseUrl));
+    await deleteCustomerAdmin({ customerId });
+
+    return NextResponse.redirect(new URL("/admin?ok=Cliente+borrado", baseUrl));
   } catch (err: any) {
-    const msg = typeof err?.message === "string" ? err.message : "No se pudo marcar";
-    return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
+    const msg = typeof err?.message === "string" ? err.message : "No se pudo borrar";
+    return NextResponse.redirect(new URL(`/admin?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
   }
 }

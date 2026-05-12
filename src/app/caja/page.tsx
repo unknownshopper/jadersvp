@@ -2,6 +2,7 @@ import { firebaseReady, listTables, listWaitingReservations } from "@/lib/firest
 import { requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
+import HostessForm from "../hostess/HostessForm";
 
 function formatDDMMYY(d: Date) {
   const dd = String(d.getDate()).padStart(2, "0");
@@ -22,7 +23,7 @@ export default async function CajaPage({
   searchParams?: { ok?: string; err?: string };
 }) {
   try {
-    await requireRole(["CAJA", "ADMIN"]);
+    await requireRole(["CAJA", "ADMIN", "DIRECTOR"]);
   } catch {
     redirect("/login");
   }
@@ -31,6 +32,28 @@ export default async function CajaPage({
   const tables = ready ? await listTables() : [];
 
   const now = Date.now();
+
+  const occupiedNow = tables.filter((t) => t.status === "OCUPADA").length;
+  const freeNow = tables.filter((t) => t.status === "LIBRE").length;
+  const reservedNow = tables.filter((t) => t.status === "RESERVADA").length;
+
+  const occupiedTables = tables
+    .filter((t) => t.status === "OCUPADA")
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), "es"));
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const todayStartMs = todayStart.getTime();
+  const todayEndMs = todayEnd.getTime();
+
+  const freedToday = tables
+    .filter((t) => typeof (t as any).lastFreedAt === "number")
+    .filter((t) => {
+      const ms = Number((t as any).lastFreedAt);
+      return ms >= todayStartMs && ms <= todayEndMs;
+    }).length;
   const recentlyFreedWindowMs = 10 * 60 * 1000;
   const recentlyFreed = tables
     .filter((t) => t.status === "LIBRE" && typeof (t as any).lastFreedAt === "number")
@@ -43,6 +66,14 @@ export default async function CajaPage({
   const wrapped = ready ? await listWaitingReservations({ allStatuses: true }) : [];
   const start = now - 60 * 60 * 1000;
   const end = now + 3 * 60 * 60 * 1000;
+  const remainingToday = wrapped
+    .filter((w) => {
+      const r = w.reservation;
+      if (r.status !== "RESERVED") return false;
+      if (!r.reservedFor) return false;
+      if (r.reservedFor < now) return false;
+      return r.reservedFor >= todayStartMs && r.reservedFor <= todayEndMs;
+    }).length;
   const active = wrapped
     .filter((w) => {
       const r = w.reservation;
@@ -81,6 +112,34 @@ export default async function CajaPage({
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Caja — Liberar mesa</h2>
         <div className="small">Al cobrar, libera la mesa para que hostess la reasigne.</div>
+        <div className="row" style={{ gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+          <span className="badge">Ocupadas ahora: {occupiedNow}</span>
+          <span className="badge">Libres ahora: {freeNow}</span>
+          <span className="badge">Reservadas ahora: {reservedNow}</span>
+          <span className="badge">Ocupadas (hoy): {freedToday}</span>
+          <span className="badge">Reservas restantes (hoy): {remainingToday}</span>
+        </div>
+      </div>
+
+      <div className="card requires-online">
+        <h3 style={{ marginTop: 0 }}>Mesas ocupadas ahora</h3>
+        {occupiedTables.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
+        <div className="grid" style={{ marginTop: 8 }}>
+          {occupiedTables.map((t) => (
+            <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 800 }}>Mesa {t.name}</div>
+                <div className="small">{t.area}</div>
+              </div>
+              <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
+                <input type="hidden" name="tableId" value={t.id} />
+                <button className="btn" type="submit">
+                  Liberar
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="card requires-online">
@@ -109,6 +168,10 @@ export default async function CajaPage({
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="requires-online">
+        <HostessForm tables={tables} initialTableId="" />
       </div>
 
       {recentlyFreed.length > 0 ? (
