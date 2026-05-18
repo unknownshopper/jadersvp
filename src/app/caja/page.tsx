@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
 import HostessForm from "../hostess/HostessForm";
+import CajaDashboard from "./CajaDashboard";
 
 function formatDDMMYY(d: Date) {
   const dd = String(d.getDate()).padStart(2, "0");
@@ -74,6 +75,23 @@ export default async function CajaPage({
       if (r.reservedFor < now) return false;
       return r.reservedFor >= todayStartMs && r.reservedFor <= todayEndMs;
     }).length;
+
+  const remainingTodayList = wrapped
+    .filter((w) => {
+      const r = w.reservation;
+      if (r.status !== "RESERVED") return false;
+      if (!r.reservedFor) return false;
+      if (r.reservedFor < now) return false;
+      return r.reservedFor >= todayStartMs && r.reservedFor <= todayEndMs;
+    })
+    .slice(0, 80)
+    .map((w) => ({
+      id: w.reservation.id,
+      status: w.reservation.status,
+      reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+      customer: w.customer,
+      table: w.table ?? null
+    }));
   const active = wrapped
     .filter((w) => {
       const r = w.reservation;
@@ -109,66 +127,14 @@ export default async function CajaPage({
         </div>
       ) : null}
 
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Caja — Liberar mesa</h2>
-        <div className="small">Al cobrar, libera la mesa para que hostess la reasigne.</div>
-        <div className="row" style={{ gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-          <span className="badge">Ocupadas ahora: {occupiedNow}</span>
-          <span className="badge">Libres ahora: {freeNow}</span>
-          <span className="badge">Reservadas ahora: {reservedNow}</span>
-          <span className="badge">Ocupadas (hoy): {freedToday}</span>
-          <span className="badge">Reservas restantes (hoy): {remainingToday}</span>
-        </div>
-      </div>
-
-      <div className="card requires-online">
-        <h3 style={{ marginTop: 0 }}>Mesas ocupadas ahora</h3>
-        {occupiedTables.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
-        <div className="grid" style={{ marginTop: 8 }}>
-          {occupiedTables.map((t) => (
-            <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 800 }}>Mesa {t.name}</div>
-                <div className="small">{t.area}</div>
-              </div>
-              <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
-                <input type="hidden" name="tableId" value={t.id} />
-                <button className="btn" type="submit">
-                  Liberar
-                </button>
-              </form>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card requires-online">
-        <h3 style={{ marginTop: 0 }}>Reservas activas (ventana de tiempo)</h3>
-        <div className="small">Mostrando solo lo relevante para operar ahora.</div>
-        {active.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
-        <div className="grid" style={{ marginTop: 8 }}>
-          {active.map((r) => (
-            <div key={r.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 800 }}>{r.customer.name}</div>
-                <div className="small">
-                  Mesa {r.table?.name ?? "(sin mesa)"}
-                  {r.table?.area ? ` · ${r.table.area}` : ""} · {r.status}
-                  {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}, ${formatHHMM(r.reservedFor)}` : ""}
-                </div>
-              </div>
-              {r.status === "SEATED" && r.table?.id ? (
-                <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
-                  <input type="hidden" name="tableId" value={r.table.id} />
-                  <button className="btn" type="submit">
-                    Liberar
-                  </button>
-                </form>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </div>
+      <CajaDashboard
+        tables={tables as any}
+        active={active as any}
+        remainingTodayList={remainingTodayList as any}
+        occupiedNowCount={occupiedNow}
+        freeNowCount={freeNow}
+        remainingTodayCount={remainingToday}
+      />
 
       <div className="requires-online">
         <HostessForm tables={tables} initialTableId="" />

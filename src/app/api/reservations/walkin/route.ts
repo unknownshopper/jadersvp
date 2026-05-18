@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { findOrCreateCustomer, walkInAssign } from "@/lib/firestore";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
+import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
 function getBaseUrl(req: Request) {
   const h = req.headers;
@@ -31,6 +32,22 @@ export async function POST(req: Request) {
 
   const { customer } = await findOrCreateCustomer({ name, phone, email });
   await walkInAssign({ name, phone, email, tableId, customerId: customer.id, createdByRole });
+
+  const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
+  const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
+  if (templateName && customer.phone) {
+    try {
+      const r = await sendWhatsAppTemplate({
+        toPhone: customer.phone,
+        templateName,
+        bodyParams: [name],
+        headerImageUrl
+      });
+      if (!r.ok) console.error("WHATSAPP_CONFIRMATION_FAILED", r.error);
+    } catch {
+      // non-blocking
+    }
+  }
 
   return NextResponse.redirect(new URL("/hostess", baseUrl));
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enqueueSurveyOutbox, freeTable, getReservationDetail } from "@/lib/firestore";
 import { requireRole } from "@/lib/serverAuth";
+import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
 function getBaseUrl(req: Request) {
   const h = req.headers;
@@ -30,6 +31,22 @@ export async function POST(req: Request) {
 
       const suggestedChannel = customer?.phone ? "WHATSAPP" : customer?.email ? "EMAIL" : "NONE";
       await enqueueSurveyOutbox({ reservationId: completedReservationId, suggestedChannel });
+
+      const templateName = String(process.env.WHATSAPP_TEMPLATE_SURVEY ?? "").trim();
+      if (templateName && customer?.phone) {
+        const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_SURVEY_HEADER_IMAGE_URL ?? "").trim();
+        try {
+          const r = await sendWhatsAppTemplate({
+            toPhone: customer.phone,
+            templateName,
+            bodyParams: [String(customer.name ?? "").trim()],
+            headerImageUrl
+          });
+          if (!r.ok) console.error("WHATSAPP_SURVEY_FAILED", r.error);
+        } catch {
+          // non-blocking
+        }
+      }
     }
 
     return NextResponse.redirect(new URL("/caja?ok=Liberada", baseUrl));

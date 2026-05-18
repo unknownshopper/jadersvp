@@ -48,7 +48,7 @@ export default async function HostessPage({
   const [tables, waitingWrapped] = ready
     ? await Promise.all([
         listTables(),
-        listWaitingReservations({ tableId: selectedTableId, allStatuses: false })
+        listWaitingReservations({ allStatuses: false })
       ])
     : [[], []];
 
@@ -56,6 +56,10 @@ export default async function HostessPage({
 
   const focusedQueue = waitingWrapped
     .filter((w) => w.reservation.status === "WAITING" || w.reservation.status === "RESERVED")
+    .filter((w) => {
+      if (!selectedTableId) return false;
+      return String(w.reservation.tableId ?? "") === String(selectedTableId);
+    })
     .map((w) => ({
       id: w.reservation.id,
       createdAt: w.reservation.createdAt,
@@ -162,31 +166,6 @@ export default async function HostessPage({
     });
 
   const now = Date.now();
-
-  const remainingToday = waitingWrapped
-    .filter((w) => w.reservation.status === "RESERVED")
-    .filter((w) => {
-      const ms = typeof w.reservation.reservedFor === "number" ? w.reservation.reservedFor : null;
-      if (!ms) return false;
-      return ms >= now && ms < todayEndMs;
-    })
-    .map((w) => ({
-      id: w.reservation.id,
-      createdAt: w.reservation.createdAt,
-      status: w.reservation.status,
-      source: w.reservation.source,
-      reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
-      customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
-      notes: w.reservation.notes ?? null,
-      createdByRole: (w.reservation as any).createdByRole ?? null,
-      customer: w.customer,
-      table: w.table ?? null
-    }))
-    .sort((a, b) => {
-      const aMs = a.reservedFor ? a.reservedFor.getTime() : 0;
-      const bMs = b.reservedFor ? b.reservedFor.getTime() : 0;
-      return aMs - bMs;
-    });
 
   const noShowAfterMs = 10 * 60 * 1000;
 
@@ -425,62 +404,6 @@ export default async function HostessPage({
                         No llegó
                       </button>
                     </form>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card requires-online">
-        <h3 style={{ marginTop: 0 }}>Faltantes del día</h3>
-        <div className="small" style={{ marginBottom: 10 }}>
-          {remainingToday.length} reservación(es) restantes hoy
-        </div>
-        <div className="grid">
-          {remainingToday.length === 0 ? <div className="small">Sin pendientes</div> : null}
-          {remainingToday.map((r) => (
-            <div key={r.id} className="card">
-              <div className="row">
-                <div>
-                  <div className="row" style={{ fontWeight: 800, gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    {r.reservedFor ? (
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: 16,
-                          padding: "6px 10px",
-                          borderRadius: 999,
-                          letterSpacing: 0.5
-                        }}
-                      >
-                        {formatHHMM(r.reservedFor)}
-                      </span>
-                    ) : null}
-                    <div style={{ fontSize: 16 }}>{r.customerNameSnapshot || r.customer.name}</div>
-                    {r.table?.name ? <span className="badge">Mesa {r.table.name}</span> : null}
-                  </div>
-                  <div className="small">
-                    {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}
-                  </div>
-                  <div className="small">
-                    {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
-                    {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}` : ""}
-                  </div>
-                  {r.notes ? (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        padding: "8px 10px",
-                        borderRadius: 12,
-                        background: "rgba(255, 149, 0, 0.08)",
-                        border: "1px solid rgba(255, 149, 0, 0.22)",
-                        fontWeight: 800
-                      }}
-                    >
-                      {r.notes}
-                    </div>
                   ) : null}
                 </div>
               </div>

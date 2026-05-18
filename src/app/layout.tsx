@@ -126,6 +126,44 @@ export default async function RootLayout({
             </div>
           </div>
         </div>
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => {
+  const KEY = '__scrollY';
+  const save = () => {
+    try { sessionStorage.setItem(KEY, String(window.scrollY || 0)); } catch {}
+  };
+  const restore = () => {
+    try {
+      const v = sessionStorage.getItem(KEY);
+      if (v == null) return;
+      const y = Number(v);
+      if (!Number.isFinite(y)) return;
+      requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: 'instant' }));
+    } catch {}
+  };
+
+  window.addEventListener('beforeunload', save);
+  document.addEventListener('submit', save, true);
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const a = t.closest('a');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (!href) return;
+    save();
+  }, true);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restore);
+  } else {
+    restore();
+  }
+})();`
+          }}
+        />
       </body>
     </html>
   );

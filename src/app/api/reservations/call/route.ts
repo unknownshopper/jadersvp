@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createCustomer, createReservation, findExistingReservedReservation, reserveTable } from "@/lib/firestore";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
+import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
 function parseLocalDateTime(input: string): Date | null {
   const s = input.trim();
@@ -102,6 +103,31 @@ export async function POST(req: Request) {
   } catch (e: any) {
     const msg = String(e?.message ?? "Error");
     return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, baseUrl));
+  }
+
+  const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
+  if (templateName && customer.phone) {
+    const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
+    const when = new Date(reservedFor.getTime());
+    const dateStr = when.toLocaleDateString("es-MX", { year: "numeric", month: "2-digit", day: "2-digit" });
+    const timeStr = when.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    console.log("WHATSAPP_CONFIRMATION_ATTEMPT", {
+      toPhone: customer.phone,
+      templateName,
+      hasHeaderImageUrl: Boolean(headerImageUrl)
+    });
+    try {
+      const r = await sendWhatsAppTemplate({
+        toPhone: customer.phone,
+        templateName,
+        bodyParams: [name, dateStr, timeStr],
+        headerImageUrl
+      });
+      if (!r.ok) console.error("WHATSAPP_CONFIRMATION_FAILED", r.error);
+      else console.log("WHATSAPP_CONFIRMATION_ACCEPTED", { messageId: r.messageId });
+    } catch {
+      // non-blocking
+    }
   }
 
   return NextResponse.redirect(new URL("/hostess?ok=Guardado", baseUrl));
