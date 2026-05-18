@@ -37,12 +37,15 @@ export type Reservation = {
   customerId: string;
   customerNameSnapshot?: string | null;
   tableId?: string | null;
+  tableIds?: string[] | null;
   partySize?: number | null;
   reservedFor?: number | null;
   status: ReservationStatus;
   source: ReservationSource;
   createdByRole?: string | null;
   notes?: string | null;
+  seatedAt?: number | null;
+  completedAt?: number | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -683,15 +686,29 @@ export async function findExistingReservedReservation(params: {
 
   // 2) Prevent double-booking the same table at the same time.
   if (params.tableId) {
-    const snap = await db
+    const tid = String(params.tableId);
+
+    const snap1 = await db
       .collection("reservations")
       .where("status", "==", "RESERVED")
-      .where("tableId", "==", String(params.tableId))
+      .where("tableId", "==", tid)
       .where("reservedFor", "==", reservedFor)
       .limit(1)
       .get();
 
-    if (!snap.empty) return { reservationId: String(snap.docs[0].id) };
+    if (!snap1.empty) return { reservationId: String(snap1.docs[0].id) };
+
+    // Multi-table reservations store an array field `tableIds`.
+    // This query keeps backwards compatibility for older single-table reservations.
+    const snap2 = await db
+      .collection("reservations")
+      .where("status", "==", "RESERVED")
+      .where("tableIds", "array-contains", tid)
+      .where("reservedFor", "==", reservedFor)
+      .limit(1)
+      .get();
+
+    if (!snap2.empty) return { reservationId: String(snap2.docs[0].id) };
   }
 
   return { reservationId: null };
@@ -784,7 +801,7 @@ export async function seatReservation(params: { reservationId: string; tableId: 
 
     const ts = nowMs();
     tx.update(tableRef, { status: "OCUPADA", nextReservedFor, updatedAt: ts });
-    tx.update(reservationRef, { tableId: params.tableId, status: "SEATED", updatedAt: ts });
+    tx.update(reservationRef, { tableId: params.tableId, status: "SEATED", seatedAt: ts, completedAt: null, updatedAt: ts });
   });
 }
 
@@ -861,6 +878,8 @@ export async function walkInAssign(params: {
       reservedFor: null,
       partySize: null,
       notes: null,
+      seatedAt: ts,
+      completedAt: null,
       createdAt: ts,
       updatedAt: ts
     });
@@ -881,32 +900,65 @@ export async function reserveTable(params: {
   customerId?: string | null;
   createdByRole?: string | null;
 }) {
+  return reserveTables({
+    name: params.name,
+    phone: params.phone,
+    email: params.email,
+    tableIds: [params.tableId],
+    reservedFor: params.reservedFor,
+    partySize: params.partySize,
+    notes: params.notes,
+    customerId: params.customerId,
+    createdByRole: params.createdByRole
+  });
+}
+
+export async function reserveTables(params: {
+  name: string;
+  phone: string;
+  email?: string | null;
+  tableIds: string[];
+  reservedFor: number;
+  partySize?: number | null;
+  notes?: string | null;
+  customerId?: string | null;
+  createdByRole?: string | null;
+}) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
   const phone = normalizePhone(params.phone);
 
-  const tableRef = db.collection("tables").doc(params.tableId);
+  const tableIds = Array.from(new Set((params.tableIds ?? []).map((x) => String(x)).filter(Boolean)));
+  if (tableIds.length === 0) throw new Error("Falta mesa");
+  if (tableIds.length > 3) throw new Error("Máximo 3 mesas");
+
+  const tableRefs = tableIds.map((id) => db.collection("tables").doc(id));
 
   await db.runTransaction(async (tx: any) => {
-    const tableDoc = await tx.get(tableRef);
-    if (!tableDoc.exists) throw new Error("Table not found");
-    const table = tableDoc.data() as CafeTable;
-
-    const existingNext = (table as any).nextReservedFor as number | null | undefined;
-    if (existingNext) {
-      const blockMs = (90 + 30) * 60 * 1000;
-      if (Math.abs(Number(existingNext) - Number(params.reservedFor)) < blockMs) {
-        throw new Error("Mesa no disponible por reserva cercana");
-      }
+    const tableDocs = await Promise.all(tableRefs.map((ref) => tx.get(ref)));
+    for (const d of tableDocs) {
+      if (!d.exists) throw new Error("Table not found");
     }
 
-    // Allow scheduling a future reservation even if the table is currently occupied,
-    // as long as the reservation is not too close to now.
-    const now = Date.now();
-    const windowMs = 3 * 60 * 60 * 1000;
-    if (params.reservedFor - now <= windowMs) {
-      if (table.status !== "LIBRE") throw new Error("Table not free");
+    const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
+
+    for (const table of tables) {
+      const existingNext = (table as any).nextReservedFor as number | null | undefined;
+      if (existingNext) {
+        const blockMs = (90 + 30) * 60 * 1000;
+        if (Math.abs(Number(existingNext) - Number(params.reservedFor)) < blockMs) {
+          throw new Error("Mesa no disponible por reserva cercana");
+        }
+      }
+
+      // Allow scheduling a future reservation even if the table is currently occupied,
+      // as long as the reservation is not too close to now.
+      const now = Date.now();
+      const windowMs = 3 * 60 * 60 * 1000;
+      if (params.reservedFor - now <= windowMs) {
+        if (table.status !== "LIBRE") throw new Error("Table not free");
+      }
     }
 
     const ts = nowMs();
@@ -953,7 +1005,8 @@ export async function reserveTable(params: {
     tx.set(reservationRef, {
       customerId: customerRef.id,
       customerNameSnapshot: params.name,
-      tableId: params.tableId,
+      tableId: tableIds[0],
+      tableIds,
       status: "RESERVED",
       source: "CALL",
       createdByRole: params.createdByRole ?? null,
@@ -964,10 +1017,14 @@ export async function reserveTable(params: {
       updatedAt: ts
     });
 
-    const nextReservedFor = existingNext
-      ? Math.min(Number(existingNext), Number(params.reservedFor))
-      : Number(params.reservedFor);
-    tx.update(tableRef, { nextReservedFor, updatedAt: ts });
+    for (let i = 0; i < tableRefs.length; i++) {
+      const table = tables[i];
+      const existingNext = (table as any).nextReservedFor as number | null | undefined;
+      const nextReservedFor = existingNext
+        ? Math.min(Number(existingNext), Number(params.reservedFor))
+        : Number(params.reservedFor);
+      tx.update(tableRefs[i], { nextReservedFor, updatedAt: ts });
+    }
   });
 }
 
@@ -998,7 +1055,7 @@ export async function freeTable(params: { tableId: string }): Promise<{ complete
     if (!activeSnap.empty) {
       const resDoc = activeSnap.docs[0];
       completedReservationId = String(resDoc.id);
-      tx.update(resDoc.ref, { status: "COMPLETED", updatedAt: ts });
+      tx.update(resDoc.ref, { status: "COMPLETED", completedAt: ts, updatedAt: ts });
     }
   });
 

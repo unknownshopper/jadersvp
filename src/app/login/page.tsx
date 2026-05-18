@@ -12,6 +12,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  function goToRoleHome(role: string) {
+    if (role === "HOSTESS") router.replace("/hostess");
+    else if (role === "CAJA") router.replace("/caja");
+    else router.replace("/admin");
+
+    requestAnimationFrame(() => router.refresh());
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -22,9 +30,7 @@ export default function LoginPage() {
         const role = String(me?.user?.role ?? "");
         if (!me?.hasSessionCookie || !role) return;
 
-        if (role === "HOSTESS") router.replace("/hostess");
-        else if (role === "CAJA") router.replace("/caja");
-        else router.replace("/admin");
+        goToRoleHome(role);
       } catch {
         // ignore
       }
@@ -77,9 +83,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (role === "HOSTESS") router.replace("/hostess");
-      else if (role === "CAJA") router.replace("/caja");
-      else router.replace("/admin");
+      goToRoleHome(role);
     } catch (err: any) {
       const code = typeof err?.code === "string" ? err.code : "";
       const msg = typeof err?.message === "string" ? err.message : "";

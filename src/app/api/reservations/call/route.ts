@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createCustomer, createReservation, findExistingReservedReservation, reserveTable } from "@/lib/firestore";
+import { createCustomer, createReservation, findExistingReservedReservation, reserveTables, reserveTable } from "@/lib/firestore";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
@@ -45,6 +45,14 @@ export async function POST(req: Request) {
   const phone = String(form.get("phone") ?? "").trim();
   const email = String(form.get("email") ?? "").trim() || null;
   const tableId = String(form.get("tableId") ?? "").trim() || null;
+  const tableIds = Array.from(
+    new Set(
+      (form.getAll("tableIds") ?? [])
+        .map((x) => String(x).trim())
+        .filter(Boolean)
+    )
+  );
+  const effectiveTableIds = tableIds.length > 0 ? tableIds : tableId ? [tableId] : [];
   const partySizeRaw = String(form.get("partySize") ?? "").trim();
   const partySize = partySizeRaw ? Number.parseInt(partySizeRaw, 10) : null;
   const notes = String(form.get("notes") ?? "").trim() || null;
@@ -68,30 +76,61 @@ export async function POST(req: Request) {
 
   const existing = await findExistingReservedReservation({
     customerId: customer.id,
-    tableId: tableId,
+    tableId: effectiveTableIds[0] ?? null,
     reservedFor: reservedFor.getTime()
   });
   if (existing.reservationId) {
     return NextResponse.redirect(new URL("/hostess?ok=Ya+exist%C3%ADa+esa+reservaci%C3%B3n", baseUrl));
   }
 
+  // Avoid double booking any of the selected tables.
+  for (const tid of effectiveTableIds) {
+    const ex = await findExistingReservedReservation({
+      customerId: null,
+      tableId: tid,
+      reservedFor: reservedFor.getTime()
+    });
+    if (ex.reservationId) {
+      return NextResponse.redirect(new URL("/hostess?err=Mesa+no+disponible+en+ese+horario", baseUrl));
+    }
+  }
+
   try {
-    if (tableId) {
-      await reserveTable({
-        name,
-        phone,
-        email,
-        tableId,
-        reservedFor: reservedFor.getTime(),
-        partySize,
-        notes,
-        customerId: customer.id,
-        createdByRole
-      });
+    if (effectiveTableIds.length > 0) {
+      if (effectiveTableIds.length === 1) {
+        await reserveTable({
+          name,
+          phone,
+          email,
+          tableId: effectiveTableIds[0],
+          reservedFor: reservedFor.getTime(),
+          partySize,
+          notes,
+          customerId: customer.id,
+          createdByRole
+        });
+      } else {
+        if (effectiveTableIds.length > 3) {
+          return NextResponse.redirect(new URL("/hostess?err=M%C3%A1ximo+3+mesas", baseUrl));
+        }
+        await reserveTables({
+          name,
+          phone,
+          email,
+          tableIds: effectiveTableIds,
+          reservedFor: reservedFor.getTime(),
+          partySize,
+          notes,
+          customerId: customer.id,
+          createdByRole
+        });
+      }
     } else {
       await createReservation({
         customerId: customer.id,
+        customerNameSnapshot: name,
         tableId: null,
+        tableIds: null,
         partySize,
         reservedFor: reservedFor.getTime(),
         status: "RESERVED",

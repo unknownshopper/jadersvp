@@ -74,6 +74,19 @@ Rutas principales:
 6. Cliente responde
 7. Admin/Director visualiza resultados en el Visor
 
+## UX (Hostess) — selección multi-mesa
+
+En `/hostess` el croquis permite seleccionar hasta **3 mesas** para reservas futuras (llamada/futura).
+
+- **Mesa principal**: el selector "Mesa principal" muestra la primera mesa seleccionada (compatibilidad).
+- **Mesas seleccionadas**: el form envía `tableIds[]` con todas las mesas seleccionadas.
+- **Sugerencia de personas**: por defecto sugiere `4 × #mesas` (editable).
+
+Pendientes:
+
+- Mostrar en listas/tarjetas de reservas la etiqueta completa de mesas (ej. `15,16,17`) en lugar de sólo la mesa principal.
+- Al sentar/liberar una reserva multi-mesa, aplicar el cambio a todas las mesas seleccionadas.
+
 ## Hardware recomendado (tablet)
 
 Este sistema corre en navegador (Next.js + Firebase). Para operación fluida en Hostess/Caja y lectura de métricas en Admin/Visor, se recomienda una tablet moderna con **Wi‑Fi 7 (802.11be)**.
@@ -96,6 +109,124 @@ Especificación sugerida:
 ## WhatsApp (modo plantilla)
 
 En el panel de Pendientes, puedes abrir WhatsApp/Email para generar el mensaje. El link incluye una URL a la encuesta.
+
+## WhatsApp Cloud API (confirmaciones + encuestas + webhooks)
+
+### Variables de entorno (local)
+
+Para enviar mensajes desde local, agrega a `.env.local`:
+
+```env
+WHATSAPP_ACCESS_TOKEN="..."
+WHATSAPP_PHONE_NUMBER_ID="..."
+WHATSAPP_TEMPLATE_CONFIRMATION="confirmacion_reserva_v2"
+WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL="https://..."
+WHATSAPP_TEMPLATE_LANGUAGE="es_MX"
+
+WHATSAPP_TEMPLATE_SURVEY="encuesta_satisfaccion"
+WHATSAPP_TEMPLATE_SURVEY_HEADER_IMAGE_URL="https://..."
+```
+
+Para webhooks (local sólo para pruebas de lógica, Meta no llama a localhost):
+
+```env
+WHATSAPP_WEBHOOK_VERIFY_TOKEN="..."
+WHATSAPP_APP_SECRET="..."
+```
+
+### Variables de entorno (producción - Firebase App Hosting)
+
+La tablet y usuarios en sitio usan producción (`https://cafejadersvp.web.app`). Producción NO lee `.env.local`.
+
+Configurar en Firebase Console → App Hosting → backend `cafejadersvp` → Entorno `prod`:
+
+- `WHATSAPP_ACCESS_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_TEMPLATE_CONFIRMATION`
+- `WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL`
+- `WHATSAPP_TEMPLATE_LANGUAGE`
+- `WHATSAPP_TEMPLATE_SURVEY`
+- `WHATSAPP_TEMPLATE_SURVEY_HEADER_IMAGE_URL`
+- `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
+- `WHATSAPP_APP_SECRET`
+
+Después de cambiar variables de entorno: `firebase deploy` (no sólo hosting).
+
+### Normalización de teléfono (México)
+
+El sistema guarda teléfonos normalizados como `+52XXXXXXXXXX`. Para WhatsApp se convierte a `+521XXXXXXXXXX` cuando aplica.
+Implementado en `src/lib/whatsappCloud.ts` (`toE164`).
+
+### Webhook (statuses/messages)
+
+Endpoint:
+
+- `GET/POST /api/whatsapp/webhook`
+
+Archivo:
+
+- `src/app/api/whatsapp/webhook/route.ts`
+
+Persistencia de eventos:
+
+- Firestore collection: `whatsappWebhookEvents`
+
+Prueba de verificación:
+
+```bash
+curl -i "https://cafejadersvp.web.app/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=TU_VERIFY_TOKEN&hub.challenge=12345"
+```
+
+### Suscribir App al WABA (para recibir eventos)
+
+Requiere token de System User (Business Settings → Usuarios del sistema) con permisos de WhatsApp.
+
+```bash
+curl -s -X POST "https://graph.facebook.com/v25.0/<WABA_ID>/subscribed_apps" \
+  -H "Authorization: Bearer $WHATSAPP_ADMIN_TOKEN"
+```
+
+Verificación:
+
+```bash
+curl -s "https://graph.facebook.com/v25.0/<WABA_ID>/subscribed_apps" \
+  -H "Authorization: Bearer $WHATSAPP_ADMIN_TOKEN"
+```
+
+### Configurar Webhooks de la app por API (cuando UI no muestra Webhooks)
+
+Si la UI redirige y no permite configurar webhooks, se puede crear la suscripción por Graph API usando App Access Token:
+
+```bash
+export META_APP_ID="1266973455426379"
+export META_APP_SECRET="..."
+export META_APP_ACCESS_TOKEN="$META_APP_ID|$META_APP_SECRET"
+export CALLBACK_URL="https://cafejadersvp.web.app/api/whatsapp/webhook"
+export VERIFY_TOKEN="..."
+
+curl -s -X POST "https://graph.facebook.com/v25.0/$META_APP_ID/subscriptions" \
+  -d "access_token=$META_APP_ACCESS_TOKEN" \
+  -d "object=whatsapp_business_account" \
+  -d "callback_url=$CALLBACK_URL" \
+  -d "verify_token=$VERIFY_TOKEN" \
+  -d "fields=messages,message_statuses"
+```
+
+Verificación:
+
+```bash
+curl -s "https://graph.facebook.com/v25.0/$META_APP_ID/subscriptions?access_token=$META_APP_ACCESS_TOKEN"
+```
+
+### Pendientes de UX (WhatsApp)
+
+- Para empezar (plantillas):
+  - Botones CTA deben configurarse en la plantilla (no son dinámicos desde código).
+  - Confirmación (Caja/Llamada): agregar botones `Llamar a Caja` + `Ubicación`.
+  - Template de Menú/Promociones: botón que apunte a `/menprom.html` (URL pública).
+  - Copy impersonal: “Su reservación… Le esperamos…”.
+- Siguiente fase (requiere código):
+  - Auto-reply a mensajes entrantes: responder con instrucción de llamar (requiere implementación adicional con webhook `messages`).
 
 ## Nube
 

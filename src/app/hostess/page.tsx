@@ -27,7 +27,15 @@ function formatHHMM(d: Date) {
 export default async function HostessPage({
   searchParams
 }: {
-  searchParams?: { tableId?: string; focusTableId?: string; ok?: string; err?: string; future?: string };
+  searchParams?: {
+    tableId?: string;
+    focusTableId?: string;
+    ok?: string;
+    err?: string;
+    future?: string;
+    reservedDate?: string;
+    reservedTime?: string;
+  };
 }) {
   try {
     await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
@@ -44,6 +52,25 @@ export default async function HostessPage({
       ? String(searchParams.tableId)
       : null;
 
+  const initialReservedDate = searchParams?.reservedDate ? String(searchParams.reservedDate) : undefined;
+  const initialReservedTime = searchParams?.reservedTime ? String(searchParams.reservedTime) : undefined;
+
+  const targetMs = (() => {
+    const ds = initialReservedDate ? String(initialReservedDate).trim() : "";
+    const ts = initialReservedTime ? String(initialReservedTime).trim() : "";
+    const m = ds.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const t = ts.match(/^(\d{2}):(\d{2})$/);
+    if (!m || !t) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    const hh = Number(t[1]);
+    const mm = Number(t[2]);
+    const dt = new Date(y, mo - 1, d, hh, mm, 0, 0);
+    const ms = dt.getTime();
+    return Number.isNaN(ms) ? null : ms;
+  })();
+
   const ready = firebaseReady();
   const [tables, waitingWrapped] = ready
     ? await Promise.all([
@@ -53,6 +80,63 @@ export default async function HostessPage({
     : [[], []];
 
   const focusedTable = selectedTableId ? tables.find((t) => t.id === selectedTableId) ?? null : null;
+
+  const focusedHistoryWrapped = ready && selectedTableId
+    ? await listWaitingReservations({ tableId: selectedTableId, allStatuses: true })
+    : [];
+
+  const focusedVisits = focusedHistoryWrapped
+    .filter((w) => String(w.reservation.tableId ?? "") === String(selectedTableId ?? ""))
+    .filter((w) => w.reservation.status === "SEATED" || w.reservation.status === "COMPLETED")
+    .map((w) => ({
+      id: w.reservation.id,
+      status: w.reservation.status,
+      seatedAt: typeof (w.reservation as any).seatedAt === "number" ? Number((w.reservation as any).seatedAt) : null,
+      completedAt: typeof (w.reservation as any).completedAt === "number" ? Number((w.reservation as any).completedAt) : null,
+      createdAt: w.reservation.createdAt,
+      updatedAt: w.reservation.updatedAt,
+      reservedFor: w.reservation.reservedFor ? Number(w.reservation.reservedFor) : null,
+      customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
+      notes: w.reservation.notes ?? null,
+      customer: w.customer,
+      table: w.table ?? null
+    }))
+    .sort((a, b) => {
+      const aa = a.completedAt ?? a.seatedAt ?? a.updatedAt ?? a.createdAt;
+      const bb = b.completedAt ?? b.seatedAt ?? b.updatedAt ?? b.createdAt;
+      return bb - aa;
+    });
+
+  const focusedVisit = (() => {
+    if (!focusedVisits.length) return null;
+    if (targetMs == null) return focusedVisits[0];
+    const matches = focusedVisits.filter((v) => {
+      const start = v.seatedAt ?? v.createdAt;
+      const end = v.completedAt ?? (v.status === "SEATED" ? Number.POSITIVE_INFINITY : v.updatedAt ?? v.createdAt);
+      return targetMs >= start && targetMs <= end;
+    });
+    if (matches.length) {
+      matches.sort((a, b) => (b.seatedAt ?? b.createdAt) - (a.seatedAt ?? a.createdAt));
+      return matches[0];
+    }
+    // Fallback: closest in time by seatedAt/createdAt.
+    const best = focusedVisits
+      .slice()
+      .sort((a, b) => {
+        const da = Math.abs((a.seatedAt ?? a.createdAt) - targetMs);
+        const db = Math.abs((b.seatedAt ?? b.createdAt) - targetMs);
+        return da - db;
+      })[0];
+    return best ?? null;
+  })();
+
+  function formatDuration(ms: number) {
+    const totalMin = Math.max(0, Math.round(ms / 60000));
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h <= 0) return `${m} min`;
+    return `${h} h ${String(m).padStart(2, "0")} min`;
+  }
 
   const focusedQueue = waitingWrapped
     .filter((w) => w.reservation.status === "WAITING" || w.reservation.status === "RESERVED")
@@ -185,8 +269,13 @@ export default async function HostessPage({
         </div>
       ) : null}
 
-      <div className="requires-online">
-        <HostessForm tables={tables} initialTableId={searchParams?.tableId ? String(searchParams.tableId) : ""} />
+      <div className="grid hostess-form-grid" style={{ gap: 12 }}>
+        <HostessForm
+          tables={tables}
+          initialTableId={searchParams?.tableId ? String(searchParams.tableId) : ""}
+          initialReservedDate={initialReservedDate}
+          initialReservedTime={initialReservedTime}
+        />
       </div>
 
       {focusedTable ? (
@@ -197,6 +286,11 @@ export default async function HostessPage({
               <div className="small" style={{ opacity: 0.85 }}>
                 Acciones rápidas (Sentar / No show)
               </div>
+              {targetMs != null ? (
+                <div className="small" style={{ marginTop: 4 }}>
+                  Consulta: {formatDDMMYY(new Date(targetMs))}, {formatHHMM(new Date(targetMs))}
+                </div>
+              ) : null}
             </div>
             <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               {canDelete && focusedQueue.length === 0 ? (
@@ -212,6 +306,35 @@ export default async function HostessPage({
               </a>
             </div>
           </div>
+
+          <div className="card" style={{ marginTop: 10, background: "rgba(255, 255, 255, 0.72)" }}>
+            <div style={{ fontWeight: 900 }}>Vista previa (visita)</div>
+            {!focusedVisit ? (
+              <div className="small" style={{ marginTop: 6 }}>
+                Sin datos de visita para esta mesa.
+              </div>
+            ) : (
+              <div className="small" style={{ marginTop: 6 }}>
+                <div style={{ fontWeight: 900, fontSize: 16 }}>{focusedVisit.customer?.name ?? "(Sin nombre)"}</div>
+                {focusedVisit.customer?.phone ? <div>{focusedVisit.customer.phone}</div> : null}
+                {focusedVisit.customer?.email ? <div>{focusedVisit.customer.email}</div> : null}
+                <div style={{ marginTop: 6 }}>
+                  Estado: <span className={badgeClass(focusedVisit.status)}>{focusedVisit.status}</span>
+                </div>
+                {focusedVisit.seatedAt ? <div>Sentado: {new Date(focusedVisit.seatedAt).toLocaleString()}</div> : <div>Sentado: —</div>}
+                {focusedVisit.completedAt ? (
+                  <div>Liberación: {new Date(focusedVisit.completedAt).toLocaleString()}</div>
+                ) : (
+                  <div>Liberación: —</div>
+                )}
+                {focusedVisit.seatedAt && focusedVisit.completedAt ? (
+                  <div>Permanencia: {formatDuration(focusedVisit.completedAt - focusedVisit.seatedAt)}</div>
+                ) : null}
+                {focusedVisit.notes ? <div style={{ marginTop: 6 }}>Notas: {focusedVisit.notes}</div> : null}
+              </div>
+            )}
+          </div>
+
           <div className="grid" style={{ marginTop: 10 }}>
             {focusedQueue.length === 0 ? <div className="small">Sin reservas/en espera para esta mesa</div> : null}
             {focusedQueue.map((r) => (

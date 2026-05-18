@@ -112,20 +112,27 @@ function effectiveStatusAt(t: CafeTable, targetMs: number | null) {
 
 export default function HostessForm({
   tables,
-  initialTableId
+  initialTableId,
+  initialReservedDate,
+  initialReservedTime
 }: {
   tables: CafeTable[];
   initialTableId?: string;
+  initialReservedDate?: string;
+  initialReservedTime?: string;
 }) {
   const router = useRouter();
   const defaults = useMemo(() => defaultDateTime(), []);
-  const [reservedDate, setReservedDate] = useState<string>(defaults.date);
-  const [reservedTime, setReservedTime] = useState<string>(defaults.time);
+  const [reservedDate, setReservedDate] = useState<string>(initialReservedDate ?? defaults.date);
+  const [reservedTime, setReservedTime] = useState<string>(initialReservedTime ?? defaults.time);
   const [tableId, setTableId] = useState<string>(initialTableId ?? "");
+  const [selectedTableIds, setSelectedTableIds] = useState<string[]>(initialTableId ? [initialTableId] : []);
   const [name, setName] = useState<string>("");
   const [phoneCountry, setPhoneCountry] = useState<string>("+52");
   const [phoneNational, setPhoneNational] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [partySize, setPartySize] = useState<string>("1");
+  const [partyTouched, setPartyTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const composedPhone = useMemo(() => {
@@ -155,7 +162,21 @@ export default function HostessForm({
 
   useEffect(() => {
     setTableId(initialTableId ?? "");
+    setSelectedTableIds(initialTableId ? [initialTableId] : []);
   }, [initialTableId]);
+
+  useEffect(() => {
+    if (partyTouched) return;
+    const suggested = Math.max(1, selectedTableIds.length * 4);
+    setPartySize(String(suggested));
+  }, [selectedTableIds, partyTouched]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("reservedDate", reservedDate);
+    url.searchParams.set("reservedTime", reservedTime);
+    router.replace(url.pathname + url.search);
+  }, [reservedDate, reservedTime, router]);
 
   const tablesForPicker = useMemo(
     () =>
@@ -254,7 +275,22 @@ export default function HostessForm({
           </div>
           <div>
             <label className="label">Personas</label>
-            <input className="input" name="partySize" type="number" min={1} step={1} inputMode="numeric" defaultValue={1} />
+            <input
+              className="input"
+              name="partySize"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              value={partySize}
+              onChange={(e) => {
+                setPartyTouched(true);
+                setPartySize(e.target.value);
+              }}
+            />
+            <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
+              Sugerido: {Math.max(1, selectedTableIds.length * 4)} persona(s) ({selectedTableIds.length || 1} mesa(s) × 4)
+            </div>
           </div>
           <div>
             <label className="label">Indicaciones especiales / notas</label>
@@ -284,9 +320,12 @@ export default function HostessForm({
           </div>
 
           <input type="hidden" name="tableId" value={tableId} />
+          {selectedTableIds.map((id) => (
+            <input key={id} type="hidden" name="tableIds" value={id} />
+          ))}
 
           <div>
-            <label className="label">Mesa (opcional)</label>
+            <label className="label">Mesa principal (opcional)</label>
             <select
               className="input"
               value={tableId}
@@ -302,6 +341,14 @@ export default function HostessForm({
                 );
               })}
             </select>
+            {selectedTableIds.length > 0 ? (
+              <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
+                Mesas seleccionadas: {selectedTableIds.join(", ")}
+              </div>
+            ) : null}
+            <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
+              Selección múltiple disponible en el croquis (máx. 3 mesas).
+            </div>
           </div>
 
           <button className="btn" type="submit" disabled={isSubmitting} style={isSubmitting ? { opacity: 0.7 } : undefined}>
@@ -319,7 +366,8 @@ export default function HostessForm({
             {tables.map((t) => {
               const p = pos[String(t.name)] ?? null;
               const s = effectiveStatusAt(t, reservedForMs);
-              const cls = `table-chip ${statusClass(s)} ${tableId === t.id ? "selected" : ""}`;
+              const isSelected = selectedTableIds.includes(t.id);
+              const cls = `table-chip ${statusClass(s)} ${isSelected ? "selected" : ""}`;
               return (
                 <button
                   key={t.id}
@@ -335,8 +383,16 @@ export default function HostessForm({
                     const url = new URL(window.location.href);
                     url.searchParams.set("focusTableId", t.id);
                     if (s === "LIBRE") {
-                      setTableId(t.id);
-                      url.searchParams.set("tableId", t.id);
+                      setSelectedTableIds((prev) => {
+                        const exists = prev.includes(t.id);
+                        let next = exists ? prev.filter((x) => x !== t.id) : [...prev, t.id];
+                        if (next.length > 3) next = next.slice(0, 3);
+                        const primary = next[0] ?? "";
+                        setTableId(primary);
+                        if (primary) url.searchParams.set("tableId", primary);
+                        else url.searchParams.delete("tableId");
+                        return next;
+                      });
                     }
                     router.replace(url.pathname + url.search);
                   }}

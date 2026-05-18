@@ -106,8 +106,11 @@ a { color: inherit; text-decoration: none; }
     radial-gradient(900px 220px at 90% 0%, rgba(245, 158, 11, 0.16), transparent 55%),
     linear-gradient(180deg, rgba(69, 44, 22, 0.70), rgba(45, 28, 14, 0.62));
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.22);
   z-index: 20;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .topbar, .topbar a { color: rgba(255, 255, 255, 0.94); }
@@ -358,8 +361,11 @@ html[data-offline="true"] .requires-online {
 .table-chip.porlimpiar { border-color: #b7950b; opacity: 0.65; cursor: pointer; }
 
 .table-chip.selected {
-  outline: 2px solid rgba(42, 109, 244, 0.9);
+  outline: 2px solid rgba(168, 85, 247, 0.95);
   outline-offset: 2px;
+  box-shadow:
+    0 0 0 6px rgba(168, 85, 247, 0.16),
+    0 10px 22px rgba(0, 0, 0, 0.18);
 }
 
 @media (max-width: 900px) {
