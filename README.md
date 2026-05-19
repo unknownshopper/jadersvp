@@ -46,6 +46,10 @@ Rutas principales:
 - `/caja`
 - `/admin`
 
+Política de privacidad (pública):
+
+- `/privacy.html`
+
 ## Objetivo del sistema
 
 - **Hostess**
@@ -151,6 +155,12 @@ Configurar en Firebase Console → App Hosting → backend `cafejadersvp` → En
 - `WHATSAPP_APP_SECRET`
 
 Después de cambiar variables de entorno: `firebase deploy` (no sólo hosting).
+
+### Política de privacidad (Meta)
+
+Para publicar/configurar la app en Meta, usar una URL pública. En este proyecto:
+
+- `https://cafejadersvp.web.app/privacy.html`
 
 ### Normalización de teléfono (México)
 
