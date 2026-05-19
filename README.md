@@ -54,6 +54,10 @@ Términos y condiciones (público):
 
 - `/terms.html`
 
+Eliminación de datos (público):
+
+- `/data-deletion.html`
+
 ## Objetivo del sistema
 
 - **Hostess**
@@ -169,6 +173,10 @@ Para publicar/configurar la app en Meta, usar una URL pública. En este proyecto
 URL de Condiciones del servicio (Meta):
 
 - `https://cafejadersvp.web.app/terms.html`
+
+URL de eliminación de datos de usuario (Meta):
+
+- `https://cafejadersvp.web.app/data-deletion.html`
 
 ### Normalización de teléfono (México)
 
