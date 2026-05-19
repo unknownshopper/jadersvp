@@ -50,6 +50,10 @@ Política de privacidad (pública):
 
 - `/privacy.html`
 
+Términos y condiciones (público):
+
+- `/terms.html`
+
 ## Objetivo del sistema
 
 - **Hostess**
@@ -161,6 +165,10 @@ Después de cambiar variables de entorno: `firebase deploy` (no sólo hosting).
 Para publicar/configurar la app en Meta, usar una URL pública. En este proyecto:
 
 - `https://cafejadersvp.web.app/privacy.html`
+
+URL de Condiciones del servicio (Meta):
+
+- `https://cafejadersvp.web.app/terms.html`
 
 ### Normalización de teléfono (México)
 
