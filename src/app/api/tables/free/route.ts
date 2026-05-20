@@ -29,13 +29,28 @@ export async function POST(req: Request) {
       const detail = await getReservationDetail(completedReservationId);
       const customer = detail?.customer ?? null;
 
+      console.log("SURVEY_TRIGGER", {
+        reservationId: completedReservationId,
+        hasCustomer: Boolean(customer),
+        hasPhone: Boolean(customer?.phone)
+      });
+
       const suggestedChannel = customer?.phone ? "WHATSAPP" : customer?.email ? "EMAIL" : "NONE";
       await enqueueSurveyOutbox({ reservationId: completedReservationId, suggestedChannel });
 
       const templateName = String(process.env.WHATSAPP_TEMPLATE_SURVEY ?? "").trim();
+      if (!templateName) {
+        console.log("WHATSAPP_SURVEY_SKIPPED", { reason: "TEMPLATE_NOT_SET" });
+      }
       if (templateName && customer?.phone) {
         const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_SURVEY_HEADER_IMAGE_URL ?? "").trim();
         try {
+          console.log("WHATSAPP_SURVEY_ATTEMPT", {
+            toPhone: customer.phone,
+            templateName,
+            reservationId: completedReservationId,
+            hasHeaderImageUrl: Boolean(headerImageUrl)
+          });
           const r = await sendWhatsAppTemplate({
             toPhone: customer.phone,
             templateName,
@@ -47,21 +62,27 @@ export async function POST(req: Request) {
             const errText = String(r.error ?? "");
             const isStaticButton = errText.includes("132018") || errText.includes("does not require parameters");
             if (isStaticButton) {
-              const r2 = await sendWhatsAppTemplate({
-                toPhone: customer.phone,
+              console.error("WHATSAPP_SURVEY_STATIC_BUTTON_REJECTED", {
                 templateName,
-                bodyParams: [String(customer.name ?? "").trim()],
-                headerImageUrl
+                reservationId: completedReservationId,
+                error: r.error
               });
-              if (!r2.ok) console.error("WHATSAPP_SURVEY_FAILED", r2.error);
             } else {
               console.error("WHATSAPP_SURVEY_FAILED", r.error);
             }
+          } else {
+            console.log("WHATSAPP_SURVEY_ACCEPTED", {
+              messageId: r.messageId,
+              templateName,
+              reservationId: completedReservationId
+            });
           }
         } catch {
           // non-blocking
         }
       }
+    } else {
+      console.log("SURVEY_TRIGGER_SKIPPED", { reason: "NO_SEATED_RESERVATION" });
     }
 
     return NextResponse.redirect(new URL("/caja?ok=Liberada", baseUrl));
