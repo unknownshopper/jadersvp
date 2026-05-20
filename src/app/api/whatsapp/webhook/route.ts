@@ -38,6 +38,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "WHATSAPP_WEBHOOK_VERIFY_TOKEN_MISSING" }, { status: 500 });
   }
 
+  console.log("WHATSAPP_WEBHOOK_VERIFY", {
+    mode,
+    hasToken: Boolean(token),
+    tokenMatch: Boolean(token) && token === verifyToken,
+    hasChallenge: Boolean(challenge)
+  });
+
   if (mode === "subscribe" && token === verifyToken) {
     return new NextResponse(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
   }
