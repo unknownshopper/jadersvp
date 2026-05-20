@@ -13,10 +13,16 @@ function getBaseUrl(req: Request) {
 
 function combineLocalDateTime(dateStr: string, timeStr: string): Date | null {
   if (!dateStr || !timeStr) return null;
-  // Interpret as local time.
-  const d = new Date(`${dateStr}T${timeStr}:00`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
+  const m = String(dateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const t = String(timeStr).trim().match(/^(\d{2}):(\d{2})$/);
+  if (!m || !t) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const hh = Number(t[1]);
+  const mm = Number(t[2]);
+  const dt = new Date(y, mo - 1, d, hh, mm, 0, 0);
+  return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
 export async function POST(req: Request) {

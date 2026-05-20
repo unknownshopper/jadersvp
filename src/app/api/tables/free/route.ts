@@ -43,7 +43,21 @@ export async function POST(req: Request) {
             headerImageUrl,
             buttonUrlParams: [completedReservationId]
           });
-          if (!r.ok) console.error("WHATSAPP_SURVEY_FAILED", r.error);
+          if (!r.ok) {
+            const errText = String(r.error ?? "");
+            const isStaticButton = errText.includes("132018") || errText.includes("does not require parameters");
+            if (isStaticButton) {
+              const r2 = await sendWhatsAppTemplate({
+                toPhone: customer.phone,
+                templateName,
+                bodyParams: [String(customer.name ?? "").trim()],
+                headerImageUrl
+              });
+              if (!r2.ok) console.error("WHATSAPP_SURVEY_FAILED", r2.error);
+            } else {
+              console.error("WHATSAPP_SURVEY_FAILED", r.error);
+            }
+          }
         } catch {
           // non-blocking
         }

@@ -197,18 +197,18 @@ export default async function HostessPage({
   const todayEnd = new Date(todayEndMs);
 
   const futureKey = String(searchParams?.future ?? "1");
-  const futureStart = new Date(todayStart);
-  const futureEnd = new Date(todayStart);
+  const futureStart = new Date(todayEnd);
+  const futureEnd = new Date(todayEnd);
   if (futureKey === "next3") {
-    futureStart.setDate(futureStart.getDate() + 1);
-    futureEnd.setDate(futureEnd.getDate() + 4);
+    futureStart.setDate(futureStart.getDate() + 0);
+    futureEnd.setDate(futureEnd.getDate() + 3);
   } else if (futureKey === "next7") {
-    futureStart.setDate(futureStart.getDate() + 1);
-    futureEnd.setDate(futureEnd.getDate() + 8);
+    futureStart.setDate(futureStart.getDate() + 0);
+    futureEnd.setDate(futureEnd.getDate() + 7);
   } else {
     const offsetDays = Math.max(1, Math.min(30, Number.parseInt(futureKey, 10) || 1));
-    futureStart.setDate(futureStart.getDate() + offsetDays);
-    futureEnd.setDate(futureEnd.getDate() + offsetDays + 1);
+    futureStart.setDate(futureStart.getDate() + (offsetDays - 1));
+    futureEnd.setDate(futureEnd.getDate() + offsetDays);
   }
 
   const futureStartMs = zonedMidnightUtcMs(futureStart, tz);
