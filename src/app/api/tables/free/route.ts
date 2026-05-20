@@ -40,7 +40,8 @@ export async function POST(req: Request) {
             toPhone: customer.phone,
             templateName,
             bodyParams: [String(customer.name ?? "").trim()],
-            headerImageUrl
+            headerImageUrl,
+            buttonUrlParams: [completedReservationId]
           });
           if (!r.ok) console.error("WHATSAPP_SURVEY_FAILED", r.error);
         } catch {

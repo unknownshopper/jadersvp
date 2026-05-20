@@ -24,6 +24,28 @@ function formatHHMM(d: Date) {
   return `${hh}:${mm}`;
 }
 
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const utcAsTz = new Date(date.toLocaleString("en-US", { timeZone }));
+  return date.getTime() - utcAsTz.getTime();
+}
+
+function zonedMidnightUtcMs(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+
+  const y = Number(parts.find((p) => p.type === "year")?.value);
+  const m = Number(parts.find((p) => p.type === "month")?.value);
+  const d = Number(parts.find((p) => p.type === "day")?.value);
+
+  const utcMs = Date.UTC(y, m - 1, d, 0, 0, 0, 0);
+  const offset = getTimeZoneOffsetMs(new Date(utcMs), timeZone);
+  return utcMs + offset;
+}
+
 export default async function HostessPage({
   searchParams
 }: {
@@ -165,12 +187,14 @@ export default async function HostessPage({
       return (b.createdAt ?? 0) - (a.createdAt ?? 0);
     });
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-  const todayStartMs = todayStart.getTime();
-  const todayEndMs = todayEnd.getTime();
+  const tz = "America/Mexico_City";
+  const now = new Date();
+
+  const todayStartMs = zonedMidnightUtcMs(now, tz);
+  const todayEndMs = zonedMidnightUtcMs(new Date(now.getTime() + 36 * 60 * 60 * 1000), tz);
+
+  const todayStart = new Date(todayStartMs);
+  const todayEnd = new Date(todayEndMs);
 
   const futureKey = String(searchParams?.future ?? "1");
   const futureStart = new Date(todayStart);
@@ -187,8 +211,8 @@ export default async function HostessPage({
     futureEnd.setDate(futureEnd.getDate() + offsetDays + 1);
   }
 
-  const futureStartMs = futureStart.getTime();
-  const futureEndMs = futureEnd.getTime();
+  const futureStartMs = zonedMidnightUtcMs(futureStart, tz);
+  const futureEndMs = zonedMidnightUtcMs(futureEnd, tz);
 
   const waiting = waitingWrapped
     .filter((w) => w.reservation.status === "WAITING" || w.reservation.status === "RESERVED")
@@ -249,7 +273,7 @@ export default async function HostessPage({
       return aMs - bMs;
     });
 
-  const now = Date.now();
+  const nowMs = Date.now();
 
   const noShowAfterMs = 10 * 60 * 1000;
 
@@ -395,7 +419,7 @@ export default async function HostessPage({
                       </form>
                     ) : null}
 
-                    {r.status !== "SEATED" && r.reservedFor && now - r.reservedFor.getTime() >= noShowAfterMs ? (
+                    {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
                       <form action="/api/reservations/noshow" method="post">
                         <input type="hidden" name="reservationId" value={r.id} />
                         <button className="btn secondary" type="submit">
@@ -520,7 +544,7 @@ export default async function HostessPage({
                     </form>
                   ) : null}
 
-                  {r.status !== "SEATED" && r.reservedFor && now - r.reservedFor.getTime() >= noShowAfterMs ? (
+                  {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
                     <form action="/api/reservations/noshow" method="post" style={{ flex: "0 0 auto" }}>
                       <input type="hidden" name="reservationId" value={r.id} />
                       <button className="btn secondary" type="submit" style={{ marginTop: 8 }}>

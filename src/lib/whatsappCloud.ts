@@ -12,6 +12,15 @@ type WhatsAppTemplateHeaderComponent = {
   parameters: WhatsAppTemplateHeaderImageParam[];
 };
 
+type WhatsAppTemplateButtonUrlParam = { type: "text"; text: string };
+
+type WhatsAppTemplateButtonUrlComponent = {
+  type: "button";
+  sub_type: "url";
+  index: string;
+  parameters: WhatsAppTemplateButtonUrlParam[];
+};
+
 type WhatsAppTemplateMessage = {
   messaging_product: "whatsapp";
   to: string;
@@ -19,7 +28,9 @@ type WhatsAppTemplateMessage = {
   template: {
     name: string;
     language: { code: string };
-    components?: Array<WhatsAppTemplateHeaderComponent | WhatsAppTemplateComponent>;
+    components?: Array<
+      WhatsAppTemplateHeaderComponent | WhatsAppTemplateComponent | WhatsAppTemplateButtonUrlComponent
+    >;
   };
 };
 
@@ -74,6 +85,7 @@ export async function sendWhatsAppTemplate(params: {
   languageCode?: string;
   bodyParams?: string[];
   headerImageUrl?: string | null;
+  buttonUrlParams?: Array<string | null | undefined>;
 }): Promise<{ ok: true; messageId: string | null } | { ok: false; error: string }> {
   const token = getEnv("WHATSAPP_ACCESS_TOKEN");
   const phoneNumberId = getEnv("WHATSAPP_PHONE_NUMBER_ID");
@@ -91,7 +103,9 @@ export async function sendWhatsAppTemplate(params: {
 
   const headerLink = String(params.headerImageUrl ?? "").trim();
 
-  const components: Array<WhatsAppTemplateHeaderComponent | WhatsAppTemplateComponent> = [];
+  const components: Array<
+    WhatsAppTemplateHeaderComponent | WhatsAppTemplateComponent | WhatsAppTemplateButtonUrlComponent
+  > = [];
   if (headerLink) {
     components.push({
       type: "header",
@@ -103,6 +117,19 @@ export async function sendWhatsAppTemplate(params: {
     components.push({
       type: "body",
       parameters: bodyParams.map((text) => ({ type: "text", text }))
+    });
+  }
+
+  const buttonUrlParams = (params.buttonUrlParams ?? [])
+    .map((x) => String(x ?? "").trim())
+    .filter((x) => x.length > 0)
+    .slice(0, 3);
+  for (let i = 0; i < buttonUrlParams.length; i++) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: String(i),
+      parameters: [{ type: "text", text: buttonUrlParams[i] }]
     });
   }
 
