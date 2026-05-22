@@ -28,6 +28,7 @@ type ActiveItem = {
   reservedFor: Date | null;
   customer: { name: string };
   table: { id: string; name: string; area?: string | null } | null;
+  tables?: Array<{ id: string; name: string; area?: string | null }>;
 };
 
 type Mode = "active" | "occupied" | "free" | "remaining";
@@ -60,9 +61,11 @@ export default function CajaDashboard({
     const m = new Map<string, ActiveItem>();
     for (const r of active) {
       if (r.status !== "SEATED") continue;
-      const tid = String(r.table?.id ?? "");
-      if (!tid) continue;
-      m.set(tid, r);
+      const tids = Array.isArray(r.tables) && r.tables.length > 0 ? r.tables.map((t) => String(t.id)) : [String(r.table?.id ?? "")];
+      for (const tid of tids) {
+        if (!tid) continue;
+        m.set(tid, r);
+      }
     }
     return m;
   }, [active]);
@@ -139,18 +142,22 @@ export default function CajaDashboard({
                   <div>
                     <div style={{ fontWeight: 800 }}>{r.customer.name}</div>
                     <div className="small">
-                      Mesa {r.table?.name ?? "(sin mesa)"}
-                      {r.table?.area ? ` · ${r.table.area}` : ""} · {r.status}
+                      Mesas {Array.isArray(r.tables) && r.tables.length > 0 ? r.tables.map((t) => t.name).join(", ") : r.table?.name ?? "(sin mesa)"}
+                      {r.status ? ` · ${r.status}` : ""}
                       {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}, ${formatHHMM(r.reservedFor)}` : ""}
                     </div>
                   </div>
-                  {r.status === "SEATED" && r.table?.id ? (
-                    <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
-                      <input type="hidden" name="tableId" value={r.table.id} />
-                      <button className="btn" type="submit">
-                        Liberar
-                      </button>
-                    </form>
+                  {r.status === "SEATED" ? (
+                    <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      {(Array.isArray(r.tables) && r.tables.length > 0 ? r.tables : r.table ? [r.table] : []).map((t) => (
+                        <form key={t.id} action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
+                          <input type="hidden" name="tableId" value={t.id} />
+                          <button className="btn" type="submit">
+                            Liberar {t.name}
+                          </button>
+                        </form>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
               ))}

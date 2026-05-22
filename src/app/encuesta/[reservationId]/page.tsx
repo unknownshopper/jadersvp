@@ -45,7 +45,7 @@ export default async function SurveyPage({
   searchParams
 }: {
   params: { reservationId: string };
-  searchParams?: { ok?: string };
+  searchParams?: { ok?: string; preview?: string };
 }) {
   const reservationId = String(params.reservationId);
   const detail = await getReservationDetail(reservationId);
@@ -55,7 +55,9 @@ export default async function SurveyPage({
   const cfg = await getSurveyConfig();
   const questions = (cfg.questions ?? []).map((q) => String(q).trim()).filter(Boolean);
 
-  if (!reservation || !customer) {
+  const isPreview = String(searchParams?.preview ?? "") === "1" || reservationId === "TEST123";
+
+  if ((!reservation || !customer) && !isPreview) {
     return (
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Encuesta</h2>
@@ -63,6 +65,50 @@ export default async function SurveyPage({
       </div>
     );
   }
+
+  if (isPreview && (!reservation || !customer)) {
+    return (
+      <div className="grid" style={{ gap: 16, maxWidth: 620 }}>
+        <div className="card">
+          <div className="row" style={{ gap: 12, alignItems: "center" }}>
+            <img
+              src="/logo.jpg"
+              alt="Café Jade"
+              width={44}
+              height={44}
+              style={{ borderRadius: 12, objectFit: "contain", background: "#0b1220" }}
+            />
+            <div>
+              <h2 style={{ margin: 0 }}>Encuesta — Café Jade</h2>
+              <div className="small">Vista previa (no guarda respuestas).</div>
+            </div>
+          </div>
+
+          <div className="small" style={{ marginTop: 10 }}>
+            Tu opinión nos ayuda a mejorar. Si algo no te gustó, cuéntanos con confianza.
+          </div>
+
+          <div className="grid" style={{ marginTop: 10 }}>
+            <SurveyRatingClient />
+            <SurveyQuestionsClient questions={questions} />
+            <div>
+              <label className="label">Comentarios (opcional)</label>
+              <textarea className="input" name="comment" rows={4} placeholder="¿Qué fue lo mejor y qué mejorarías?" />
+            </div>
+            <div className="small" style={{ opacity: 0.8 }}>
+              No solicitamos datos bancarios. Tus respuestas se usan solo para mejorar el servicio.
+            </div>
+            <button className="btn" type="button" disabled>
+              Enviar encuesta
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const safeReservation = reservation as NonNullable<typeof reservation>;
+  const safeCustomer = customer as NonNullable<typeof customer>;
 
   if (survey) {
     return (
@@ -81,6 +127,12 @@ export default async function SurveyPage({
               <div className="small">Ya registramos tu respuesta.</div>
             </div>
           </div>
+
+          {searchParams?.ok ? (
+            <div className="badge" style={{ borderColor: "#1e8449", marginTop: 10 }}>
+              {searchParams.ok}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -99,7 +151,7 @@ export default async function SurveyPage({
           />
           <div>
             <h2 style={{ margin: 0 }}>Encuesta — Café Jade</h2>
-            <div className="small">Hola {customer.name}. Nos toma menos de 1 minuto.</div>
+            <div className="small">Hola {safeCustomer.name}. Nos toma menos de 1 minuto.</div>
           </div>
         </div>
 
@@ -113,7 +165,7 @@ export default async function SurveyPage({
         ) : null}
 
         <form className="grid" action="/api/surveys" method="post" style={{ marginTop: 10 }}>
-          <input type="hidden" name="reservationId" value={reservation.id} />
+          <input type="hidden" name="reservationId" value={safeReservation.id} />
           <SurveyRatingClient />
 
           <SurveyQuestionsClient questions={questions} />

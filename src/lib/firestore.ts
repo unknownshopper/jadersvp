@@ -38,6 +38,7 @@ export type Reservation = {
   customerNameSnapshot?: string | null;
   tableId?: string | null;
   tableIds?: string[] | null;
+  activeTableIds?: string[] | null;
   partySize?: number | null;
   reservedFor?: number | null;
   status: ReservationStatus;
@@ -722,6 +723,7 @@ export async function listWaitingReservations(params?: {
     reservation: Reservation;
     customer: Customer;
     table?: CafeTable | null;
+    tables?: CafeTable[];
     survey?: SurveyResponse | null;
   }>
 > {
@@ -755,7 +757,19 @@ export async function listWaitingReservations(params?: {
   );
 
   const tableIds = Array.from(
-    new Set(reservations.map((r: Reservation) => r.tableId).filter(Boolean) as string[])
+    new Set(
+      reservations
+        .flatMap((r: Reservation) => {
+          const active = Array.isArray(r.activeTableIds) ? r.activeTableIds : null;
+          const reserved = Array.isArray(r.tableIds) ? r.tableIds : null;
+          const single = r.tableId ? [r.tableId] : [];
+          const ids = (active && active.length > 0 ? active : reserved && reserved.length > 0 ? reserved : single)
+            .map((x) => String(x))
+            .filter(Boolean);
+          return ids;
+        })
+        .filter(Boolean)
+    )
   );
   const tables = new Map<string, CafeTable>();
   await Promise.all(
@@ -770,10 +784,20 @@ export async function listWaitingReservations(params?: {
     .map((reservation: Reservation) => {
       const customer = customers.get(reservation.customerId);
       if (!customer) return null;
+
+      const associatedTableIds = Array.isArray(reservation.activeTableIds)
+        ? reservation.activeTableIds.map((x) => String(x)).filter(Boolean)
+        : Array.isArray(reservation.tableIds)
+          ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
+          : reservation.tableId
+            ? [String(reservation.tableId)]
+            : [];
+      const associatedTables = associatedTableIds.map((id) => tables.get(id)).filter(Boolean) as CafeTable[];
       return {
         reservation,
         customer,
-        table: reservation.tableId ? tables.get(reservation.tableId) ?? null : null
+        table: reservation.tableId ? tables.get(reservation.tableId) ?? null : null,
+        tables: associatedTables
       };
     })
     .filter(Boolean) as any;
@@ -795,13 +819,41 @@ export async function seatReservation(params: { reservationId: string; tableId: 
     if (table.status !== "LIBRE") throw new Error("Table not free");
 
     const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
-    const next = (table as any).nextReservedFor as number | null | undefined;
-    const reservedFor = reservation.reservedFor ? Number(reservation.reservedFor) : null;
-    const nextReservedFor = reservedFor && next && next === reservedFor ? null : next ?? null;
+    const reservedTableIds = Array.isArray(reservation.tableIds)
+      ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
+      : [];
+    const targetTableIds = reservedTableIds.length > 0 ? reservedTableIds : [params.tableId];
+    const tableRefs = targetTableIds.map((id) => db.collection("tables").doc(id));
+
+    const tableDocs = await Promise.all(tableRefs.map((ref) => tx.get(ref)));
+    for (const d of tableDocs) {
+      if (!d.exists) throw new Error("Table not found");
+    }
+
+    const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
+    for (const t of tables) {
+      if (t.status !== "LIBRE") throw new Error("Table not free");
+    }
 
     const ts = nowMs();
-    tx.update(tableRef, { status: "OCUPADA", nextReservedFor, updatedAt: ts });
-    tx.update(reservationRef, { tableId: params.tableId, status: "SEATED", seatedAt: ts, completedAt: null, updatedAt: ts });
+
+    for (let i = 0; i < tables.length; i++) {
+      const t = tables[i];
+      const next = (t as any).nextReservedFor as number | null | undefined;
+      const reservedFor = reservation.reservedFor ? Number(reservation.reservedFor) : null;
+      const nextReservedFor = reservedFor && next && next === reservedFor ? null : next ?? null;
+      tx.update(tableRefs[i], { status: "OCUPADA", nextReservedFor, updatedAt: ts });
+    }
+
+    tx.update(reservationRef, {
+      tableId: params.tableId,
+      tableIds: reservedTableIds.length > 0 ? reservedTableIds : [params.tableId],
+      activeTableIds: targetTableIds,
+      status: "SEATED",
+      seatedAt: ts,
+      completedAt: null,
+      updatedAt: ts
+    });
   });
 }
 
@@ -1007,6 +1059,7 @@ export async function reserveTables(params: {
       customerNameSnapshot: params.name,
       tableId: tableIds[0],
       tableIds,
+      activeTableIds: null,
       status: "RESERVED",
       source: "CALL",
       createdByRole: params.createdByRole ?? null,
@@ -1028,20 +1081,24 @@ export async function reserveTables(params: {
   });
 }
 
-export async function freeTable(params: { tableId: string }): Promise<{ completedReservationId: string | null }> {
+export async function freeTable(params: {
+  tableId: string;
+}): Promise<{ completedReservationId: string | null; reservationId: string | null; remainingActiveTableIds: string[] | null }> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
   const tableRef = db.collection("tables").doc(params.tableId);
 
   let completedReservationId: string | null = null;
+  let reservationId: string | null = null;
+  let remainingActiveTableIds: string[] | null = null;
 
   await db.runTransaction(async (tx: any) => {
     const tableDoc = await tx.get(tableRef);
     if (!tableDoc.exists) throw new Error("Table not found");
 
     // Firestore requires all reads to be executed before all writes in a transaction.
-    const activeSnap = await tx.get(
+    const activeSnapByTableId = await tx.get(
       db
         .collection("reservations")
         .where("tableId", "==", params.tableId)
@@ -1049,17 +1106,59 @@ export async function freeTable(params: { tableId: string }): Promise<{ complete
         .limit(1)
     );
 
+    const activeSnapByTableIds = await tx.get(
+      db
+        .collection("reservations")
+        .where("tableIds", "array-contains", params.tableId)
+        .where("status", "==", "SEATED")
+        .limit(1)
+    );
+
+    const activeSnapByActiveTableIds = await tx.get(
+      db
+        .collection("reservations")
+        .where("activeTableIds", "array-contains", params.tableId)
+        .where("status", "==", "SEATED")
+        .limit(1)
+    );
+
     const ts = nowMs();
     tx.update(tableRef, { status: "LIBRE", lastFreedAt: ts, updatedAt: ts });
 
-    if (!activeSnap.empty) {
-      const resDoc = activeSnap.docs[0];
-      completedReservationId = String(resDoc.id);
-      tx.update(resDoc.ref, { status: "COMPLETED", completedAt: ts, updatedAt: ts });
+    const resDoc = !activeSnapByActiveTableIds.empty
+      ? activeSnapByActiveTableIds.docs[0]
+      : !activeSnapByTableId.empty
+        ? activeSnapByTableId.docs[0]
+        : !activeSnapByTableIds.empty
+          ? activeSnapByTableIds.docs[0]
+          : null;
+
+    if (resDoc) {
+      reservationId = String(resDoc.id);
+      const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+
+      const currentActive = Array.isArray(reservation.activeTableIds)
+        ? reservation.activeTableIds.map((x) => String(x)).filter(Boolean)
+        : Array.isArray(reservation.tableIds)
+          ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
+          : reservation.tableId
+            ? [String(reservation.tableId)]
+            : [];
+
+      const nextActive = currentActive.filter((id) => id !== params.tableId);
+      remainingActiveTableIds = nextActive;
+
+      if (nextActive.length === 0) {
+        completedReservationId = reservationId;
+        tx.update(resDoc.ref, { status: "COMPLETED", activeTableIds: [], completedAt: ts, updatedAt: ts });
+      } else {
+        const nextPrimary = nextActive[0] ?? reservation.tableId ?? null;
+        tx.update(resDoc.ref, { tableId: nextPrimary, activeTableIds: nextActive, updatedAt: ts });
+      }
     }
   });
 
-  return { completedReservationId };
+  return { completedReservationId, reservationId, remainingActiveTableIds };
 }
 
 export async function getReservationDetail(reservationId: string) {

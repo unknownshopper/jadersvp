@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createCustomer, createReservation, findExistingReservedReservation, reserveTables, reserveTable } from "@/lib/firestore";
+import { getFirestore } from "@/lib/firebaseAdmin";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
@@ -145,21 +146,38 @@ export async function POST(req: Request) {
   }
 
   const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
-  if (templateName && customer.phone) {
+  const callTemplateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL ?? "").trim() || templateName;
+  if (callTemplateName && customer.phone) {
     const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
     const when = new Date(reservedFor.getTime());
     const dateStr = when.toLocaleDateString("es-MX", { year: "numeric", month: "2-digit", day: "2-digit" });
     const timeStr = when.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    let tablesStr = "";
+    try {
+      const db = getFirestore();
+      if (db && effectiveTableIds.length > 0) {
+        const tableDocs = await Promise.all(effectiveTableIds.map((tid) => db.collection("tables").doc(tid).get()));
+        const tableNames = tableDocs
+          .map((d, i) => {
+            const rawName = d.exists ? String((d.data() as any)?.name ?? "").trim() : "";
+            return rawName || effectiveTableIds[i];
+          })
+          .filter(Boolean);
+        tablesStr = tableNames.join(", ");
+      }
+    } catch {
+      // non-blocking
+    }
     console.log("WHATSAPP_CONFIRMATION_ATTEMPT", {
       toPhone: customer.phone,
-      templateName,
+      templateName: callTemplateName,
       hasHeaderImageUrl: Boolean(headerImageUrl)
     });
     try {
       const r = await sendWhatsAppTemplate({
         toPhone: customer.phone,
-        templateName,
-        bodyParams: [name, dateStr, timeStr],
+        templateName: callTemplateName,
+        bodyParams: [name, dateStr, timeStr, tablesStr],
         headerImageUrl
       });
       if (!r.ok) console.error("WHATSAPP_CONFIRMATION_FAILED", r.error);

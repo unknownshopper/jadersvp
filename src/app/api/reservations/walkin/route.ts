@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { findOrCreateCustomer, walkInAssign } from "@/lib/firestore";
+import { getFirestore } from "@/lib/firebaseAdmin";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
@@ -34,13 +35,26 @@ export async function POST(req: Request) {
   await walkInAssign({ name, phone, email, tableId, customerId: customer.id, createdByRole });
 
   const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
+  const walkbyTemplateName =
+    String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY ?? "").trim() || templateName;
   const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
-  if (templateName && customer.phone) {
+  if (walkbyTemplateName && customer.phone) {
+    let tableName = tableId;
+    try {
+      const db = getFirestore();
+      if (db) {
+        const tdoc = await db.collection("tables").doc(tableId).get();
+        const rawName = tdoc.exists ? String((tdoc.data() as any)?.name ?? "").trim() : "";
+        if (rawName) tableName = rawName;
+      }
+    } catch {
+      // non-blocking
+    }
     try {
       const r = await sendWhatsAppTemplate({
         toPhone: customer.phone,
-        templateName,
-        bodyParams: [name],
+        templateName: walkbyTemplateName,
+        bodyParams: [name, tableName],
         headerImageUrl
       });
       if (!r.ok) console.error("WHATSAPP_CONFIRMATION_FAILED", r.error);

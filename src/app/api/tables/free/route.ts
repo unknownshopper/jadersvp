@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const tableId = String(form.get("tableId") ?? "");
     if (!tableId) return NextResponse.redirect(new URL("/caja?err=Falta+mesa", baseUrl));
 
-    const { completedReservationId } = await freeTable({ tableId });
+    const { completedReservationId, reservationId, remainingActiveTableIds } = await freeTable({ tableId });
 
     if (completedReservationId) {
       const detail = await getReservationDetail(completedReservationId);
@@ -81,6 +81,12 @@ export async function POST(req: Request) {
           // non-blocking
         }
       }
+    } else if (reservationId) {
+      console.log("SURVEY_TRIGGER_SKIPPED", {
+        reason: "PARTIAL_FREE",
+        reservationId,
+        remainingActiveTableIdsCount: Array.isArray(remainingActiveTableIds) ? remainingActiveTableIds.length : null
+      });
     } else {
       console.log("SURVEY_TRIGGER_SKIPPED", { reason: "NO_SEATED_RESERVATION" });
     }

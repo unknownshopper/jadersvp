@@ -90,7 +90,8 @@ export default async function CajaPage({
       status: w.reservation.status,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
       customer: w.customer,
-      table: w.table ?? null
+      table: w.table ?? null,
+      tables: Array.isArray(w.tables) ? w.tables : []
     }));
   const active = wrapped
     .filter((w) => {
@@ -106,7 +107,8 @@ export default async function CajaPage({
       status: w.reservation.status,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
       customer: w.customer,
-      table: w.table ?? null
+      table: w.table ?? null,
+      tables: Array.isArray(w.tables) ? w.tables : []
     }));
 
   return (
