@@ -4,6 +4,8 @@ import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
 
+export const dynamic = "force-dynamic";
+
 function badgeClass(status: string) {
   if (status === "LIBRE") return "badge libre";
   if (status === "OCUPADA") return "badge ocupada";
