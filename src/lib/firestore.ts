@@ -924,20 +924,17 @@ export async function walkInAssign(params: {
       customerId: customerRef.id,
       customerNameSnapshot: params.name,
       tableId: params.tableId,
-      status: "SEATED",
+      status: "RESERVED",
       source: "WALK_IN",
       createdByRole: params.createdByRole ?? null,
       reservedFor: null,
       partySize: null,
       notes: null,
-      seatedAt: ts,
+      seatedAt: null,
       completedAt: null,
       createdAt: ts,
       updatedAt: ts
     });
-
-    // Do not clear nextReservedFor: there may be a future reservation scheduled for this table.
-    tx.update(tableRef, { status: "OCUPADA", updatedAt: ts });
   });
 }
 
