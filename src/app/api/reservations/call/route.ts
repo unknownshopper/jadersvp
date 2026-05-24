@@ -148,7 +148,9 @@ export async function POST(req: Request) {
   const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
   const callTemplateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL ?? "").trim() || templateName;
   if (callTemplateName && customer.phone) {
-    const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
+    const headerImageUrl =
+      String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL_HEADER_IMAGE_URL ?? "").trim() ||
+      String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
     const when = new Date(reservedFor.getTime());
     const dateStr = when.toLocaleDateString("es-MX", { year: "numeric", month: "2-digit", day: "2-digit" });
     const timeStr = when.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });

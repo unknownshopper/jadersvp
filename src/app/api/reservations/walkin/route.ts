@@ -37,7 +37,9 @@ export async function POST(req: Request) {
   const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
   const walkbyTemplateName =
     String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY ?? "").trim() || templateName;
-  const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
+  const headerImageUrl =
+    String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY_HEADER_IMAGE_URL ?? "").trim() ||
+    String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
   if (walkbyTemplateName && customer.phone) {
     let tableName = tableId;
     try {
