@@ -816,7 +816,7 @@ export async function seatReservation(params: { reservationId: string; tableId: 
     if (!tableDoc.exists) throw new Error("Table not found");
 
     const table = tableDoc.data() as CafeTable;
-    if (table.status !== "LIBRE") throw new Error("Table not free");
+    if (table.status !== "LIBRE" && table.status !== "RESERVADA") throw new Error("Table not free");
 
     const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
     const reservedTableIds = Array.isArray(reservation.tableIds)
@@ -924,7 +924,7 @@ export async function walkInAssign(params: {
       customerId: customerRef.id,
       customerNameSnapshot: params.name,
       tableId: params.tableId,
-      status: "RESERVED",
+      status: "WAITING",
       source: "WALK_IN",
       createdByRole: params.createdByRole ?? null,
       reservedFor: null,
@@ -935,6 +935,8 @@ export async function walkInAssign(params: {
       createdAt: ts,
       updatedAt: ts
     });
+
+    tx.update(tableRef, { status: "RESERVADA", updatedAt: ts });
   });
 }
 
