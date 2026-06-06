@@ -3,12 +3,17 @@ import { getReservationDetail, getSurveyConfig } from "@/lib/firestore";
 import SurveyQuestionsClient from "./SurveyQuestionsClient";
 import SurveyRatingClient from "./SurveyRatingClient";
 
+function normalizeReservationId(input: string) {
+  const s = String(input ?? "").trim();
+  return s.replace(/^\{\{\d+\}\}/, "");
+}
+
 export async function generateMetadata({
   params
 }: {
   params: { reservationId: string };
 }): Promise<Metadata> {
-  const reservationId = String(params.reservationId);
+  const reservationId = normalizeReservationId(params.reservationId);
   const base = process.env.APP_BASE_URL ?? "https://cafejadersvp.web.app";
   const url = `/encuesta/${reservationId}`;
 
@@ -47,7 +52,7 @@ export default async function SurveyPage({
   params: { reservationId: string };
   searchParams?: { ok?: string; preview?: string };
 }) {
-  const reservationId = String(params.reservationId);
+  const reservationId = normalizeReservationId(params.reservationId);
   const detail = await getReservationDetail(reservationId);
   const reservation = detail?.reservation ?? null;
   const customer = detail?.customer ?? null;

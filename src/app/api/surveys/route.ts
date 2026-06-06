@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSurvey } from "@/lib/firestore";
 
+function normalizeReservationId(input: string) {
+  const s = String(input ?? "").trim();
+  return s.replace(/^\{\{\d+\}\}/, "");
+}
+
 function getBaseUrl(req: Request) {
   const h = req.headers;
   const proto = h.get("x-forwarded-proto") ?? "https";
@@ -14,7 +19,7 @@ export async function POST(req: Request) {
   const form = await req.formData();
 
   const baseUrl = getBaseUrl(req);
-  const reservationId = String(form.get("reservationId") ?? "");
+  const reservationId = normalizeReservationId(String(form.get("reservationId") ?? ""));
   const rating = Number(form.get("rating"));
   const comment = String(form.get("comment") ?? "").trim() || null;
   const answers: Record<string, string> = {};
