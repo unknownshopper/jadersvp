@@ -46,9 +46,39 @@ export default async function AdminEncuestasVisorPage({
   const surveys = rows.map((r) => r.survey);
 
   const total = surveys.length;
-  const buenas = surveys.filter((s: SurveyResponse) => s.rating >= 4).length;
-  const regulares = surveys.filter((s: SurveyResponse) => s.rating === 3).length;
-  const malas = surveys.filter((s: SurveyResponse) => s.rating <= 2).length;
+  const bucketFor = (s: SurveyResponse): "buena" | "regular" | "mala" => {
+    const answers = (s.answers ?? {}) as Record<string, string>;
+    const ynKeys = Object.keys(answers).filter((k) => /^q_\d+$/.test(k));
+
+    // If there are survey questions and at least one yes/no answer, compute from yes/no only.
+    if (questions.length && ynKeys.length) {
+      let answered = 0;
+      let yes = 0;
+      for (const k of ynKeys) {
+        const v = normalizeText(String(answers[k] ?? ""));
+        if (v !== "si" && v !== "no") continue;
+        answered += 1;
+        if (v === "si") yes += 1;
+      }
+
+      // Very basic scoring: SI = +1, NO = 0
+      // All SI => Buena, all NO => Mala, mixed => Regular
+      if (answered) {
+        if (yes === answered) return "buena";
+        if (yes === 0) return "mala";
+        return "regular";
+      }
+    }
+
+    // Fallback for older surveys or if questions are not configured.
+    if (s.rating >= 4) return "buena";
+    if (s.rating === 3) return "regular";
+    return "mala";
+  };
+
+  const buenas = surveys.filter((s: SurveyResponse) => bucketFor(s) === "buena").length;
+  const regulares = surveys.filter((s: SurveyResponse) => bucketFor(s) === "regular").length;
+  const malas = surveys.filter((s: SurveyResponse) => bucketFor(s) === "mala").length;
 
   const recommendIdx = questions.findIndex((q) => normalizeText(q).includes("recomendar"));
   const recommendKey = recommendIdx >= 0 ? `q_${recommendIdx + 1}` : "";
