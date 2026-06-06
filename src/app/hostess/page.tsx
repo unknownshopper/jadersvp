@@ -3,6 +3,7 @@ import HostessForm from "./HostessForm";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
+import AutoRefresh from "../AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -281,6 +282,7 @@ export default async function HostessPage({
 
   return (
     <div className="hostess-page">
+      <AutoRefresh intervalMs={5000} />
       <div className="hostess-page-left grid" style={{ gap: 16 }}>
         <OfflineBanner />
         {searchParams?.err ? (

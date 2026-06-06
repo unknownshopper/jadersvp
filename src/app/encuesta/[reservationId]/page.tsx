@@ -4,8 +4,17 @@ import SurveyQuestionsClient from "./SurveyQuestionsClient";
 import SurveyRatingClient from "./SurveyRatingClient";
 
 function normalizeReservationId(input: string) {
-  const s = String(input ?? "").trim();
-  return s.replace(/^\{\{\d+\}\}/, "");
+  const raw = String(input ?? "").trim();
+  let s = raw;
+  try {
+    s = decodeURIComponent(raw);
+  } catch {
+    // ignore
+  }
+
+  s = s.replace(/^\{\{\d+\}\}/, "");
+  s = s.replace(/^%7B%7B\d+%7D%7D/i, "");
+  return s;
 }
 
 export async function generateMetadata({

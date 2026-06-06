@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
 import HostessForm from "../hostess/HostessForm";
+import AutoRefresh from "../AutoRefresh";
 import CajaDashboard from "./CajaDashboard";
 
 export const dynamic = "force-dynamic";
@@ -115,6 +116,7 @@ export default async function CajaPage({
 
   return (
     <div className="caja-page">
+      <AutoRefresh intervalMs={5000} />
       <div className="caja-page-left grid" style={{ gap: 16 }}>
         <OfflineBanner />
         {searchParams?.err || searchParams?.ok ? (
