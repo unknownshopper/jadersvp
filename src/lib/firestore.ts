@@ -832,7 +832,7 @@ export async function seatReservation(params: { reservationId: string; tableId: 
 
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
     for (const t of tables) {
-      if (t.status !== "LIBRE") throw new Error("Table not free");
+      if (t.status !== "LIBRE" && t.status !== "RESERVADA") throw new Error("Table not free");
     }
 
     const ts = nowMs();
