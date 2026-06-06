@@ -280,164 +280,165 @@ export default async function HostessPage({
   const noShowAfterMs = 10 * 60 * 1000;
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
-      <OfflineBanner />
-      {searchParams?.err ? (
-        <div className="card" style={{ borderColor: "rgba(255, 59, 48, 0.35)" }}>
-          <div style={{ fontWeight: 800 }}>Error</div>
-          <div className="small">{String(searchParams.err)}</div>
-        </div>
-      ) : null}
-      {searchParams?.ok ? (
-        <div className="card" style={{ borderColor: "rgba(34, 197, 94, 0.35)" }}>
-          <div style={{ fontWeight: 800 }}>Listo</div>
-          <div className="small">{String(searchParams.ok)}</div>
-        </div>
-      ) : null}
+    <div className="hostess-page">
+      <div className="hostess-page-left grid" style={{ gap: 16 }}>
+        <OfflineBanner />
+        {searchParams?.err ? (
+          <div className="card" style={{ borderColor: "rgba(255, 59, 48, 0.35)" }}>
+            <div style={{ fontWeight: 800 }}>Error</div>
+            <div className="small">{String(searchParams.err)}</div>
+          </div>
+        ) : null}
+        {searchParams?.ok ? (
+          <div className="card" style={{ borderColor: "rgba(34, 197, 94, 0.35)" }}>
+            <div style={{ fontWeight: 800 }}>Listo</div>
+            <div className="small">{String(searchParams.ok)}</div>
+          </div>
+        ) : null}
 
-      <div className="grid hostess-form-grid" style={{ gap: 12 }}>
         <HostessForm
           tables={tables}
           initialTableId={searchParams?.tableId ? String(searchParams.tableId) : ""}
           initialReservedDate={initialReservedDate}
           initialReservedTime={initialReservedTime}
         />
-      </div>
 
-      {focusedTable ? (
-        <div className="card requires-online" style={{ borderColor: "rgba(168, 85, 247, 0.28)" }}>
-          <div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <div style={{ fontWeight: 900 }}>Mesa {focusedTable.name}</div>
-              <div className="small" style={{ opacity: 0.85 }}>
-                Acciones rápidas (Sentar / No show)
-              </div>
-              {targetMs != null ? (
-                <div className="small" style={{ marginTop: 4 }}>
-                  Consulta: {formatDDMMYY(new Date(targetMs))}, {formatHHMM(new Date(targetMs))}
+        {focusedTable ? (
+          <div className="card requires-online" style={{ borderColor: "rgba(168, 85, 247, 0.28)" }}>
+            <div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontWeight: 900 }}>Mesa {focusedTable.name}</div>
+                <div className="small" style={{ opacity: 0.85 }}>
+                  Acciones rápidas (Sentar / No show)
                 </div>
-              ) : null}
-            </div>
-            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-              {canDelete && focusedQueue.length === 0 ? (
-                <form action="/api/admin/tables/clear-next" method="post">
-                  <input type="hidden" name="tableId" value={focusedTable.id} />
-                  <button className="btn secondary" type="submit">
-                    Limpiar reserva
-                  </button>
-                </form>
-              ) : null}
-              <a className="badge" href="/hostess">
-                Quitar filtro
-              </a>
-            </div>
-          </div>
-
-          <div className="card" style={{ marginTop: 10, background: "rgba(255, 255, 255, 0.72)" }}>
-            <div style={{ fontWeight: 900 }}>Vista previa (visita)</div>
-            {!focusedVisit ? (
-              <div className="small" style={{ marginTop: 6 }}>
-                Sin datos de visita para esta mesa.
-              </div>
-            ) : (
-              <div className="small" style={{ marginTop: 6 }}>
-                <div style={{ fontWeight: 900, fontSize: 16 }}>{focusedVisit.customer?.name ?? "(Sin nombre)"}</div>
-                {focusedVisit.customer?.phone ? <div>{focusedVisit.customer.phone}</div> : null}
-                {focusedVisit.customer?.email ? <div>{focusedVisit.customer.email}</div> : null}
-                <div style={{ marginTop: 6 }}>
-                  Estado: <span className={badgeClass(focusedVisit.status)}>{focusedVisit.status}</span>
-                </div>
-                {focusedVisit.seatedAt ? <div>Sentado: {new Date(focusedVisit.seatedAt).toLocaleString()}</div> : <div>Sentado: —</div>}
-                {focusedVisit.completedAt ? (
-                  <div>Liberación: {new Date(focusedVisit.completedAt).toLocaleString()}</div>
-                ) : (
-                  <div>Liberación: —</div>
-                )}
-                {focusedVisit.seatedAt && focusedVisit.completedAt ? (
-                  <div>Permanencia: {formatDuration(focusedVisit.completedAt - focusedVisit.seatedAt)}</div>
+                {targetMs != null ? (
+                  <div className="small" style={{ marginTop: 4 }}>
+                    Consulta: {formatDDMMYY(new Date(targetMs))}, {formatHHMM(new Date(targetMs))}
+                  </div>
                 ) : null}
-                {focusedVisit.notes ? <div style={{ marginTop: 6 }}>Notas: {focusedVisit.notes}</div> : null}
               </div>
-            )}
-          </div>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                {canDelete && focusedQueue.length === 0 ? (
+                  <form action="/api/admin/tables/clear-next" method="post">
+                    <input type="hidden" name="tableId" value={focusedTable.id} />
+                    <button className="btn secondary" type="submit">
+                      Limpiar reserva
+                    </button>
+                  </form>
+                ) : null}
+                <a className="badge" href="/hostess">
+                  Quitar filtro
+                </a>
+              </div>
+            </div>
 
-          <div className="grid" style={{ marginTop: 10 }}>
-            {focusedQueue.length === 0 ? <div className="small">Sin reservas/en espera para esta mesa</div> : null}
-            {focusedQueue.map((r) => (
-              <div key={r.id} className="card" style={{ background: "rgba(255, 255, 255, 0.72)" }}>
-                <div className="row" style={{ justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                  <div>
-                    <div className="row" style={{ fontWeight: 800, gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      {r.reservedFor ? (
-                        <span
-                          className="badge"
+            <div className="card" style={{ marginTop: 10, background: "rgba(255, 255, 255, 0.72)" }}>
+              <div style={{ fontWeight: 900 }}>Vista previa (visita)</div>
+              {!focusedVisit ? (
+                <div className="small" style={{ marginTop: 6 }}>
+                  Sin datos de visita para esta mesa.
+                </div>
+              ) : (
+                <div className="small" style={{ marginTop: 6 }}>
+                  <div style={{ fontWeight: 900, fontSize: 16 }}>{focusedVisit.customer?.name ?? "(Sin nombre)"}</div>
+                  {focusedVisit.customer?.phone ? <div>{focusedVisit.customer.phone}</div> : null}
+                  {focusedVisit.customer?.email ? <div>{focusedVisit.customer.email}</div> : null}
+                  <div style={{ marginTop: 6 }}>
+                    Estado: <span className={badgeClass(focusedVisit.status)}>{focusedVisit.status}</span>
+                  </div>
+                  {focusedVisit.seatedAt ? <div>Sentado: {new Date(focusedVisit.seatedAt).toLocaleString()}</div> : <div>Sentado: —</div>}
+                  {focusedVisit.completedAt ? (
+                    <div>Liberación: {new Date(focusedVisit.completedAt).toLocaleString()}</div>
+                  ) : (
+                    <div>Liberación: —</div>
+                  )}
+                  {focusedVisit.seatedAt && focusedVisit.completedAt ? (
+                    <div>Permanencia: {formatDuration(focusedVisit.completedAt - focusedVisit.seatedAt)}</div>
+                  ) : null}
+                  {focusedVisit.notes ? <div style={{ marginTop: 6 }}>Notas: {focusedVisit.notes}</div> : null}
+                </div>
+              )}
+            </div>
+
+            <div className="grid" style={{ marginTop: 10 }}>
+              {focusedQueue.length === 0 ? <div className="small">Sin reservas/en espera para esta mesa</div> : null}
+              {focusedQueue.map((r) => (
+                <div key={r.id} className="card" style={{ background: "rgba(255, 255, 255, 0.72)" }}>
+                  <div className="row" style={{ justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                    <div>
+                      <div className="row" style={{ fontWeight: 800, gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                        {r.reservedFor ? (
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: 16,
+                              padding: "6px 10px",
+                              borderRadius: 999,
+                              letterSpacing: 0.5
+                            }}
+                          >
+                            {formatHHMM(r.reservedFor)}
+                          </span>
+                        ) : (
+                          <span className="badge" style={{ opacity: 0.8 }}>
+                            En espera
+                          </span>
+                        )}
+                        <div style={{ fontSize: 16 }}>{r.customerNameSnapshot || r.customer.name}</div>
+                      </div>
+                      <div className="small">
+                        {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}
+                      </div>
+                      <div className="small">
+                        {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
+                        {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}` : ""}
+                      </div>
+                      {r.notes ? (
+                        <div
                           style={{
-                            fontSize: 16,
-                            padding: "6px 10px",
-                            borderRadius: 999,
-                            letterSpacing: 0.5
+                            marginTop: 8,
+                            padding: "8px 10px",
+                            borderRadius: 12,
+                            background: "rgba(255, 149, 0, 0.08)",
+                            border: "1px solid rgba(255, 149, 0, 0.22)",
+                            fontWeight: 800
                           }}
                         >
-                          {formatHHMM(r.reservedFor)}
-                        </span>
-                      ) : (
-                        <span className="badge" style={{ opacity: 0.8 }}>
-                          En espera
-                        </span>
-                      )}
-                      <div style={{ fontSize: 16 }}>{r.customerNameSnapshot || r.customer.name}</div>
+                          {r.notes}
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="small">
-                      {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}
-                    </div>
-                    <div className="small">
-                      {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
-                      {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}` : ""}
-                    </div>
-                    {r.notes ? (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          padding: "8px 10px",
-                          borderRadius: 12,
-                          background: "rgba(255, 149, 0, 0.08)",
-                          border: "1px solid rgba(255, 149, 0, 0.22)",
-                          fontWeight: 800
-                        }}
-                      >
-                        {r.notes}
-                      </div>
-                    ) : null}
-                  </div>
 
-                  <div style={{ flex: "0 0 auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {r.status !== "SEATED" ? (
-                      <form action="/api/reservations/seat" method="post">
-                        <input type="hidden" name="reservationId" value={r.id} />
-                        <input type="hidden" name="tableId" value={selectedTableId ?? ""} />
-                        <button className="btn" type="submit">
-                          Sentar
-                        </button>
-                      </form>
-                    ) : null}
+                    <div style={{ flex: "0 0 auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {r.status !== "SEATED" ? (
+                        <form action="/api/reservations/seat" method="post">
+                          <input type="hidden" name="reservationId" value={r.id} />
+                          <input type="hidden" name="tableId" value={selectedTableId ?? ""} />
+                          <button className="btn" type="submit">
+                            Sentar
+                          </button>
+                        </form>
+                      ) : null}
 
-                    {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
-                      <form action="/api/reservations/noshow" method="post">
-                        <input type="hidden" name="reservationId" value={r.id} />
-                        <button className="btn secondary" type="submit">
-                          No llegó
-                        </button>
-                      </form>
-                    ) : null}
+                      {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
+                        <form action="/api/reservations/noshow" method="post">
+                          <input type="hidden" name="reservationId" value={r.id} />
+                          <button className="btn secondary" type="submit">
+                            No llegó
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
-      <div className="card requires-online">
+      <div className="hostess-page-right grid" style={{ gap: 16 }}>
+        <div className="card requires-online">
         <h3 style={{ marginTop: 0 }}>Lista de espera / Reservas</h3>
         <div className="grid">
           {waiting.length === 0 ? <div className="small">Sin registros</div> : null}
@@ -561,7 +562,7 @@ export default async function HostessPage({
         </div>
       </div>
 
-      <div className="card requires-online">
+        <div className="card requires-online">
         <h3 style={{ marginTop: 0 }}>Próximas reservaciones</h3>
         <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <a className="badge" href="/hostess?future=1">
@@ -632,6 +633,7 @@ export default async function HostessPage({
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

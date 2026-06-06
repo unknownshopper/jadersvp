@@ -114,59 +114,61 @@ export default async function CajaPage({
     }));
 
   return (
-    <div className="grid" style={{ gap: 16, maxWidth: 720 }}>
-      <OfflineBanner />
-      {searchParams?.err || searchParams?.ok ? (
-        <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
-          {searchParams?.ok ? (
-            <span className="badge" style={{ borderColor: "rgba(34, 197, 94, 0.55)" }}>
-              {String(searchParams.ok)}
-            </span>
-          ) : null}
-          {searchParams?.err ? (
-            <span className="badge" style={{ borderColor: "rgba(255, 59, 48, 0.55)" }}>
-              {String(searchParams.err)}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
+    <div className="caja-page">
+      <div className="caja-page-left grid" style={{ gap: 16 }}>
+        <OfflineBanner />
+        {searchParams?.err || searchParams?.ok ? (
+          <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+            {searchParams?.ok ? (
+              <span className="badge" style={{ borderColor: "rgba(34, 197, 94, 0.55)" }}>
+                {String(searchParams.ok)}
+              </span>
+            ) : null}
+            {searchParams?.err ? (
+              <span className="badge" style={{ borderColor: "rgba(255, 59, 48, 0.55)" }}>
+                {String(searchParams.err)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
-      <CajaDashboard
-        tables={tables as any}
-        active={active as any}
-        remainingTodayList={remainingTodayList as any}
-        occupiedNowCount={occupiedNow}
-        freeNowCount={freeNow}
-        remainingTodayCount={remainingToday}
-      />
+        <CajaDashboard
+          tables={tables as any}
+          active={active as any}
+          remainingTodayList={remainingTodayList as any}
+          occupiedNowCount={occupiedNow}
+          freeNowCount={freeNow}
+          remainingTodayCount={remainingToday}
+        />
 
-      <div className="requires-online">
-        <HostessForm tables={tables} initialTableId="" />
+        {recentlyFreed.length > 0 ? (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Liberadas recientemente</h3>
+            <div className="small">Se muestran por 10 minutos para referencia visual.</div>
+            <div className="grid" style={{ marginTop: 8 }}>
+              {recentlyFreed.map((t) => (
+                <div
+                  key={t.id}
+                  className="row"
+                  style={{ justifyContent: "space-between", alignItems: "center", opacity: 0.55 }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800 }}>{t.name}</div>
+                    <div className="small">{t.area}</div>
+                  </div>
+                  <div className="small" style={{ flex: "0 0 auto" }}>
+                    Liberada
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {recentlyFreed.length > 0 ? (
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Liberadas recientemente</h3>
-          <div className="small">Se muestran por 10 minutos para referencia visual.</div>
-          <div className="grid" style={{ marginTop: 8 }}>
-            {recentlyFreed.map((t) => (
-              <div
-                key={t.id}
-                className="row"
-                style={{ justifyContent: "space-between", alignItems: "center", opacity: 0.55 }}
-              >
-                <div>
-                  <div style={{ fontWeight: 800 }}>{t.name}</div>
-                  <div className="small">{t.area}</div>
-                </div>
-                <div className="small" style={{ flex: "0 0 auto" }}>
-                  Liberada
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <div className="caja-page-right requires-online">
+        <HostessForm tables={tables} initialTableId="" />
+      </div>
     </div>
   );
 }

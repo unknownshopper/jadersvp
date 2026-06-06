@@ -3,6 +3,7 @@ import "./globals.css";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import { getSessionUser } from "@/lib/serverAuth";
+import BodyPageTag from "./BodyPageTag";
 
 const appBaseUrl = process.env.APP_BASE_URL
   ? new URL(process.env.APP_BASE_URL)
@@ -45,6 +46,7 @@ export default async function RootLayout({
   return (
     <html lang="es">
       <body>
+        <BodyPageTag />
         <div className="topbar">
           <div className="topbar-inner">
             <div className="row" style={{ gap: 12 }}>
