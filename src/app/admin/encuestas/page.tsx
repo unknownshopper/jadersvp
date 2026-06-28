@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/serverAuth";
 import { getSurveyConfig, listSurveysWithCustomer, type SurveyResponse } from "@/lib/firestore";
+import { formatDateDDMMYY } from "@/lib/dateFormat";
 
 function clamp01(n: number) {
   if (Number.isNaN(n)) return 0;
@@ -306,7 +307,7 @@ export default async function AdminEncuestasVisorPage({
               <div key={`${m.createdAt}_${i}`} className="card" style={{ background: "rgba(255, 255, 255, 0.72)" }}>
                 <div className="row" style={{ justifyContent: "space-between" }}>
                   <div style={{ fontWeight: 900 }}>{m.source}</div>
-                  <div className="small">{new Date(m.createdAt).toLocaleString()}</div>
+                  <div className="small">{formatDateDDMMYY(m.createdAt)}</div>
                 </div>
                 <div style={{ marginTop: 8 }}>{m.text}</div>
               </div>
@@ -350,7 +351,7 @@ export default async function AdminEncuestasVisorPage({
                     <div key={s.id} className="card" style={{ background: "rgba(255, 255, 255, 0.8)" }}>
                       <div className="row" style={{ justifyContent: "space-between" }}>
                         <div style={{ fontWeight: 900 }}>Rating: {s.rating}</div>
-                        <div className="small">{new Date(s.createdAt).toLocaleString()}</div>
+                        <div className="small">{formatDateDDMMYY(s.createdAt)}</div>
                       </div>
 
                       {s.answers?.["rating_detail"] ? (

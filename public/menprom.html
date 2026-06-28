@@ -7,7 +7,7 @@
     <meta name="description" content="Productos destacados de Café Jade." />
     <style>
       :root {
-        --bg: #0b0f0d;
+        --bg: #0f5a3a;
         --card: rgba(255, 255, 255, 0.06);
         --text: rgba(255, 255, 255, 0.92);
         --muted: rgba(255, 255, 255, 0.72);
@@ -25,9 +25,9 @@
         margin: 0;
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
           "Segoe UI Emoji";
-        background: radial-gradient(1200px 600px at 70% -10%, rgba(43, 182, 115, 0.22), transparent 55%),
-          radial-gradient(900px 500px at 15% 20%, rgba(255, 255, 255, 0.08), transparent 50%),
-          linear-gradient(180deg, #070a08, var(--bg));
+        background: radial-gradient(1200px 600px at 70% -10%, rgba(255, 255, 255, 0.14), transparent 55%),
+          radial-gradient(900px 500px at 15% 20%, rgba(0, 0, 0, 0.12), transparent 55%),
+          linear-gradient(180deg, #0f6b44, var(--bg));
         color: var(--text);
       }
 
@@ -169,13 +169,21 @@
       }
 
       .media {
-        height: 150px;
+        aspect-ratio: 1 / 1;
         background: linear-gradient(135deg, rgba(43, 182, 115, 0.18), rgba(255, 255, 255, 0.06));
         border-bottom: 1px solid var(--line);
         display: grid;
         place-items: center;
         color: rgba(255, 255, 255, 0.7);
         font-size: 12px;
+      }
+
+      .media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 50%;
+        display: block;
       }
 
       .cardBody {
@@ -227,7 +235,7 @@
       <div class="top">
         <div class="brand">
           <div class="mark">
-            <img src="/whatsapp-logo.jpg" alt="Café Jade" />
+            <img src="./logo.jpg" alt="Café Jade" />
           </div>
           <div>
             <h1>Café Jade</h1>
@@ -241,7 +249,7 @@
         <div class="panelInner">
           <div class="kicker"><span class="dot"></span>Para abrir desde WhatsApp</div>
           <h2>Destacados de hoy</h2>
-          <p>Vista breve (no es menú). Aquí irán 4 platillos y 3 bebidas con información corta.</p>
+          <p>Vista breve (no es menú). Platillos, postres y bebidas con información corta.</p>
         </div>
       </div>
 
@@ -249,34 +257,31 @@
         <h2 class="sectionTitle">Platillos destacados</h2>
         <div class="list">
           <div class="card">
-            <div class="media">Imagen pendiente</div>
+            <div class="media"><img src="./proms/burger.jpg" alt="Burger" /></div>
             <div class="cardBody">
-              <h3>Platillo 1</h3>
-              <p>Descripción breve (1 línea). Ideal para antojo rápido.</p>
+              <h3>Burger</h3>
+              <p>Hamburguesa (producto destacado).</p>
             </div>
           </div>
 
           <div class="card">
-            <div class="media">Imagen pendiente</div>
+            <div class="media"><img src="./proms/pastacurry.png" alt="Pasta curry" /></div>
             <div class="cardBody">
-              <h3>Platillo 2</h3>
-              <p>Descripción breve (1 línea). Sugerencia del día.</p>
+              <h3>Pasta curry</h3>
+              <p>Pasta al curry (producto destacado).</p>
             </div>
           </div>
+        </div>
+      </div>
 
+      <div class="section" aria-label="Postres destacados">
+        <h2 class="sectionTitle">Postres destacados</h2>
+        <div class="list">
           <div class="card">
-            <div class="media">Imagen pendiente</div>
+            <div class="media"><img src="./proms/soraya.png" alt="Soraya" /></div>
             <div class="cardBody">
-              <h3>Platillo 3</h3>
-              <p>Descripción breve (1 línea). Hecho al momento.</p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="media">Imagen pendiente</div>
-            <div class="cardBody">
-              <h3>Platillo 4</h3>
-              <p>Descripción breve (1 línea). Acompaña perfecto con café.</p>
+              <h3>Soraya</h3>
+              <p>Postre (producto destacado).</p>
             </div>
           </div>
         </div>
@@ -286,36 +291,20 @@
         <h2 class="sectionTitle">Bebidas destacadas</h2>
         <div class="list">
           <div class="card">
-            <div class="media">Imagen pendiente</div>
+            <div class="media"><img src="./proms/tazcalate.jpg" alt="Tazcalate" /></div>
             <div class="cardBody">
-              <h3>Bebida 1</h3>
-              <p>Descripción breve (1 línea). Fría o caliente.</p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="media">Imagen pendiente</div>
-            <div class="cardBody">
-              <h3>Bebida 2</h3>
-              <p>Descripción breve (1 línea). Recomendación de la casa.</p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="media">Imagen pendiente</div>
-            <div class="cardBody">
-              <h3>Bebida 3</h3>
-              <p>Descripción breve (1 línea). Perfecta para compartir.</p>
+              <h3>Tazcalate</h3>
+              <p>Bebida (producto destacado).</p>
             </div>
           </div>
         </div>
       </div>
 
       <div id="redes" class="footer">
-        <div>© Café Jade · Propuesta de página para enlaces desde WhatsApp</div>
+        <div>© Café Jade · 2026</div>
         <div class="tiny">
-          <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
-          <a href="https://facebook.com" target="_blank" rel="noopener">Facebook</a>
+          <a href="https://www.instagram.com/cafejadechiapas/" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.facebook.com/cafejadechiapas" target="_blank" rel="noopener">Facebook</a>
         </div>
       </div>
     </div>

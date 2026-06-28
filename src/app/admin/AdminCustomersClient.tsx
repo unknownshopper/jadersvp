@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatDateDDMMYY } from "@/lib/dateFormat";
 
 type Row = {
   id: string;
@@ -167,7 +168,7 @@ export default function AdminCustomersClient({
           <div className="small" style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 8 }}>
             {(c.visits ?? []).slice(0, 20).map((v) => (
               <span key={v.reservationId} className="badge" style={{ display: "inline-flex", gap: 8 }}>
-                <span>{new Date(v.at).toLocaleString()}</span>
+                <span>{formatDateDDMMYY(v.at)}</span>
               </span>
             ))}
             {(c.visits ?? []).length > 20 ? <span className="badge">+{(c.visits ?? []).length - 20} más</span> : null}

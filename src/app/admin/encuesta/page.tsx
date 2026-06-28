@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/serverAuth";
 import { getSurveyConfig, listSurveysForDashboard, type SurveyResponse } from "@/lib/firestore";
+import { formatDateDDMMYY } from "@/lib/dateFormat";
 
 function normalizeQuestions(raw: string) {
   return raw
@@ -107,7 +108,7 @@ export default async function AdminEncuestaPage({
                 <div style={{ fontWeight: 900 }}>{s.rating}/5</div>
                 {s.comment ? <div style={{ marginTop: 8 }}>{s.comment}</div> : null}
                 <div className="small" style={{ marginTop: 8 }}>
-                  {new Date(s.createdAt).toLocaleString()}
+                  {formatDateDDMMYY(s.createdAt)}
                 </div>
               </div>
             ))}

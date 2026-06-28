@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Jade · Conexión Wi‑Fi</title>
+    <meta name="description" content="Portal de conexión Wi‑Fi de Café Jade." />
+    <style>
+      :root {
+        --bg: #07110c;
+        --bg2: #05110b;
+        --card: rgba(255, 255, 255, 0.06);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.72);
+        --line: rgba(255, 255, 255, 0.14);
+        --brand: #2bb673;
+        --brand2: #0f7a44;
+        --wall: #0f7a44;
+        --shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+        --radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: var(--wall);
+        color: var(--text);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .wrap {
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: 22px 14px;
+      }
+
+      .card {
+        width: min(420px, 100%);
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--card);
+        box-shadow: var(--shadow);
+        padding: 18px 16px;
+        display: grid;
+        gap: 14px;
+        text-align: center;
+      }
+
+      .logo {
+        width: 160px;
+        height: 160px;
+        margin: 2px auto 0;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+      }
+
+      .logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.2px;
+        font-weight: 650;
+      }
+
+      p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border-radius: 999px;
+        padding: 12px 16px;
+        border: 1px solid rgba(43, 182, 115, 0.45);
+        background: rgba(43, 182, 115, 0.14);
+        font-size: 14px;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+
+      .btnSecondary {
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted);
+      }
+
+      .btnRow {
+        display: grid;
+        gap: 10px;
+      }
+
+      .fine {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.62);
+      }
+
+      .hide {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <main class="card" aria-label="Portal de conexión Wi‑Fi">
+        <div class="logo">
+          <img src="./logo.jpg" alt="Café Jade" />
+        </div>
+
+        <div>
+          <h1>Conéctate al Wi‑Fi</h1>
+          <p>Presiona para continuar y acceder a internet.</p>
+        </div>
+
+        <div class="btnRow">
+          <a id="connectBtn" class="btn" href="#">Entrar</a>
+        </div>
+
+        <div class="fine" id="hint">Si no avanza, cierra esta ventana y vuelve a abrir la red.</div>
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+
+        const candidates = [
+          "continue",
+          "continue_url",
+          "redirect",
+          "redirect_url",
+          "redir",
+          "url",
+          "target",
+          "dst",
+          "next"
+        ];
+
+        let target = "";
+        for (const k of candidates) {
+          const v = params.get(k);
+          if (v) {
+            target = v;
+            break;
+          }
+        }
+
+        const btn = document.getElementById("connectBtn");
+        const hint = document.getElementById("hint");
+        const successUrl = "./menprom.html";
+
+        let navigated = false;
+        window.addEventListener("beforeunload", function () {
+          navigated = true;
+        });
+
+        function goSuccess() {
+          window.location.assign(successUrl);
+        }
+
+        if (btn && target) {
+          if (hint) hint.textContent = "Presiona Entrar para conectarte. Al completar, te mostraremos los destacados.";
+          btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            let href = target;
+            try {
+              href = decodeURIComponent(target);
+            } catch {
+              // ignore
+            }
+
+            if (hint) hint.textContent = "Conectando…";
+            window.location.assign(href);
+
+            window.setTimeout(function () {
+              if (!navigated) goSuccess();
+            }, 1300);
+          });
+        } else if (btn) {
+          if (hint) hint.textContent = "Entrar te llevará a los destacados (la autorización final se configura en el equipo Wi‑Fi).";
+          btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            goSuccess();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -3,6 +3,7 @@ import { createCustomer, createReservation, findExistingReservedReservation, res
 import { getFirestore } from "@/lib/firebaseAdmin";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
+import { formatDateDDMMYY, formatTimeHHMM } from "@/lib/dateFormat";
 
 function parseLocalDateTime(input: string): Date | null {
   const s = input.trim();
@@ -152,8 +153,8 @@ export async function POST(req: Request) {
       String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL_HEADER_IMAGE_URL ?? "").trim() ||
       String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
     const when = new Date(reservedFor.getTime());
-    const dateStr = when.toLocaleDateString("es-MX", { year: "numeric", month: "2-digit", day: "2-digit" });
-    const timeStr = when.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    const dateStr = formatDateDDMMYY(when, "America/Mexico_City");
+    const timeStr = formatTimeHHMM(when, "America/Mexico_City");
     let tablesStr = "";
     try {
       const db = getFirestore();

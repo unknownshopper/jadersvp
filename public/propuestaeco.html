@@ -230,6 +230,22 @@
         .doc { border-color: #e5e7eb; border-radius: 0; }
         .doc-header { background: #ffffff; border-bottom-color: #e5e7eb; }
         .section, .doc-footer { border-color: #e5e7eb; }
+        .section {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        h2 {
+          break-after: avoid;
+          page-break-after: avoid;
+        }
+        ul, table, .total, .note {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        tr {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
         .subtitle, .k, th, .doc-footer, .sig-line { color: #4b5563 !important; }
         .meta .item, .sig-box { border-color: #e5e7eb; background: #ffffff; }
         .note { border-color: #e5e7eb; background: #f0fdf4; color: #14532d; }
@@ -247,7 +263,7 @@
         <div class="doc-header">
           <div class="row">
             <div class="brand">
-              <img src="/logo.jpg" alt="Café Jade" />
+              <img src="./logo.jpg" alt="Café Jade" />
               <div>
                 <div class="title">Café Jade</div>
                 <div class="sub">Sistema de Reservaciones y Control Operativo</div>
@@ -258,7 +274,7 @@
                 <div style="font-weight: 800;">Propuesta Económica</div>
                 <div class="sub">Documento para autorización</div>
               </div>
-              <img src="/tus.jpg" alt="The Unknown Shopper" />
+              <img src="./tus.jpg" alt="The Unknown Shopper" />
             </div>
           </div>
           <h1>Implementación del Sistema – Café Jade</h1>
@@ -299,18 +315,27 @@
             <tbody>
               <tr>
                 <td>
-                  <strong>Levantamiento y diseño de arquitectura</strong>
+                  <strong>Sistema de reservas call y walk-in</strong>
                   <div style="color: var(--muted); font-size: 13px; margin-top: 4px;">
-                    Incluye levantamiento de requerimientos, definición de flujo operativo, y diseño de arquitectura.
+                    Implementación del flujo operativo para reservaciones por llamada y registro de clientes walk-in.
                   </div>
                 </td>
                 <td class="amount">$4,000 MXN</td>
               </tr>
               <tr>
                 <td>
-                  <strong>Desarrollo e implementación</strong>
+                  <strong>Automatización WhatsApp API</strong>
                   <div style="color: var(--muted); font-size: 13px; margin-top: 4px;">
-                    Desarrollo del sistema, configuración, pruebas y puesta en marcha.
+                    Configuración de automatizaciones para comunicación operativa y seguimiento por WhatsApp.
+                  </div>
+                </td>
+                <td class="amount">$4,000 MXN</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Creación y almacenamiento de base de datos</strong>
+                  <div style="color: var(--muted); font-size: 13px; margin-top: 4px;">
+                    Estructura, resguardo y consulta de información generada por reservaciones, clientes y operación.
                   </div>
                 </td>
                 <td class="amount">$4,000 MXN</td>
@@ -321,15 +346,15 @@
           <div class="total" style="flex-direction: column; align-items: flex-end;">
             <div style="display: flex; gap: 12px; width: min(360px, 100%); justify-content: space-between;">
               <div class="label">Subtotal (sin IVA)</div>
-              <div class="value" style="font-size: 16px;">$8,000 MXN</div>
+              <div class="value" style="font-size: 16px;">$12,000 MXN</div>
             </div>
             <div style="display: flex; gap: 12px; width: min(360px, 100%); justify-content: space-between; margin-top: 6px;">
               <div class="label">IVA (16%)</div>
-              <div class="value" style="font-size: 16px;">$1,280 MXN</div>
+              <div class="value" style="font-size: 16px;">$1,920 MXN</div>
             </div>
             <div style="display: flex; gap: 12px; width: min(360px, 100%); justify-content: space-between; margin-top: 6px;">
               <div class="label">Total (con IVA)</div>
-              <div class="value">$9,280 MXN</div>
+              <div class="value">$13,920 MXN</div>
             </div>
           </div>
 
@@ -346,10 +371,20 @@
         <div class="section">
           <h2>Incluye</h2>
           <ul>
-            <li>Implementación del sistema de reservaciones y flujo operativo.</li>
-            <li>Configuración y puesta en marcha.</li>
+            <li>Sistema de reservas para llamadas y clientes walk-in.</li>
+            <li>Automatización mediante WhatsApp API.</li>
+            <li>Creación y almacenamiento de base de datos operativa.</li>
+            <li>Configuración, pruebas y puesta en marcha.</li>
             <li>Capacitación al personal después de la implementación.</li>
             <li>Documentación de uso y operación del sistema.</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Extras incluidos</h2>
+          <ul>
+            <li>Rediseño de portal para acceso a Wi‑Fi.</li>
+            <li>Diseño de página de promociones.</li>
           </ul>
         </div>
 

@@ -6,6 +6,7 @@ import {
   type SurveyOutboxItem,
   type SurveyResponse
 } from "@/lib/firestore";
+import { formatDateDDMMYY } from "@/lib/dateFormat";
 
 function normalizePhoneToWa(phoneRaw: string) {
   const digits = String(phoneRaw || "").replace(/\D+/g, "");
@@ -83,7 +84,7 @@ export default async function AdminEncuestasPendientesPage({
                       {customer?.name || "(Sin cliente)"}
                     </div>
                     <div className="small">
-                      Canal sugerido: {it.suggestedChannel} · {new Date(it.createdAt).toLocaleString()}
+                      Canal sugerido: {it.suggestedChannel} · {formatDateDDMMYY(it.createdAt)}
                     </div>
                     <div className="small">{customer?.phone ? customer.phone : ""} {customer?.email ? `· ${customer.email}` : ""}</div>
                     <div className="small">Encuesta: {it.reservationId}</div>

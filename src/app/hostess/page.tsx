@@ -4,6 +4,7 @@ import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
 import AutoRefresh from "../AutoRefresh";
+import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM } from "@/lib/dateFormat";
 
 export const dynamic = "force-dynamic";
 
@@ -12,19 +13,6 @@ function badgeClass(status: string) {
   if (status === "OCUPADA") return "badge ocupada";
   if (status === "RESERVADA") return "badge reservada";
   return "badge porlimpiar";
-}
-
-function formatDDMMYY(d: Date) {
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${dd}/${mm}/${yy}`;
-}
-
-function formatHHMM(d: Date) {
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
 }
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {
@@ -315,7 +303,7 @@ export default async function HostessPage({
                 </div>
                 {targetMs != null ? (
                   <div className="small" style={{ marginTop: 4 }}>
-                    Consulta: {formatDDMMYY(new Date(targetMs))}, {formatHHMM(new Date(targetMs))}
+                    Consulta: {formatDateDDMMYY(targetMs)}, {formatTimeHHMM(targetMs)}
                   </div>
                 ) : null}
               </div>
@@ -348,9 +336,13 @@ export default async function HostessPage({
                   <div style={{ marginTop: 6 }}>
                     Estado: <span className={badgeClass(focusedVisit.status)}>{focusedVisit.status}</span>
                   </div>
-                  {focusedVisit.seatedAt ? <div>Sentado: {new Date(focusedVisit.seatedAt).toLocaleString()}</div> : <div>Sentado: —</div>}
+                  {focusedVisit.seatedAt ? (
+                    <div>Sentado: {formatDateTimeDDMMYYHHMM(focusedVisit.seatedAt)}</div>
+                  ) : (
+                    <div>Sentado: —</div>
+                  )}
                   {focusedVisit.completedAt ? (
-                    <div>Liberación: {new Date(focusedVisit.completedAt).toLocaleString()}</div>
+                    <div>Liberación: {formatDateTimeDDMMYYHHMM(focusedVisit.completedAt)}</div>
                   ) : (
                     <div>Liberación: —</div>
                   )}
@@ -379,7 +371,7 @@ export default async function HostessPage({
                               letterSpacing: 0.5
                             }}
                           >
-                            {formatHHMM(r.reservedFor)}
+                            {formatTimeHHMM(r.reservedFor)}
                           </span>
                         ) : (
                           <span className="badge" style={{ opacity: 0.8 }}>
@@ -393,7 +385,7 @@ export default async function HostessPage({
                       </div>
                       <div className="small">
                         {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
-                        {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}` : ""}
+                        {r.reservedFor ? ` · ${formatDateDDMMYY(r.reservedFor)}` : ""}
                       </div>
                       {r.notes ? (
                         <div
@@ -459,7 +451,7 @@ export default async function HostessPage({
                           letterSpacing: 0.5
                         }}
                       >
-                        {formatHHMM(r.reservedFor)}
+                        {formatTimeHHMM(r.reservedFor)}
                       </span>
                     ) : (
                       <span
@@ -482,7 +474,7 @@ export default async function HostessPage({
                   </div>
                   <div className="small">
                     {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
-                    {r.reservedFor ? ` · ${formatDDMMYY(r.reservedFor)}` : ""}
+                    {r.reservedFor ? ` · ${formatDateDDMMYY(r.reservedFor)}` : ""}
                   </div>
                   {r.notes ? (
                     <div
@@ -582,8 +574,8 @@ export default async function HostessPage({
         </div>
 
         <div className="small" style={{ marginBottom: 10 }}>
-          {formatDDMMYY(futureStart)}
-          {futureKey === "next3" || futureKey === "next7" ? ` — ${formatDDMMYY(new Date(futureEndMs - 1))}` : ""}
+          {formatDateDDMMYY(futureStart)}
+          {futureKey === "next3" || futureKey === "next7" ? ` — ${formatDateDDMMYY(new Date(futureEndMs - 1))}` : ""}
         </div>
 
         <div className="grid">
@@ -603,7 +595,7 @@ export default async function HostessPage({
                           letterSpacing: 0.5
                         }}
                       >
-                        {formatHHMM(r.reservedFor)}
+                        {formatTimeHHMM(r.reservedFor)}
                       </span>
                     ) : null}
                     <div style={{ fontSize: 16 }}>{r.customerNameSnapshot || r.customer.name}</div>
@@ -614,7 +606,7 @@ export default async function HostessPage({
                   </div>
                   <div className="small">
                     {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"} ·
-                    {r.reservedFor ? ` ${formatDDMMYY(r.reservedFor)}` : ""}
+                    {r.reservedFor ? ` ${formatDateDDMMYY(r.reservedFor)}` : ""}
                   </div>
                   {r.notes ? (
                     <div

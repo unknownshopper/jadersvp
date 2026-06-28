@@ -191,9 +191,16 @@ export async function enqueueSurveyOutbox(params: {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
+  const reservationId = String(params.reservationId || "").trim();
+  if (!reservationId) throw new Error("Missing reservationId");
+
   const ts = nowMs();
-  const ref = await db.collection("surveyOutbox").add({
-    reservationId: params.reservationId,
+  const ref = db.collection("surveyOutbox").doc(reservationId);
+  const doc = await ref.get();
+  if (doc.exists) return ref.id;
+
+  await ref.create({
+    reservationId,
     status: "PENDING",
     suggestedChannel: params.suggestedChannel,
     createdAt: ts,
@@ -1234,6 +1241,19 @@ export async function adminSummary(range: "day" | "week" | "month") {
   if (!db) {
     return {
       reservationsCount: 0,
+      reservationsCallCount: 0,
+      reservationsWalkInCount: 0,
+      callSeatedCount: 0,
+      callNoShowCount: 0,
+      walkInSeatedCount: 0,
+      walkInNoShowCount: 0,
+      surveyEnqueuedCount: 0,
+      surveySentCount: 0,
+      surveyReceivedCount: 0,
+      surveySentCallCount: 0,
+      surveySentWalkInCount: 0,
+      surveyReceivedCallCount: 0,
+      surveyReceivedWalkInCount: 0,
       completedCount: 0,
       noShowCount: 0,
       customersCount: 0,
@@ -1262,8 +1282,53 @@ export async function adminSummary(range: "day" | "week" | "month") {
 
   const reservations = reservationsSnap.docs.map((d: any) => d.data() as Reservation);
   const reservationsCount = reservationsSnap.size;
+  const reservationsCallCount = reservations.filter((r: Reservation) => r.source === "CALL").length;
+  const reservationsWalkInCount = reservations.filter((r: Reservation) => r.source === "WALK_IN").length;
+  const callSeatedCount = reservations.filter((r: Reservation) => r.source === "CALL" && r.status === "SEATED").length;
+  const callNoShowCount = reservations.filter((r: Reservation) => r.source === "CALL" && r.status === "NO_SHOW").length;
+  const walkInSeatedCount = reservations.filter((r: Reservation) => r.source === "WALK_IN" && r.status === "SEATED").length;
+  const walkInNoShowCount = reservations.filter((r: Reservation) => r.source === "WALK_IN" && r.status === "NO_SHOW").length;
   const completedCount = reservations.filter((r: Reservation) => r.status === "COMPLETED").length;
   const noShowCount = reservations.filter((r: Reservation) => r.status === "NO_SHOW").length;
+
+  // Survey status: 
+  // - Enqueued/Sent comes from surveyOutbox/{reservationId} (deterministic id going forward).
+  // - Received comes from surveys/{reservationId}.
+  const rangeReservationIds = reservationsSnap.docs.map((d: any) => String(d.id));
+  const surveyDocs = await Promise.all(rangeReservationIds.map((id) => db.collection("surveys").doc(id).get()));
+  const surveyReceivedByResId = new Set<string>(surveyDocs.filter((d: any) => d.exists).map((d: any) => String(d.id)));
+  const surveyOutboxDocs = await Promise.all(rangeReservationIds.map((id) => db.collection("surveyOutbox").doc(id).get()));
+  const outboxByResId = new Map<string, SurveyOutboxItem>();
+  for (const d of surveyOutboxDocs) {
+    if (!d.exists) continue;
+    outboxByResId.set(String(d.id), { id: d.id, ...(d.data() as Omit<SurveyOutboxItem, "id">) } as SurveyOutboxItem);
+  }
+  const surveyEnqueuedCount = outboxByResId.size;
+  const surveySentCount = Array.from(outboxByResId.values()).filter((x) => x.status === "SENT").length;
+  const surveyReceivedCount = surveyReceivedByResId.size;
+
+  const resById = new Map<string, Reservation>();
+  for (let i = 0; i < reservationsSnap.docs.length; i++) {
+    const id = String(reservationsSnap.docs[i].id);
+    resById.set(id, reservations[i]);
+  }
+
+  let surveySentCallCount = 0;
+  let surveySentWalkInCount = 0;
+  for (const [id, it] of outboxByResId.entries()) {
+    if (it.status !== "SENT") continue;
+    const r = resById.get(id);
+    if (r?.source === "CALL") surveySentCallCount++;
+    if (r?.source === "WALK_IN") surveySentWalkInCount++;
+  }
+
+  let surveyReceivedCallCount = 0;
+  let surveyReceivedWalkInCount = 0;
+  for (const id of surveyReceivedByResId) {
+    const r = resById.get(id);
+    if (r?.source === "CALL") surveyReceivedCallCount++;
+    if (r?.source === "WALK_IN") surveyReceivedWalkInCount++;
+  }
 
   const customersCount = (await db.collection("customers").count().get()).data().count;
 
@@ -1282,8 +1347,8 @@ export async function adminSummary(range: "day" | "week" | "month") {
     (d: any) => ({ id: d.id, ...(d.data() as Omit<SurveyResponse, "id">) }) as SurveyResponse
   );
 
-  const reservationIds = Array.from(new Set(latestSurveysRaw.map((s: SurveyResponse) => s.reservationId)));
-  const resDocs = await Promise.all(reservationIds.map((id) => db.collection("reservations").doc(id).get()));
+  const latestSurveyReservationIds = Array.from(new Set(latestSurveysRaw.map((s: SurveyResponse) => s.reservationId)));
+  const resDocs = await Promise.all(latestSurveyReservationIds.map((id) => db.collection("reservations").doc(id).get()));
   const customerIds = Array.from(
     new Set(resDocs.filter((d: any) => d.exists).map((d: any) => String((d.data() as Reservation).customerId)))
   );
@@ -1306,6 +1371,19 @@ export async function adminSummary(range: "day" | "week" | "month") {
 
   return {
     reservationsCount,
+    reservationsCallCount,
+    reservationsWalkInCount,
+    callSeatedCount,
+    callNoShowCount,
+    walkInSeatedCount,
+    walkInNoShowCount,
+    surveyEnqueuedCount,
+    surveySentCount,
+    surveyReceivedCount,
+    surveySentCallCount,
+    surveySentWalkInCount,
+    surveyReceivedCallCount,
+    surveyReceivedWalkInCount,
     completedCount,
     noShowCount,
     customersCount,
