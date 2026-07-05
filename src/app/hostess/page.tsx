@@ -167,7 +167,8 @@ export default async function HostessPage({
       notes: w.reservation.notes ?? null,
       createdByRole: (w.reservation as any).createdByRole ?? null,
       customer: w.customer,
-      table: w.table ?? null
+      table: w.table ?? null,
+      tables: w.tables ?? null
     }))
     .sort((a, b) => {
       const aMs = a.reservedFor ? a.reservedFor.getTime() : null;
@@ -224,7 +225,8 @@ export default async function HostessPage({
       notes: w.reservation.notes ?? null,
       createdByRole: (w.reservation as any).createdByRole ?? null,
       customer: w.customer,
-      table: w.table ?? null
+      table: w.table ?? null,
+      tables: w.tables ?? null
     }))
     .sort((a, b) => {
       const aMs = a.reservedFor ? a.reservedFor.getTime() : null;
@@ -256,7 +258,8 @@ export default async function HostessPage({
       notes: w.reservation.notes ?? null,
       createdByRole: (w.reservation as any).createdByRole ?? null,
       customer: w.customer,
-      table: w.table ?? null
+      table: w.table ?? null,
+      tables: w.tables ?? null
     }))
     .sort((a, b) => {
       const aMs = a.reservedFor ? a.reservedFor.getTime() : 0;
@@ -467,7 +470,17 @@ export default async function HostessPage({
                       </span>
                     )}
                     <div style={{ fontSize: 16 }}>{r.customerNameSnapshot || r.customer.name}</div>
-                    {r.table?.name ? <span className="badge">Mesa {r.table.name}</span> : null}
+                    {Array.isArray(r.tables) && r.tables.length > 0
+                      ? r.tables.map((t: any) => (
+                          <span key={t.id} className="badge">
+                            Mesa {t.name}
+                          </span>
+                        ))
+                      : r.table?.name
+                        ? (
+                            <span className="badge">Mesa {r.table.name}</span>
+                          )
+                        : null}
                   </div>
                   <div className="small">
                     {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}
@@ -599,7 +612,17 @@ export default async function HostessPage({
                       </span>
                     ) : null}
                     <div style={{ fontSize: 16 }}>{r.customerNameSnapshot || r.customer.name}</div>
-                    {r.table?.name ? <span className="badge">Mesa {r.table.name}</span> : null}
+                    {Array.isArray(r.tables) && r.tables.length > 0
+                      ? r.tables.map((t: any) => (
+                          <span key={t.id} className="badge">
+                            Mesa {t.name}
+                          </span>
+                        ))
+                      : r.table?.name
+                        ? (
+                            <span className="badge">Mesa {r.table.name}</span>
+                          )
+                        : null}
                   </div>
                   <div className="small">
                     {r.customer.phone} {r.customer.email ? `· ${r.customer.email}` : ""}

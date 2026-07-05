@@ -989,7 +989,6 @@ export async function reserveTables(params: {
 
   const tableIds = Array.from(new Set((params.tableIds ?? []).map((x) => String(x)).filter(Boolean)));
   if (tableIds.length === 0) throw new Error("Falta mesa");
-  if (tableIds.length > 3) throw new Error("Máximo 3 mesas");
 
   const tableRefs = tableIds.map((id) => db.collection("tables").doc(id));
 
@@ -1076,13 +1075,21 @@ export async function reserveTables(params: {
       updatedAt: ts
     });
 
+    const now = Date.now();
+    const windowMs = 3 * 60 * 60 * 1000;
+    const shouldBlockNow = params.reservedFor - now <= windowMs;
+
     for (let i = 0; i < tableRefs.length; i++) {
       const table = tables[i];
       const existingNext = (table as any).nextReservedFor as number | null | undefined;
       const nextReservedFor = existingNext
         ? Math.min(Number(existingNext), Number(params.reservedFor))
         : Number(params.reservedFor);
-      tx.update(tableRefs[i], { nextReservedFor, updatedAt: ts });
+      tx.update(tableRefs[i], {
+        nextReservedFor,
+        ...(shouldBlockNow ? { status: "RESERVADA" } : {}),
+        updatedAt: ts
+      });
     }
   });
 }

@@ -112,9 +112,6 @@ export async function POST(req: Request) {
           createdByRole
         });
       } else {
-        if (effectiveTableIds.length > 3) {
-          return NextResponse.redirect(new URL("/hostess?err=M%C3%A1ximo+3+mesas", baseUrl));
-        }
         await reserveTables({
           name,
           phone,
