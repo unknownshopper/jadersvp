@@ -175,7 +175,7 @@ export default function HostessForm({
     const url = new URL(window.location.href);
     url.searchParams.set("reservedDate", reservedDate);
     url.searchParams.set("reservedTime", reservedTime);
-    router.replace(url.pathname + url.search);
+    router.replace(url.pathname + url.search, { scroll: false });
   }, [reservedDate, reservedTime, router]);
 
   const tablesForPicker = useMemo(
@@ -347,7 +347,7 @@ export default function HostessForm({
               </div>
             ) : null}
             <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
-              Selección múltiple disponible en el croquis (máx. 3 mesas).
+              Selección múltiple disponible en el croquis.
             </div>
           </div>
 
@@ -386,7 +386,6 @@ export default function HostessForm({
                       setSelectedTableIds((prev) => {
                         const exists = prev.includes(t.id);
                         let next = exists ? prev.filter((x) => x !== t.id) : [...prev, t.id];
-                        if (next.length > 3) next = next.slice(0, 3);
                         const primary = next[0] ?? "";
                         setTableId(primary);
                         if (primary) url.searchParams.set("tableId", primary);
@@ -394,7 +393,7 @@ export default function HostessForm({
                         return next;
                       });
                     }
-                    router.replace(url.pathname + url.search);
+                    router.replace(url.pathname + url.search, { scroll: false });
                   }}
                   title={`${t.name} · ${t.area} · ${s}`}
                 >
