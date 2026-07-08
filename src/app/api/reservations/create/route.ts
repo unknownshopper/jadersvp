@@ -3,8 +3,31 @@ import { createReservation, findExistingReservedReservation, findOrCreateCustome
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {
-  const utcAsTz = new Date(date.toLocaleString("en-US", { timeZone }));
-  return date.getTime() - utcAsTz.getTime();
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+
+  const parts = dtf.formatToParts(date);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value] as const));
+  const asIfUtc = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second)
+  );
+
+  // If `date` is an instant in UTC, `asIfUtc` is the same wall-clock values interpreted as UTC.
+  // Their difference is the timezone offset at that instant.
+  return asIfUtc - date.getTime();
 }
 
 function getBaseUrl(req: Request) {
@@ -26,9 +49,19 @@ function combineLocalDateTime(dateStr: string, timeStr: string): Date | null {
   const d = Number(m[3]);
   const hh = Number(t[1]);
   const mm = Number(t[2]);
-  const utcMs = Date.UTC(y, mo - 1, d, hh, mm, 0, 0);
-  const offset = getTimeZoneOffsetMs(new Date(utcMs), "America/Mexico_City");
-  const dt = new Date(utcMs + offset);
+  const tz = "America/Mexico_City";
+
+  // Interpret (y,mo,d,hh,mm) as a wall-clock time in `tz`, and convert to an absolute instant.
+  // We start with a UTC guess and then correct it by the timezone offset.
+  const utcGuess = Date.UTC(y, mo - 1, d, hh, mm, 0, 0);
+  const offset1 = getTimeZoneOffsetMs(new Date(utcGuess), tz);
+  let utcMs = utcGuess - offset1;
+  const offset2 = getTimeZoneOffsetMs(new Date(utcMs), tz);
+  if (offset2 !== offset1) {
+    utcMs = utcGuess - offset2;
+  }
+
+  const dt = new Date(utcMs);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 

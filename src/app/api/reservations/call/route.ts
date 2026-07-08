@@ -6,8 +6,28 @@ import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 import { formatDateDDMMYY, formatTimeHHMM } from "@/lib/dateFormat";
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {
-  const utcAsTz = new Date(date.toLocaleString("en-US", { timeZone }));
-  return date.getTime() - utcAsTz.getTime();
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+
+  const parts = dtf.formatToParts(date);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value] as const));
+  const asIfUtc = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second)
+  );
+  return asIfUtc - date.getTime();
 }
 
 function parseLocalDateTime(input: string): Date | null {
@@ -15,9 +35,15 @@ function parseLocalDateTime(input: string): Date | null {
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
   if (!m) return null;
   const [_, y, mo, d, h, mi] = m;
-  const utcMs = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), 0, 0);
-  const offset = getTimeZoneOffsetMs(new Date(utcMs), "America/Mexico_City");
-  const dt = new Date(utcMs + offset);
+  const tz = "America/Mexico_City";
+  const utcGuess = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), 0, 0);
+  const offset1 = getTimeZoneOffsetMs(new Date(utcGuess), tz);
+  let utcMs = utcGuess - offset1;
+  const offset2 = getTimeZoneOffsetMs(new Date(utcMs), tz);
+  if (offset2 !== offset1) {
+    utcMs = utcGuess - offset2;
+  }
+  const dt = new Date(utcMs);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
