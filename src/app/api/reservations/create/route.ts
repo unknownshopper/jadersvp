@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { createReservation, findExistingReservedReservation, findOrCreateCustomer, reserveTables, reserveTable } from "@/lib/firestore";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const utcAsTz = new Date(date.toLocaleString("en-US", { timeZone }));
+  return date.getTime() - utcAsTz.getTime();
+}
+
 function getBaseUrl(req: Request) {
   const h = req.headers;
   const proto = h.get("x-forwarded-proto") ?? "https";
@@ -21,7 +26,9 @@ function combineLocalDateTime(dateStr: string, timeStr: string): Date | null {
   const d = Number(m[3]);
   const hh = Number(t[1]);
   const mm = Number(t[2]);
-  const dt = new Date(y, mo - 1, d, hh, mm, 0, 0);
+  const utcMs = Date.UTC(y, mo - 1, d, hh, mm, 0, 0);
+  const offset = getTimeZoneOffsetMs(new Date(utcMs), "America/Mexico_City");
+  const dt = new Date(utcMs + offset);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 

@@ -5,12 +5,19 @@ import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 import { formatDateDDMMYY, formatTimeHHMM } from "@/lib/dateFormat";
 
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const utcAsTz = new Date(date.toLocaleString("en-US", { timeZone }));
+  return date.getTime() - utcAsTz.getTime();
+}
+
 function parseLocalDateTime(input: string): Date | null {
   const s = input.trim();
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
   if (!m) return null;
   const [_, y, mo, d, h, mi] = m;
-  const dt = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
+  const utcMs = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), 0, 0);
+  const offset = getTimeZoneOffsetMs(new Date(utcMs), "America/Mexico_City");
+  const dt = new Date(utcMs + offset);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
