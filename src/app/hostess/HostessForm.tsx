@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CafeTable } from "@/lib/firestore";
+import type { CafeTable, Customer, Reservation } from "@/lib/firestore";
 
 function defaultDateTime() {
   const d = new Date();
@@ -112,11 +112,13 @@ function effectiveStatusAt(t: CafeTable, targetMs: number | null) {
 
 export default function HostessForm({
   tables,
+  waitlist,
   initialTableId,
   initialReservedDate,
   initialReservedTime
 }: {
   tables: CafeTable[];
+  waitlist: Array<{ reservation: Reservation; customer: Customer }>;
   initialTableId?: string;
   initialReservedDate?: string;
   initialReservedTime?: string;
@@ -134,6 +136,8 @@ export default function HostessForm({
   const [partySize, setPartySize] = useState<string>("1");
   const [partyTouched, setPartyTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestedTablesCount, setRequestedTablesCount] = useState<number>(1);
+  const [sendWaitlistWhatsApp, setSendWaitlistWhatsApp] = useState<boolean>(true);
 
   const composedPhone = useMemo(() => {
     const cc = String(phoneCountry || "").trim();
@@ -170,6 +174,14 @@ export default function HostessForm({
     const suggested = Math.max(1, selectedTableIds.length * 4);
     setPartySize(String(suggested));
   }, [selectedTableIds, partyTouched]);
+
+  useEffect(() => {
+    const suggested = Math.max(1, selectedTableIds.length || 1);
+    setRequestedTablesCount((prev) => {
+      if (prev > 1) return prev;
+      return suggested;
+    });
+  }, [selectedTableIds]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -355,6 +367,80 @@ export default function HostessForm({
             {isSubmitting ? "Guardando…" : "Guardar"}
           </button>
         </form>
+
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <div style={{ fontWeight: 800 }}>Lista de espera</div>
+          <div className="small" style={{ marginTop: 4, opacity: 0.85 }}>
+            Úsalo cuando no haya mesas disponibles. La confirmación se hace después, cuando se liberen mesas.
+          </div>
+
+          <form
+            className="grid"
+            action="/api/waitlist/create"
+            method="post"
+            onSubmit={(e) => {
+              if (isSubmitting) {
+                e.preventDefault();
+                return;
+              }
+              if (!name.trim()) {
+                e.preventDefault();
+                return;
+              }
+              const hasPhone = composedPhone.trim().length > 0;
+              const hasEmail = email.trim().length > 0;
+              if (!hasPhone && !hasEmail) {
+                const ok = window.confirm(
+                  "Estás a punto de guardar en lista de espera SIN datos de contacto (WhatsApp/correo).\n\n¿Deseas continuar?"
+                );
+                if (!ok) {
+                  e.preventDefault();
+                  return;
+                }
+              }
+              setIsSubmitting(true);
+            }}
+          >
+            <input type="hidden" name="name" value={name} />
+            <input type="hidden" name="phone" value={composedPhone} />
+            <input type="hidden" name="email" value={email} />
+            <input type="hidden" name="notes" value={""} />
+
+            <div>
+              <label className="label">Mesas requeridas</label>
+              <div className="row" style={{ gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => setRequestedTablesCount((n) => Math.max(1, n - 1))}
+                >
+                  -
+                </button>
+                <input
+                  className="input"
+                  name="requestedTablesCount"
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={requestedTablesCount}
+                  onChange={(e) => setRequestedTablesCount(Math.max(1, Number.parseInt(e.target.value || "1", 10) || 1))}
+                  style={{ width: 110 }}
+                />
+                <button type="button" className="btn secondary" onClick={() => setRequestedTablesCount((n) => n + 1)}>
+                  +
+                </button>
+              </div>
+              <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
+                Sugerido: {Math.max(1, requestedTablesCount * 4)} persona(s) ({requestedTablesCount} mesa(s) × 4)
+              </div>
+            </div>
+
+            <button className="btn secondary" type="submit" disabled={isSubmitting} style={isSubmitting ? { opacity: 0.7 } : undefined}>
+              {isSubmitting ? "Guardando…" : "Guardar en lista de espera"}
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="card">
@@ -433,6 +519,71 @@ export default function HostessForm({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="card requires-online">
+        <h3 style={{ marginTop: 0 }}>Lista de espera (FIFO)</h3>
+        {waitlist.length === 0 ? <div className="small">Sin registros</div> : null}
+
+        {waitlist.length > 0 ? (
+          <div className="grid" style={{ marginTop: 10 }}>
+            {waitlist.map((w) => {
+              const requested = typeof (w.reservation as any).requestedTablesCount === "number" ? Number((w.reservation as any).requestedTablesCount) : 1;
+              return (
+                <div
+                  key={w.reservation.id}
+                  className="row"
+                  style={{ justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: "rgba(0,0,0,0.03)" }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 900 }}>{w.customer.name}</div>
+                    <div className="small" style={{ opacity: 0.85 }}>
+                      Requiere {requested} mesa(s)
+                      {w.reservation.createdAt ? ` · ${new Date(w.reservation.createdAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}` : ""}
+                    </div>
+                  </div>
+
+                  <form
+                    action="/api/waitlist/confirm"
+                    method="post"
+                    onSubmit={(e) => {
+                      if (selectedTableIds.length < Math.max(1, requested)) {
+                        e.preventDefault();
+                        window.alert(`Selecciona al menos ${Math.max(1, requested)} mesa(s) LIBRE(S) en el croquis.`);
+                        return;
+                      }
+                      const ok = window.confirm("¿Confirmar lista de espera con las mesas seleccionadas?");
+                      if (!ok) {
+                        e.preventDefault();
+                      }
+                    }}
+                    style={{ flex: "0 0 auto" }}
+                  >
+                    <input type="hidden" name="reservationId" value={w.reservation.id} />
+                    {selectedTableIds.map((id) => (
+                      <input key={id} type="hidden" name="tableIds" value={id} />
+                    ))}
+                    <input type="hidden" name="sendWhatsApp" value={sendWaitlistWhatsApp ? "1" : "0"} />
+                    <button className="btn" type="submit">
+                      Confirmar
+                    </button>
+                    <div className="small" style={{ marginTop: 6, textAlign: "right" }}>
+                      <label style={{ userSelect: "none" }}>
+                        <input
+                          type="checkbox"
+                          checked={sendWaitlistWhatsApp}
+                          onChange={(ev) => setSendWaitlistWhatsApp(ev.target.checked)}
+                          style={{ marginRight: 6 }}
+                        />
+                        Enviar WhatsApp
+                      </label>
+                    </div>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -169,13 +169,23 @@ export default function CajaDashboard({
         <>
           {occupiedTables.length === 0 ? <div className="small" style={{ marginTop: 10 }}>Sin registros</div> : null}
           <div className="grid" style={{ marginTop: 10 }}>
-            {occupiedTables.map((t) => (
-              <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            {occupiedTables.map((t, idx) => (
+              <div
+                key={t.id}
+                className="row"
+                style={{
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  background: idx % 2 === 0 ? "rgba(0,0,0,0.03)" : "transparent"
+                }}
+              >
                 <div>
                   <div style={{ fontWeight: 800 }}>Mesa {t.name}</div>
                   <div className="small">{t.area}</div>
                   {seatedByTableId.get(t.id)?.customer?.name ? (
-                    <div className="small" style={{ marginTop: 2 }}>
+                    <div className="small" style={{ marginTop: 2, fontWeight: 800, fontSize: 16, color: "#111" }}>
                       {seatedByTableId.get(t.id)!.customer.name}
                     </div>
                   ) : null}

@@ -4,6 +4,8 @@ export type TableStatus = "LIBRE" | "OCUPADA" | "RESERVADA" | "POR_LIMPIAR";
 export type Area = "TERRAZA_FRONTAL" | "TERRAZA_LATERAL" | "INTERIOR";
 export type ReservationStatus =
   | "WAITING"
+  | "WAITLIST"
+  | "OFFERED"
   | "RESERVED"
   | "SEATED"
   | "COMPLETED"
@@ -39,6 +41,9 @@ export type Reservation = {
   tableId?: string | null;
   tableIds?: string[] | null;
   activeTableIds?: string[] | null;
+  requestedTablesCount?: number | null;
+  offeredTableIds?: string[] | null;
+  offeredAt?: number | null;
   partySize?: number | null;
   reservedFor?: number | null;
   status: ReservationStatus;
@@ -85,6 +90,46 @@ export type FeatureFlags = {
 
 function nowMs() {
   return Date.now();
+}
+
+export async function listWaitlistReservations(params?: {
+  includeOffered?: boolean;
+}): Promise<
+  Array<{
+    reservation: Reservation;
+    customer: Customer;
+  }>
+> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  const statuses = params?.includeOffered ? ["WAITLIST", "OFFERED"] : ["WAITLIST"];
+
+  // Avoid composite index requirements by not using orderBy when filtering.
+  const snap = await db.collection("reservations").where("status", "in", statuses).limit(200).get();
+
+  const reservationsUnsorted = snap.docs.map(
+    (d: any) => ({ id: d.id, ...(d.data() as Omit<Reservation, "id">) }) as Reservation
+  );
+  const reservations = reservationsUnsorted.sort((a: Reservation, b: Reservation) => a.createdAt - b.createdAt) as Reservation[];
+
+  const customerIds = Array.from(new Set(reservations.map((r: Reservation) => String(r.customerId))));
+  const customers = new Map<string, Customer>();
+  await Promise.all(
+    customerIds.map(async (id) => {
+      const sid = String(id);
+      const doc = await db.collection("customers").doc(sid).get();
+      if (doc.exists) customers.set(sid, { id: String(doc.id), ...(doc.data() as Omit<Customer, "id">) });
+    })
+  );
+
+  return reservations
+    .map((reservation: Reservation) => {
+      const customer = customers.get(reservation.customerId);
+      if (!customer) return null;
+      return { reservation, customer };
+    })
+    .filter(Boolean) as any;
 }
 
 function normalizePhone(raw: string | null | undefined): string {
@@ -666,6 +711,112 @@ export async function createReservation(input: Omit<Reservation, "id" | "created
     updatedAt: ts
   });
   return { id: ref.id, ...(input as any), createdAt: ts, updatedAt: ts } as Reservation;
+}
+
+export async function createWaitlistReservation(params: {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  requestedTablesCount: number;
+  notes?: string | null;
+  createdByRole?: string | null;
+  source: ReservationSource;
+}): Promise<{ reservation: Reservation; customer: Customer }> {
+  const req = Number(params.requestedTablesCount);
+  if (!Number.isFinite(req) || req <= 0) throw new Error("requestedTablesCount inválido");
+
+  const { customer } = await findOrCreateCustomer({
+    name: params.name,
+    phone: params.phone ?? null,
+    email: params.email ?? null
+  });
+
+  const reservation = await createReservation({
+    customerId: customer.id,
+    customerNameSnapshot: params.name,
+    tableId: null,
+    tableIds: null,
+    activeTableIds: null,
+    requestedTablesCount: req,
+    offeredTableIds: null,
+    offeredAt: null,
+    partySize: Math.max(1, req * 4),
+    reservedFor: null,
+    status: "WAITLIST",
+    source: params.source,
+    createdByRole: params.createdByRole ?? null,
+    notes: params.notes ?? null,
+    seatedAt: null,
+    completedAt: null
+  });
+
+  return { reservation, customer };
+}
+
+export async function confirmWaitlistReservation(params: {
+  reservationId: string;
+  tableIds: string[];
+  createdByRole?: string | null;
+}): Promise<{ reservationId: string; reservedFor: number; tableIds: string[] }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationId = String(params.reservationId || "").trim();
+  if (!reservationId) throw new Error("Falta reservationId");
+
+  const tableIds = Array.from(new Set((params.tableIds ?? []).map((x) => String(x)).filter(Boolean)));
+  if (tableIds.length === 0) throw new Error("Falta mesa");
+
+  const reservationRef = db.collection("reservations").doc(reservationId);
+  const tableRefs = tableIds.map((id) => db.collection("tables").doc(id));
+
+  const now = nowMs();
+  const reservedFor = now + 10 * 60 * 1000;
+
+  await db.runTransaction(async (tx: any) => {
+    const resDoc = await tx.get(reservationRef);
+    if (!resDoc.exists) throw new Error("Reservation not found");
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+
+    if (reservation.status !== "WAITLIST" && reservation.status !== "OFFERED") {
+      throw new Error("Reservation not in waitlist");
+    }
+
+    const requested = typeof reservation.requestedTablesCount === "number" ? Number(reservation.requestedTablesCount) : 1;
+    if (tableIds.length < Math.max(1, requested)) {
+      throw new Error("Faltan mesas para confirmar");
+    }
+
+    const tableDocs = await Promise.all(tableRefs.map((ref) => tx.get(ref)));
+    for (const d of tableDocs) {
+      if (!d.exists) throw new Error("Table not found");
+    }
+    const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
+    for (const t of tables) {
+      if (t.status !== "LIBRE") throw new Error("Table not free");
+    }
+
+    // Mark tables reserved and keep nextReservedFor consistent.
+    for (let i = 0; i < tableRefs.length; i++) {
+      const t = tables[i];
+      const existingNext = (t as any).nextReservedFor as number | null | undefined;
+      const nextReservedFor = existingNext ? Math.min(Number(existingNext), reservedFor) : reservedFor;
+      tx.update(tableRefs[i], { status: "RESERVADA", nextReservedFor, updatedAt: now });
+    }
+
+    tx.update(reservationRef, {
+      tableId: tableIds[0],
+      tableIds,
+      activeTableIds: null,
+      reservedFor,
+      status: "RESERVED",
+      offeredTableIds: null,
+      offeredAt: null,
+      updatedAt: now
+    });
+  });
+
+  return { reservationId, reservedFor, tableIds };
 }
 
 export async function findExistingReservedReservation(params: {

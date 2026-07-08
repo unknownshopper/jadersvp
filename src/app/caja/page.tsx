@@ -169,7 +169,7 @@ export default async function CajaPage({
       </div>
 
       <div className="caja-page-right requires-online">
-        <HostessForm tables={tables} initialTableId="" />
+        <HostessForm tables={tables} waitlist={[]} initialTableId="" />
       </div>
     </div>
   );
