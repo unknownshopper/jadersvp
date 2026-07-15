@@ -164,6 +164,7 @@ export default async function HostessPage({
       status: w.reservation.status,
       source: w.reservation.source,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+      partySize: typeof (w.reservation as any).partySize === "number" ? Number((w.reservation as any).partySize) : null,
       customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
       notes: w.reservation.notes ?? null,
       createdByRole: (w.reservation as any).createdByRole ?? null,
@@ -222,6 +223,7 @@ export default async function HostessPage({
       status: w.reservation.status,
       source: w.reservation.source,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+      partySize: typeof (w.reservation as any).partySize === "number" ? Number((w.reservation as any).partySize) : null,
       customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
       notes: w.reservation.notes ?? null,
       createdByRole: (w.reservation as any).createdByRole ?? null,
@@ -255,6 +257,7 @@ export default async function HostessPage({
       status: w.reservation.status,
       source: w.reservation.source,
       reservedFor: w.reservation.reservedFor ? new Date(w.reservation.reservedFor) : null,
+      partySize: typeof (w.reservation as any).partySize === "number" ? Number((w.reservation as any).partySize) : null,
       customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
       notes: w.reservation.notes ?? null,
       createdByRole: (w.reservation as any).createdByRole ?? null,
@@ -391,6 +394,7 @@ export default async function HostessPage({
                       <div className="small">
                         {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
                         {r.reservedFor ? ` · ${formatDateDDMMYY(r.reservedFor)}` : ""}
+                        {r.partySize ? ` · ${r.partySize} pax` : ""}
                       </div>
                       {r.notes ? (
                         <div
@@ -490,6 +494,7 @@ export default async function HostessPage({
                   <div className="small">
                     {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
                     {r.reservedFor ? ` · ${formatDateDDMMYY(r.reservedFor)}` : ""}
+                    {r.partySize ? ` · ${r.partySize} pax` : ""}
                   </div>
                   {r.notes ? (
                     <div

@@ -201,6 +201,16 @@ export default function HostessForm({
     [tables]
   );
 
+  const pendingFreed = useMemo(() => {
+    const now = Date.now();
+    return tables
+      .filter((t) => t.status === "POR_LIMPIAR" && typeof (t as any).lastFreedAt === "number")
+      .slice()
+      .sort((a, b) => Number((b as any).lastFreedAt) - Number((a as any).lastFreedAt))
+      .filter((t) => now - Number((t as any).lastFreedAt) <= 60 * 60 * 1000)
+      .slice(0, 12);
+  }, [tables]);
+
   return (
     <div className="hostess-form-grid">
       <div className="card">
@@ -215,6 +225,11 @@ export default function HostessForm({
               return;
             }
             if (!tableId) {
+              if (!partyTouched) {
+                e.preventDefault();
+                window.alert("Si no seleccionas mesa, debes ingresar la cantidad de personas.");
+                return;
+              }
               const ok = window.confirm("¿No se va a seleccionar mesa?");
               if (!ok) {
                 e.preventDefault();
@@ -522,6 +537,41 @@ export default function HostessForm({
       </div>
 
       <div className="card requires-online">
+        <h3 style={{ marginTop: 0 }}>Mesas por liberar (sobremesa)</h3>
+        <div className="small" style={{ opacity: 0.85 }}>
+          Cuando caja libera, la mesa queda en <b>Por limpiar</b>. Confirma aquí cuando de verdad se desocupe.
+        </div>
+        {pendingFreed.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
+
+        {pendingFreed.length > 0 ? (
+          <div className="grid" style={{ marginTop: 10 }}>
+            {pendingFreed.map((t) => (
+              <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 900 }}>Mesa {t.name}</div>
+                  <div className="small" style={{ opacity: 0.85 }}>
+                    {t.area}
+                    {typeof (t as any).lastFreedAt === "number"
+                      ? ` · Liberada en caja ${new Date(Number((t as any).lastFreedAt)).toLocaleTimeString("es-MX", {
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}`
+                      : ""}
+                  </div>
+                </div>
+                <form action="/api/tables/confirm-free" method="post" style={{ flex: "0 0 auto" }}>
+                  <input type="hidden" name="tableId" value={t.id} />
+                  <button className="btn" type="submit">
+                    Confirmar libre
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="card requires-online">
         <h3 style={{ marginTop: 0 }}>Lista de espera (FIFO)</h3>
         {waitlist.length === 0 ? <div className="small">Sin registros</div> : null}
 
@@ -543,42 +593,59 @@ export default function HostessForm({
                     </div>
                   </div>
 
-                  <form
-                    action="/api/waitlist/confirm"
-                    method="post"
-                    onSubmit={(e) => {
-                      if (selectedTableIds.length < Math.max(1, requested)) {
-                        e.preventDefault();
-                        window.alert(`Selecciona al menos ${Math.max(1, requested)} mesa(s) LIBRE(S) en el croquis.`);
-                        return;
-                      }
-                      const ok = window.confirm("¿Confirmar lista de espera con las mesas seleccionadas?");
-                      if (!ok) {
-                        e.preventDefault();
-                      }
-                    }}
-                    style={{ flex: "0 0 auto" }}
-                  >
-                    <input type="hidden" name="reservationId" value={w.reservation.id} />
-                    {selectedTableIds.map((id) => (
-                      <input key={id} type="hidden" name="tableIds" value={id} />
-                    ))}
-                    <input type="hidden" name="sendWhatsApp" value={sendWaitlistWhatsApp ? "1" : "0"} />
-                    <button className="btn" type="submit">
-                      Confirmar
-                    </button>
-                    <div className="small" style={{ marginTop: 6, textAlign: "right" }}>
-                      <label style={{ userSelect: "none" }}>
-                        <input
-                          type="checkbox"
-                          checked={sendWaitlistWhatsApp}
-                          onChange={(ev) => setSendWaitlistWhatsApp(ev.target.checked)}
-                          style={{ marginRight: 6 }}
-                        />
-                        Enviar WhatsApp
-                      </label>
-                    </div>
-                  </form>
+                  <div style={{ flex: "0 0 auto", textAlign: "right" }}>
+                    <form
+                      action="/api/waitlist/confirm"
+                      method="post"
+                      onSubmit={(e) => {
+                        if (selectedTableIds.length < Math.max(1, requested)) {
+                          e.preventDefault();
+                          window.alert(`Selecciona al menos ${Math.max(1, requested)} mesa(s) LIBRE(S) en el croquis.`);
+                          return;
+                        }
+                        const ok = window.confirm("¿Confirmar lista de espera con las mesas seleccionadas?");
+                        if (!ok) {
+                          e.preventDefault();
+                        }
+                      }}
+                      style={{ display: "inline-block" }}
+                    >
+                      <input type="hidden" name="reservationId" value={w.reservation.id} />
+                      {selectedTableIds.map((id) => (
+                        <input key={id} type="hidden" name="tableIds" value={id} />
+                      ))}
+                      <input type="hidden" name="sendWhatsApp" value={sendWaitlistWhatsApp ? "1" : "0"} />
+                      <button className="btn" type="submit">
+                        Confirmar
+                      </button>
+                      <div className="small" style={{ marginTop: 6 }}>
+                        <label style={{ userSelect: "none" }}>
+                          <input
+                            type="checkbox"
+                            checked={sendWaitlistWhatsApp}
+                            onChange={(ev) => setSendWaitlistWhatsApp(ev.target.checked)}
+                            style={{ marginRight: 6 }}
+                          />
+                          Enviar WhatsApp
+                        </label>
+                      </div>
+                    </form>
+
+                    <form
+                      action="/api/waitlist/cancel"
+                      method="post"
+                      onSubmit={(e) => {
+                        const ok = window.confirm("¿Cancelar esta entrada de lista de espera?");
+                        if (!ok) e.preventDefault();
+                      }}
+                      style={{ display: "inline-block", marginTop: 8 }}
+                    >
+                      <input type="hidden" name="reservationId" value={w.reservation.id} />
+                      <button className="btn secondary" type="submit">
+                        Cancelar
+                      </button>
+                    </form>
+                  </div>
                 </div>
               );
             })}

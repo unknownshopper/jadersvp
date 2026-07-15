@@ -819,6 +819,37 @@ export async function confirmWaitlistReservation(params: {
   return { reservationId, reservedFor, tableIds };
 }
 
+export async function cancelWaitlistReservation(params: {
+  reservationId: string;
+  createdByRole?: string | null;
+}) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationId = String(params.reservationId || "").trim();
+  if (!reservationId) throw new Error("Falta reservationId");
+
+  const reservationRef = db.collection("reservations").doc(reservationId);
+  const ts = nowMs();
+
+  await db.runTransaction(async (tx: any) => {
+    const resDoc = await tx.get(reservationRef);
+    if (!resDoc.exists) throw new Error("Reservation not found");
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+
+    if (reservation.status !== "WAITLIST" && reservation.status !== "OFFERED") {
+      throw new Error("Reservation not in waitlist");
+    }
+
+    tx.update(reservationRef, {
+      status: "CANCELLED",
+      offeredTableIds: null,
+      offeredAt: null,
+      updatedAt: ts
+    });
+  });
+}
+
 export async function findExistingReservedReservation(params: {
   customerId?: string | null;
   tableId?: string | null;
@@ -1287,7 +1318,9 @@ export async function freeTable(params: {
     );
 
     const ts = nowMs();
-    tx.update(tableRef, { status: "LIBRE", lastFreedAt: ts, updatedAt: ts });
+    // Caja libera (cobra) pero la mesa puede seguir ocupada físicamente (sobremesa).
+    // La mesa queda pendiente para que Hostess confirme cuando realmente se desocupe.
+    tx.update(tableRef, { status: "POR_LIMPIAR", lastFreedAt: ts, updatedAt: ts });
 
     const resDoc = !activeSnapByActiveTableIds.empty
       ? activeSnapByActiveTableIds.docs[0]
@@ -1323,6 +1356,25 @@ export async function freeTable(params: {
   });
 
   return { completedReservationId, reservationId, remainingActiveTableIds };
+}
+
+export async function confirmFreedTable(params: { tableId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const tableId = String(params.tableId || "").trim();
+  if (!tableId) throw new Error("Falta mesa");
+
+  const tableRef = db.collection("tables").doc(tableId);
+  const ts = nowMs();
+
+  await db.runTransaction(async (tx: any) => {
+    const tableDoc = await tx.get(tableRef);
+    if (!tableDoc.exists) throw new Error("Table not found");
+    const table = tableDoc.data() as CafeTable;
+    if (table.status !== "POR_LIMPIAR") throw new Error("Table not pending");
+    tx.update(tableRef, { status: "LIBRE", updatedAt: ts });
+  });
 }
 
 export async function getReservationDetail(reservationId: string) {
