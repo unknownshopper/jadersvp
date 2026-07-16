@@ -33,12 +33,18 @@ export async function POST(req: Request) {
 
   const { reservedFor } = await confirmWaitlistReservation({ reservationId, tableIds, createdByRole });
 
+  let warn: string | null = null;
+
   if (sendWhatsApp) {
     try {
       const db = getFirestore();
-      if (db) {
+      if (!db) {
+        warn = "WHATSAPP_DB";
+      } else {
         const resDoc = await db.collection("reservations").doc(reservationId).get();
-        if (resDoc.exists) {
+        if (!resDoc.exists) {
+          warn = "WHATSAPP_RES";
+        } else {
           const r = resDoc.data() as any;
           const customerId = String(r.customerId ?? "");
           const customerName = String(r.customerNameSnapshot ?? "").trim();
@@ -47,7 +53,11 @@ export async function POST(req: Request) {
           const phone = custDoc?.exists ? String((custDoc.data() as any)?.phone ?? "").trim() : "";
 
           const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
-          if (templateName && phone) {
+          if (!templateName) {
+            warn = "WHATSAPP_TEMPLATE";
+          } else if (!phone) {
+            warn = "WHATSAPP_PHONE";
+          } else {
             const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
             const when = new Date(reservedFor);
             const dateStr = formatDateDDMMYY(when, "America/Mexico_City");
@@ -67,19 +77,20 @@ export async function POST(req: Request) {
               // non-blocking
             }
 
-            await sendWhatsAppTemplate({
+            const wa = await sendWhatsAppTemplate({
               toPhone: phone,
               templateName,
               bodyParams: [customerName, dateStr, timeStr, tablesStr],
               headerImageUrl
             });
+            if (!wa.ok) warn = wa.error || "WHATSAPP_ERROR";
           }
         }
       }
-    } catch {
-      // non-blocking
+    } catch (err: any) {
+      warn = typeof err?.message === "string" ? err.message : "WHATSAPP_ERROR";
     }
   }
 
-  return NextResponse.redirect(new URL("/hostess?ok=Confirmada", baseUrl));
+  return NextResponse.redirect(new URL(`/hostess?ok=Confirmada${warn ? `&warn=${encodeURIComponent(warn)}` : ""}`, baseUrl));
 }

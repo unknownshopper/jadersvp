@@ -579,6 +579,7 @@ export default function HostessForm({
           <div className="grid" style={{ marginTop: 10 }}>
             {waitlist.map((w) => {
               const requested = typeof (w.reservation as any).requestedTablesCount === "number" ? Number((w.reservation as any).requestedTablesCount) : 1;
+              const pax = typeof (w.reservation as any).partySize === "number" ? Number((w.reservation as any).partySize) : Math.max(1, requested * 4);
               return (
                 <div
                   key={w.reservation.id}
@@ -588,7 +589,7 @@ export default function HostessForm({
                   <div>
                     <div style={{ fontWeight: 900 }}>{w.customer.name}</div>
                     <div className="small" style={{ opacity: 0.85 }}>
-                      Requiere {requested} mesa(s)
+                      {pax} pax · Requiere {requested} mesa(s)
                       {w.reservation.createdAt ? ` · ${new Date(w.reservation.createdAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}` : ""}
                     </div>
                   </div>
