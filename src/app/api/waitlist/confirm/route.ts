@@ -63,24 +63,10 @@ export async function POST(req: Request) {
             const dateStr = formatDateDDMMYY(when, "America/Mexico_City");
             const timeStr = formatTimeHHMM(when, "America/Mexico_City");
 
-            let tablesStr = "";
-            try {
-              const tableDocs = await Promise.all(tableIds.map((tid: string) => db.collection("tables").doc(tid).get()));
-              const tableNames = tableDocs
-                .map((d: any, i: number) => {
-                  const rawName = d.exists ? String((d.data() as any)?.name ?? "").trim() : "";
-                  return rawName || tableIds[i];
-                })
-                .filter(Boolean);
-              tablesStr = tableNames.join(", ");
-            } catch {
-              // non-blocking
-            }
-
             const wa = await sendWhatsAppTemplate({
               toPhone: phone,
               templateName,
-              bodyParams: [customerName, dateStr, timeStr, tablesStr],
+              bodyParams: [customerName, dateStr, timeStr],
               headerImageUrl
             });
             if (!wa.ok) warn = wa.error || "WHATSAPP_ERROR";
