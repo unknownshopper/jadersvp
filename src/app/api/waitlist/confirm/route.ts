@@ -34,6 +34,7 @@ export async function POST(req: Request) {
   const { reservedFor } = await confirmWaitlistReservation({ reservationId, tableIds, createdByRole });
 
   let warn: string | null = null;
+  let waMessageId: string | null = null;
 
   if (sendWhatsApp) {
     try {
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
               headerImageUrl
             });
             if (!wa.ok) warn = wa.error || "WHATSAPP_ERROR";
+            else waMessageId = wa.messageId;
           }
         }
       }
@@ -78,5 +80,6 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL(`/hostess?ok=Confirmada${warn ? `&warn=${encodeURIComponent(warn)}` : ""}`, baseUrl));
+  const okMsg = waMessageId ? `Confirmada (WA: ${waMessageId})` : "Confirmada";
+  return NextResponse.redirect(new URL(`/hostess?ok=${encodeURIComponent(okMsg)}${warn ? `&warn=${encodeURIComponent(warn)}` : ""}`, baseUrl));
 }
