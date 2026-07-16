@@ -1046,6 +1046,77 @@ export async function seatReservation(params: { reservationId: string; tableId: 
   });
 }
 
+export async function moveSeatedReservation(params: {
+  reservationId: string;
+  fromTableId: string;
+  toTableId: string;
+}) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationId = String(params.reservationId || "").trim();
+  const fromTableId = String(params.fromTableId || "").trim();
+  const toTableId = String(params.toTableId || "").trim();
+  if (!reservationId || !fromTableId || !toTableId) throw new Error("Faltan datos");
+  if (fromTableId === toTableId) throw new Error("Mesa destino inválida");
+
+  const reservationRef = db.collection("reservations").doc(reservationId);
+  const fromRef = db.collection("tables").doc(fromTableId);
+  const toRef = db.collection("tables").doc(toTableId);
+
+  await db.runTransaction(async (tx: any) => {
+    const [resDoc, fromDoc, toDoc] = await Promise.all([tx.get(reservationRef), tx.get(fromRef), tx.get(toRef)]);
+    if (!resDoc.exists) throw new Error("Reservation not found");
+    if (!fromDoc.exists) throw new Error("Mesa origen no existe");
+    if (!toDoc.exists) throw new Error("Mesa destino no existe");
+
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+    if (reservation.status !== "SEATED") throw new Error("Reservation not seated");
+
+    const fromTable = fromDoc.data() as CafeTable;
+    const toTable = toDoc.data() as CafeTable;
+    if (toTable.status !== "LIBRE") throw new Error("Mesa destino no está libre");
+    if (fromTable.status !== "OCUPADA" && fromTable.status !== "RESERVADA") {
+      throw new Error("Mesa origen no está ocupada");
+    }
+
+    const tableIds = Array.isArray(reservation.tableIds)
+      ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
+      : reservation.tableId
+        ? [String(reservation.tableId)]
+        : [];
+    const activeTableIds = Array.isArray(reservation.activeTableIds)
+      ? reservation.activeTableIds.map((x) => String(x)).filter(Boolean)
+      : tableIds;
+
+    if (!activeTableIds.includes(fromTableId) && String(reservation.tableId ?? "") !== fromTableId) {
+      throw new Error("Mesa origen no pertenece a la reserva");
+    }
+
+    const replaceOne = (arr: string[]) => {
+      const out = arr.slice();
+      const idx = out.indexOf(fromTableId);
+      if (idx >= 0) out[idx] = toTableId;
+      return Array.from(new Set(out));
+    };
+
+    const nextTableIds = replaceOne(tableIds.length ? tableIds : [fromTableId]);
+    const nextActiveTableIds = replaceOne(activeTableIds.length ? activeTableIds : [fromTableId]);
+    const nextPrimary = String(reservation.tableId ?? "") === fromTableId ? toTableId : String(reservation.tableId ?? toTableId);
+
+    const ts = nowMs();
+    tx.update(fromRef, { status: "LIBRE", updatedAt: ts });
+    tx.update(toRef, { status: "OCUPADA", updatedAt: ts });
+
+    tx.update(reservationRef, {
+      tableId: nextPrimary,
+      tableIds: nextTableIds,
+      activeTableIds: nextActiveTableIds,
+      updatedAt: ts
+    });
+  });
+}
+
 export async function walkInAssign(params: {
   name: string;
   phone: string;

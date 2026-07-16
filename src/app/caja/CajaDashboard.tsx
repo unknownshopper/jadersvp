@@ -49,6 +49,7 @@ export default function CajaDashboard({
   remainingTodayCount: number;
 }) {
   const [mode, setMode] = useState<Mode>("occupied");
+  const [moveFromTableId, setMoveFromTableId] = useState<string>("");
 
   const occupiedTables = useMemo(() => {
     return tables
@@ -190,12 +191,55 @@ export default function CajaDashboard({
                     </div>
                   ) : null}
                 </div>
-                <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
-                  <input type="hidden" name="tableId" value={t.id} />
-                  <button className="btn" type="submit">
-                    Liberar
-                  </button>
-                </form>
+                <div style={{ flex: "0 0 auto", textAlign: "right" }}>
+                  <form action="/api/tables/free" method="post" style={{ flex: "0 0 auto" }}>
+                    <input type="hidden" name="tableId" value={t.id} />
+                    <button className="btn" type="submit">
+                      Liberar
+                    </button>
+                  </form>
+
+                  {seatedByTableId.get(t.id)?.id ? (
+                    <div style={{ marginTop: 8 }}>
+                      {moveFromTableId !== t.id ? (
+                        <button type="button" className="btn secondary" onClick={() => setMoveFromTableId(t.id)}>
+                          Cambiar mesa
+                        </button>
+                      ) : (
+                        <form
+                          action="/api/tables/move"
+                          method="post"
+                          onSubmit={(e) => {
+                            const ok = window.confirm("¿Cambiar mesa para este cliente?");
+                            if (!ok) e.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="reservationId" value={seatedByTableId.get(t.id)!.id} />
+                          <input type="hidden" name="fromTableId" value={t.id} />
+                          <select className="input" name="toTableId" required defaultValue="" style={{ minWidth: 180 }}>
+                            <option value="" disabled>
+                              Selecciona mesa…
+                            </option>
+                            {freeTables.map((ft) => (
+                              <option key={ft.id} value={ft.id}>
+                                {ft.name}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="row" style={{ marginTop: 8, justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+                            <button className="btn" type="submit">
+                              Confirmar
+                            </button>
+                            <button type="button" className="btn secondary" onClick={() => setMoveFromTableId("")}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
