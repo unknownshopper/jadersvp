@@ -394,7 +394,12 @@ export default async function HostessPage({
                       <div className="small">
                         {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
                         {r.reservedFor ? ` · ${formatDateDDMMYY(r.reservedFor)}` : ""}
-                        {r.partySize ? ` · ${r.partySize} pax` : ""}
+                        {(() => {
+                          const byField = typeof (r as any).partySize === "number" ? Number((r as any).partySize) : null;
+                          const byTables = Array.isArray((r as any).tables) && (r as any).tables.length > 0 ? (r as any).tables.length * 4 : null;
+                          const pax = byField ?? byTables;
+                          return pax ? ` · ${pax} pax` : "";
+                        })()}
                       </div>
                       {r.notes ? (
                         <div
@@ -494,7 +499,12 @@ export default async function HostessPage({
                   <div className="small">
                     {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"}
                     {r.reservedFor ? ` · ${formatDateDDMMYY(r.reservedFor)}` : ""}
-                    {r.partySize ? ` · ${r.partySize} pax` : ""}
+                    {(() => {
+                      const byField = typeof (r as any).partySize === "number" ? Number((r as any).partySize) : null;
+                      const byTables = Array.isArray((r as any).tables) && (r as any).tables.length > 0 ? (r as any).tables.length * 4 : null;
+                      const pax = byField ?? byTables;
+                      return pax ? ` · ${pax} pax` : "";
+                    })()}
                   </div>
                   {r.notes ? (
                     <div
@@ -637,6 +647,12 @@ export default async function HostessPage({
                   <div className="small">
                     {r.status} · {r.source === "CALL" && r.createdByRole === "CAJA" ? "CALL" : "LOCAL"} ·
                     {r.reservedFor ? ` ${formatDateDDMMYY(r.reservedFor)}` : ""}
+                    {(() => {
+                      const byField = typeof (r as any).partySize === "number" ? Number((r as any).partySize) : null;
+                      const byTables = Array.isArray((r as any).tables) && (r as any).tables.length > 0 ? (r as any).tables.length * 4 : null;
+                      const pax = byField ?? byTables;
+                      return pax ? ` · ${pax} pax` : "";
+                    })()}
                   </div>
                   {r.notes ? (
                     <div
