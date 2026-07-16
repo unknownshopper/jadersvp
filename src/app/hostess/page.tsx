@@ -45,6 +45,7 @@ export default async function HostessPage({
     focusTableId?: string;
     ok?: string;
     err?: string;
+    warn?: string;
     future?: string;
     reservedDate?: string;
     reservedTime?: string;
@@ -290,6 +291,13 @@ export default async function HostessPage({
           <div className="card" style={{ borderColor: "rgba(34, 197, 94, 0.35)" }}>
             <div style={{ fontWeight: 800 }}>Listo</div>
             <div className="small">{String(searchParams.ok)}</div>
+          </div>
+        ) : null}
+
+        {searchParams?.warn ? (
+          <div className="card" style={{ borderColor: "rgba(255, 149, 0, 0.35)" }}>
+            <div style={{ fontWeight: 800 }}>Aviso</div>
+            <div className="small">{String(searchParams.warn)}</div>
           </div>
         ) : null}
 
