@@ -398,7 +398,14 @@ export default async function HostessPage({
                           const byField = typeof (r as any).partySize === "number" ? Number((r as any).partySize) : null;
                           const byTables = Array.isArray((r as any).tables) && (r as any).tables.length > 0 ? (r as any).tables.length * 4 : null;
                           const pax = byField ?? byTables;
-                          return pax ? ` · ${pax} pax` : "";
+                          return pax ? (
+                            <>
+                              {" · "}
+                              <b>{pax} pax</b>
+                            </>
+                          ) : (
+                            ""
+                          );
                         })()}
                       </div>
                       {r.notes ? (
@@ -503,7 +510,14 @@ export default async function HostessPage({
                       const byField = typeof (r as any).partySize === "number" ? Number((r as any).partySize) : null;
                       const byTables = Array.isArray((r as any).tables) && (r as any).tables.length > 0 ? (r as any).tables.length * 4 : null;
                       const pax = byField ?? byTables;
-                      return pax ? ` · ${pax} pax` : "";
+                      return pax ? (
+                        <>
+                          {" · "}
+                          <b>{pax} pax</b>
+                        </>
+                      ) : (
+                        ""
+                      );
                     })()}
                   </div>
                   {r.notes ? (
@@ -651,7 +665,14 @@ export default async function HostessPage({
                       const byField = typeof (r as any).partySize === "number" ? Number((r as any).partySize) : null;
                       const byTables = Array.isArray((r as any).tables) && (r as any).tables.length > 0 ? (r as any).tables.length * 4 : null;
                       const pax = byField ?? byTables;
-                      return pax ? ` · ${pax} pax` : "";
+                      return pax ? (
+                        <>
+                          {" · "}
+                          <b>{pax} pax</b>
+                        </>
+                      ) : (
+                        ""
+                      );
                     })()}
                   </div>
                   {r.notes ? (
