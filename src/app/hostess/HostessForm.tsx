@@ -129,6 +129,7 @@ export default function HostessForm({
   const [reservedTime, setReservedTime] = useState<string>(initialReservedTime ?? defaults.time);
   const [tableId, setTableId] = useState<string>(initialTableId ?? "");
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>(initialTableId ? [initialTableId] : []);
+  const [mapFloor, setMapFloor] = useState<"down" | "up">("down");
   const [name, setName] = useState<string>("");
   const [phoneCountry, setPhoneCountry] = useState<string>("+52");
   const [phoneNational, setPhoneNational] = useState<string>("");
@@ -138,6 +139,53 @@ export default function HostessForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestedTablesCount, setRequestedTablesCount] = useState<number>(1);
   const [sendWaitlistWhatsApp, setSendWaitlistWhatsApp] = useState<boolean>(true);
+
+  const normalizeDialCode = (raw: string) => {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    const digits = s.replace(/[^0-9]/g, "");
+    if (!digits) return "";
+    return `+${digits}`;
+  };
+
+  const upstairsMarkers = useMemo(() => {
+    return [
+      // Fondo (L)
+      { kind: "square", label: "36", x: 18, y: 16 },
+      { kind: "square", label: "33", x: 62, y: 16 },
+
+      // Circulares arriba
+      { kind: "circle", label: "34", x: 40, y: 14 },
+      { kind: "circle", label: "35", x: 40, y: 30 },
+      { kind: "circle", label: "37", x: 14, y: 30 },
+      { kind: "circle", label: "38", x: 14, y: 46 },
+      { kind: "circle", label: "39", x: 14, y: 60 },
+
+      // Rectangulares derecha (6 pax)
+      { kind: "rect", label: "32", x: 64, y: 30 },
+      { kind: "rect", label: "31", x: 64, y: 50 },
+
+      // Triangular (3 pax)
+      { kind: "triangle", label: "30", x: 38, y: 46 },
+
+      // Rombo centro-abajo
+      { kind: "diamond", label: "29", x: 25, y: 66 },
+      { kind: "diamond", label: "28", x: 40, y: 66 },
+
+      // Rectangulares abajo (4 pax)
+      { kind: "rect", label: "27", x: 15, y: 84 },
+      { kind: "rect", label: "26", x: 32, y: 84 },
+      { kind: "rect", label: "25", x: 49, y: 84 },
+
+      // Cuadros derecha
+      { kind: "diamond", label: "24", x: 80, y: 66 },
+      { kind: "diamond", label: "23", x: 92, y: 66 },
+      { kind: "diamond", label: "22", x: 92, y: 78 },
+
+      // Circular abajo derecha
+      { kind: "circle", label: "21", x: 84, y: 84 }
+    ] as Array<{ kind: "circle" | "diamond" | "rect" | "triangle" | "lshape" | "square"; label: string; x: number; y: number }>;
+  }, []);
 
   const composedPhone = useMemo(() => {
     const cc = String(phoneCountry || "").trim();
@@ -224,6 +272,30 @@ export default function HostessForm({
               e.preventDefault();
               return;
             }
+
+            const dial = normalizeDialCode(phoneCountry);
+            const nationalDigits = String(phoneNational || "").replace(/\D/g, "");
+            const wantsPhone = nationalDigits.length > 0 || String(phoneCountry || "").trim().length > 0;
+            if (wantsPhone) {
+              if (!dial || dial === "+") {
+                e.preventDefault();
+                window.alert("LADA inválida. Ejemplo: +52, +48, +972");
+                return;
+              }
+              if (dial === "+52") {
+                if (nationalDigits.length !== 10) {
+                  e.preventDefault();
+                  window.alert("Para México (+52) el número debe tener 10 dígitos.");
+                  return;
+                }
+              } else {
+                if (nationalDigits.length < 6 || nationalDigits.length > 15) {
+                  e.preventDefault();
+                  window.alert("Número inválido. Revisa que esté completo (6 a 15 dígitos) y sin espacios.");
+                  return;
+                }
+              }
+            }
             if (!tableId) {
               if (!partyTouched) {
                 e.preventDefault();
@@ -262,22 +334,130 @@ export default function HostessForm({
           <div>
             <label className="label">Teléfono (WhatsApp)</label>
             <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
-              <select
-                className="input"
-                value={phoneCountry}
-                onChange={(e) => setPhoneCountry(e.target.value)}
-                aria-label="País"
-                style={{ maxWidth: 120 }}
-              >
-                <option value="+52">MX +52</option>
-                <option value="+1">US/CA +1</option>
-                <option value="+34">ES +34</option>
-                <option value="+57">CO +57</option>
-                <option value="+54">AR +54</option>
-                <option value="+55">BR +55</option>
-                <option value="+33">FR +33</option>
-                <option value="+44">UK +44</option>
-              </select>
+              <div style={{ flex: "0 0 auto", minWidth: 120 }}>
+                <input
+                  className="input"
+                  value={phoneCountry}
+                  onChange={(e) => setPhoneCountry(normalizeDialCode(e.target.value) || "+")}
+                  onBlur={() => {
+                    const normalized = normalizeDialCode(phoneCountry);
+                    setPhoneCountry(normalized || "+52");
+                  }}
+                  inputMode="text"
+                  placeholder="+52"
+                  list="dialCodes"
+                  aria-label="LADA"
+                  style={{ width: "100%", fontWeight: 900, letterSpacing: 0.3 }}
+                />
+                <datalist id="dialCodes">
+                  <option value="+52">MX México</option>
+                  <option value="+1">US/CA Estados Unidos/Canadá</option>
+                  <option value="+32">BE Bélgica</option>
+                  <option value="+33">FR Francia</option>
+                  <option value="+49">DE Alemania</option>
+                  <option value="+34">ES España</option>
+                  <option value="+44">UK Reino Unido</option>
+                  <option value="+39">IT Italia</option>
+                  <option value="+31">NL Países Bajos</option>
+                  <option value="+351">PT Portugal</option>
+                  <option value="+57">CO Colombia</option>
+                  <option value="+54">AR Argentina</option>
+                  <option value="+55">BR Brasil</option>
+                  <option value="+48">PL Polonia</option>
+                  <option value="+972">IL Israel</option>
+                  <option value="+86">CN China</option>
+                  <option value="+81">JP Japón</option>
+                  <option value="+30">GR Grecia</option>
+
+                  <option value="+7">RU/KZ Rusia/Kazajistán</option>
+                  <option value="+20">EG Egipto</option>
+                  <option value="+27">ZA Sudáfrica</option>
+                  <option value="+36">HU Hungría</option>
+                  <option value="+40">RO Rumania</option>
+                  <option value="+41">CH Suiza</option>
+                  <option value="+43">AT Austria</option>
+                  <option value="+45">DK Dinamarca</option>
+                  <option value="+46">SE Suecia</option>
+                  <option value="+47">NO Noruega</option>
+                  <option value="+56">CL Chile</option>
+                  <option value="+58">VE Venezuela</option>
+                  <option value="+60">MY Malasia</option>
+                  <option value="+61">AU Australia</option>
+                  <option value="+62">ID Indonesia</option>
+                  <option value="+63">PH Filipinas</option>
+                  <option value="+64">NZ Nueva Zelanda</option>
+                  <option value="+65">SG Singapur</option>
+                  <option value="+66">TH Tailandia</option>
+                  <option value="+82">KR Corea del Sur</option>
+                  <option value="+84">VN Vietnam</option>
+                  <option value="+90">TR Turquía</option>
+                  <option value="+91">IN India</option>
+                  <option value="+92">PK Pakistán</option>
+                  <option value="+93">AF Afganistán</option>
+                  <option value="+94">LK Sri Lanka</option>
+                  <option value="+95">MM Myanmar</option>
+                  <option value="+98">IR Irán</option>
+
+                  <option value="+212">MA Marruecos</option>
+                  <option value="+213">DZ Argelia</option>
+                  <option value="+216">TN Túnez</option>
+                  <option value="+218">LY Libia</option>
+                  <option value="+221">SN Senegal</option>
+                  <option value="+225">CI Costa de Marfil</option>
+                  <option value="+229">BJ Benín</option>
+                  <option value="+233">GH Ghana</option>
+                  <option value="+234">NG Nigeria</option>
+                  <option value="+237">CM Camerún</option>
+                  <option value="+251">ET Etiopía</option>
+                  <option value="+254">KE Kenia</option>
+                  <option value="+255">TZ Tanzania</option>
+                  <option value="+256">UG Uganda</option>
+                  <option value="+260">ZM Zambia</option>
+                  <option value="+263">ZW Zimbabue</option>
+                  <option value="+264">NA Namibia</option>
+
+                  <option value="+350">GI Gibraltar</option>
+                  <option value="+352">LU Luxemburgo</option>
+                  <option value="+353">IE Irlanda</option>
+                  <option value="+354">IS Islandia</option>
+                  <option value="+355">AL Albania</option>
+                  <option value="+356">MT Malta</option>
+                  <option value="+357">CY Chipre</option>
+                  <option value="+358">FI Finlandia</option>
+                  <option value="+359">BG Bulgaria</option>
+                  <option value="+370">LT Lituania</option>
+                  <option value="+371">LV Letonia</option>
+                  <option value="+372">EE Estonia</option>
+                  <option value="+373">MD Moldavia</option>
+                  <option value="+374">AM Armenia</option>
+                  <option value="+375">BY Bielorrusia</option>
+                  <option value="+376">AD Andorra</option>
+                  <option value="+377">MC Mónaco</option>
+                  <option value="+378">SM San Marino</option>
+                  <option value="+380">UA Ucrania</option>
+                  <option value="+381">RS Serbia</option>
+                  <option value="+385">HR Croacia</option>
+                  <option value="+386">SI Eslovenia</option>
+                  <option value="+387">BA Bosnia y Herzegovina</option>
+                  <option value="+389">MK Macedonia del Norte</option>
+                  <option value="+420">CZ República Checa</option>
+                  <option value="+421">SK Eslovaquia</option>
+                  <option value="+422">LI Liechtenstein</option>
+                  <option value="+423">LI Liechtenstein (alt)</option>
+
+                  <option value="+503">SV El Salvador</option>
+                  <option value="+504">HN Honduras</option>
+                  <option value="+505">NI Nicaragua</option>
+                  <option value="+506">CR Costa Rica</option>
+                  <option value="+507">PA Panamá</option>
+                  <option value="+509">HT Haití</option>
+                  <option value="+51">PE Perú</option>
+                  <option value="+591">BO Bolivia</option>
+                  <option value="+593">EC Ecuador</option>
+                  <option value="+595">PY Paraguay</option>
+                  <option value="+598">UY Uruguay</option>
+                </datalist>
+              </div>
               <input
                 className="input"
                 inputMode="numeric"
@@ -463,45 +643,72 @@ export default function HostessForm({
         {tables.length === 0 ? (
           <div className="small">Sin mesas cargadas.</div>
         ) : (
-          <div className="table-map" role="group" aria-label="Croquis de mesas">
-            {tables.map((t) => {
-              const p = pos[String(t.name)] ?? null;
-              const s = effectiveStatusAt(t, reservedForMs);
-              const isSelected = selectedTableIds.includes(t.id);
-              const cls = `table-chip ${statusClass(s)} ${isSelected ? "selected" : ""}`;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={cls}
-                  disabled={false}
-                  style={
-                    p
-                      ? ({ left: `${p.x}%`, top: `${p.y}%` } as any)
-                      : ({ position: "static" } as any)
-                  }
-                  onClick={() => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set("focusTableId", t.id);
-                    if (s === "LIBRE") {
-                      setSelectedTableIds((prev) => {
-                        const exists = prev.includes(t.id);
-                        let next = exists ? prev.filter((x) => x !== t.id) : [...prev, t.id];
-                        const primary = next[0] ?? "";
-                        setTableId(primary);
-                        if (primary) url.searchParams.set("tableId", primary);
-                        else url.searchParams.delete("tableId");
-                        return next;
-                      });
-                    }
-                    router.replace(url.pathname + url.search, { scroll: false });
-                  }}
-                  title={`${t.name} · ${t.area} · ${s}`}
+          <>
+            <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div className="small" style={{ opacity: 0.85 }}>
+                Croquis: <b>{mapFloor === "down" ? "Planta baja" : "2do piso"}</b>
+              </div>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setMapFloor((p: "down" | "up") => (p === "down" ? "up" : "down"))}
+              >
+                {mapFloor === "down" ? "Ver 2do piso" : "Ver planta baja"}
+              </button>
+            </div>
+
+            <div className="table-map" data-floor={mapFloor} role="group" aria-label="Croquis de mesas">
+            {mapFloor === "up" ? (
+              upstairsMarkers.map((m, i) => (
+                <div
+                  key={`${m.kind}-${m.label}-${i}`}
+                  className={`up-marker ${m.kind}`}
+                  style={{ left: `${m.x}%`, top: `${m.y}%`, transform: "translate(-50%, -50%)" } as any}
+                  title={`Mesa ${m.label}`}
                 >
-                  {t.name}
-                </button>
-              );
-            })}
+                  <span>{m.label}</span>
+                </div>
+              ))
+            ) : (
+              tables.map((t) => {
+                const p = pos[String(t.name)] ?? null;
+                const s = effectiveStatusAt(t, reservedForMs);
+                const isSelected = selectedTableIds.includes(t.id);
+                const cls = `table-chip ${statusClass(s)} ${isSelected ? "selected" : ""}`;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={cls}
+                    disabled={false}
+                    style={
+                      p
+                        ? ({ left: `${p.x}%`, top: `${p.y}%` } as any)
+                        : ({ position: "static" } as any)
+                    }
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("focusTableId", t.id);
+                      if (s === "LIBRE") {
+                        setSelectedTableIds((prev) => {
+                          const exists = prev.includes(t.id);
+                          let next = exists ? prev.filter((x) => x !== t.id) : [...prev, t.id];
+                          const primary = next[0] ?? "";
+                          setTableId(primary);
+                          if (primary) url.searchParams.set("tableId", primary);
+                          else url.searchParams.delete("tableId");
+                          return next;
+                        });
+                      }
+                      router.replace(url.pathname + url.search, { scroll: false });
+                    }}
+                    title={`${t.name} · ${t.area} · ${s}`}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })
+            )}
 
             <div className="table-map-legend">
               <div className="small" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -532,7 +739,8 @@ export default function HostessForm({
               </div>
               <div className="small" style={{ opacity: 0.8 }}>Toca una mesa libre para seleccionarla.</div>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </div>
 

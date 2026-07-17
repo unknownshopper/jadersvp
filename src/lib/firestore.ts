@@ -1,7 +1,7 @@
 import { getFirestore, isFirebaseConfigured } from "@/lib/firebaseAdmin";
 
 export type TableStatus = "LIBRE" | "OCUPADA" | "RESERVADA" | "POR_LIMPIAR";
-export type Area = "TERRAZA_FRONTAL" | "TERRAZA_LATERAL" | "INTERIOR";
+export type Area = "TERRAZA_FRONTAL" | "TERRAZA_LATERAL" | "INTERIOR" | "PLANTA_ALTA";
 export type ReservationStatus =
   | "WAITING"
   | "WAITLIST"
@@ -17,12 +17,68 @@ export type CafeTable = {
   id: string;
   name: string;
   area: Area;
+  capacityPax?: number | null;
   status: TableStatus;
   nextReservedFor?: number | null;
   lastFreedAt?: number | null;
   createdAt: number;
   updatedAt: number;
 };
+
+export async function seedUpstairsTables() {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const ts = nowMs();
+
+  const capacities: Record<string, number> = {
+    "21": 2,
+    "22": 4,
+    "23": 4,
+    "24": 4,
+    "25": 4,
+    "26": 4,
+    "27": 4,
+    "28": 4,
+    "29": 4,
+    "30": 3,
+    "31": 6,
+    "32": 6,
+    "33": 6,
+    "34": 2,
+    "35": 2,
+    "36": 6,
+    "37": 2,
+    "38": 2,
+    "39": 2
+  };
+
+  const batch = db.batch();
+  let upserted = 0;
+
+  for (const [name, capacityPax] of Object.entries(capacities)) {
+    const ref = db.collection("tables").doc(String(name));
+    batch.set(
+      ref,
+      {
+        name: String(name),
+        area: "PLANTA_ALTA",
+        capacityPax,
+        status: "LIBRE",
+        nextReservedFor: null,
+        lastFreedAt: null,
+        createdAt: ts,
+        updatedAt: ts
+      },
+      { merge: true }
+    );
+    upserted++;
+  }
+
+  await batch.commit();
+
+  return { ok: true, upserted };
+}
 
 export type Customer = {
   id: string;

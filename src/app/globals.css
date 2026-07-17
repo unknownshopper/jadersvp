@@ -315,6 +315,10 @@ html[data-offline="true"] .requires-online {
   z-index: 0;
 }
 
+.table-map[data-floor="up"]::before {
+  background: url("/croquisup.png") center / contain no-repeat;
+}
+
 .table-map::after {
   content: "";
   position: absolute;
@@ -337,6 +341,85 @@ html[data-offline="true"] .requires-online {
   gap: 10px;
   pointer-events: none;
   z-index: 3;
+}
+
+.up-marker {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.92);
+  border: 2px solid rgba(34, 197, 94, 0.78);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.08);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.up-marker.circle {
+  border-radius: 999px;
+}
+
+.up-marker.diamond {
+  border-radius: 10px;
+  transform: rotate(45deg);
+}
+
+.up-marker.diamond > span {
+  transform: rotate(-45deg);
+}
+
+.up-marker.rect {
+  width: 60px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.up-marker.square {
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+}
+
+.up-marker.triangle {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: 0;
+  border-top: 30px solid transparent;
+  border-bottom: 30px solid transparent;
+  border-left: 62px solid rgba(34, 197, 94, 0.78);
+  box-shadow: none;
+}
+
+
+.up-marker.triangle::before {
+  content: "";
+  position: absolute;
+  left: -60px;
+  top: -27px;
+  width: 0;
+  height: 0;
+  border-top: 27px solid transparent;
+  border-bottom: 27px solid transparent;
+  border-left: 58px solid rgba(255, 255, 255, 0.86);
+}
+
+.up-marker.triangle > span {
+  position: absolute;
+  left: -34px;
+  top: 1px;
+  transform: translate(-50%, -50%);
+}
+
+.up-marker.lshape {
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+  clip-path: polygon(0 0, 100% 0, 100% 38%, 38% 38%, 38% 100%, 0 100%);
 }
 
 .table-legend-item {
