@@ -691,7 +691,7 @@ export default function HostessForm({
                 );
               })
             ) : (
-              tables.map((t) => {
+              tables.filter((t) => t.area !== "PLANTA_ALTA").map((t) => {
                 const p = pos[String(t.name)] ?? null;
                 const s = effectiveStatusAt(t, reservedForMs);
                 const isSelected = selectedTableIds.includes(t.id);

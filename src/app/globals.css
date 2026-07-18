@@ -367,7 +367,13 @@ html[data-offline="true"] .requires-online {
 .up-marker.ocupada { border-color: #ff3b30; background: rgba(255, 59, 48, 0.92); color: #ffffff; }
 .up-marker.reservada { border-color: #6d28d9; background: rgba(109, 40, 217, 0.92); color: #ffffff; }
 .up-marker.porlimpiar { border-color: #b7950b; opacity: 0.78; }
-.up-marker.selected { box-shadow: 0 0 0 3px rgba(42, 109, 244, 0.28), 0 6px 18px rgba(2, 6, 23, 0.08); }
+.up-marker.selected {
+  outline: 2px solid rgba(168, 85, 247, 0.95);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 6px rgba(168, 85, 247, 0.16),
+    0 10px 22px rgba(0, 0, 0, 0.18);
+}
 
 .up-marker.circle {
   border-radius: 999px;
