@@ -19,11 +19,13 @@ export async function POST(req: Request) {
 
     const form = await req.formData();
     const reservationId = String(form.get("reservationId") ?? "");
+    const tableId = String(form.get("tableId") ?? "");
     if (!reservationId) return NextResponse.redirect(new URL("/hostess?err=Falta+reserva", baseUrl));
 
     await markNoShow({ reservationId });
 
-    return NextResponse.redirect(new URL("/hostess?ok=No+show", baseUrl));
+    const back = tableId ? `/hostess?ok=No+show&tableId=${encodeURIComponent(tableId)}` : "/hostess?ok=No+show";
+    return NextResponse.redirect(new URL(back, baseUrl));
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "No se pudo marcar";
     return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));

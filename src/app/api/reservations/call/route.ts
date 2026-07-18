@@ -101,10 +101,12 @@ export async function POST(req: Request) {
       ? parseLocalDateTime(`${reservedDate} ${reservedTime}`)
       : null;
 
-  const hasPhone = phone.length > 0;
-  const hasEmail = Boolean(email);
-  if (!name || !reservedFor || (!hasPhone && !hasEmail)) {
+  if (!name || !reservedFor) {
     return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", baseUrl));
+  }
+
+  if (effectiveTableIds.length === 0 && !(Number.isFinite(partySize) && (partySize as number) > 0)) {
+    return NextResponse.redirect(new URL("/hostess?err=Falta+cantidad+de+personas", baseUrl));
   }
 
   const customer = await createCustomer({ name, phone, email });
@@ -130,10 +132,11 @@ export async function POST(req: Request) {
     }
   }
 
+  let reservationIdForWa: string | null = null;
   try {
     if (effectiveTableIds.length > 0) {
       if (effectiveTableIds.length === 1) {
-        await reserveTable({
+        const r = await reserveTable({
           name,
           phone,
           email,
@@ -144,8 +147,9 @@ export async function POST(req: Request) {
           customerId: customer.id,
           createdByRole
         });
+        reservationIdForWa = r?.reservationId ?? null;
       } else {
-        await reserveTables({
+        const r = await reserveTables({
           name,
           phone,
           email,
@@ -156,6 +160,7 @@ export async function POST(req: Request) {
           customerId: customer.id,
           createdByRole
         });
+        reservationIdForWa = r?.reservationId ?? null;
       }
     } else {
       await createReservation({
@@ -176,8 +181,9 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, baseUrl));
   }
 
-  const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
-  const callTemplateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL ?? "").trim() || templateName;
+  const callTemplateName =
+    String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL ?? "").trim() ||
+    "confirma_call";
   if (callTemplateName && customer.phone) {
     const headerImageUrl =
       String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_CALL_HEADER_IMAGE_URL ?? "").trim() ||
@@ -210,11 +216,52 @@ export async function POST(req: Request) {
       const r = await sendWhatsAppTemplate({
         toPhone: customer.phone,
         templateName: callTemplateName,
-        bodyParams: [name, dateStr, timeStr, tablesStr],
+        bodyParams: [name, dateStr, timeStr],
         headerImageUrl
       });
+      try {
+        const db = getFirestore();
+        if (db && reservationIdForWa) {
+          const ts = Date.now();
+          await db
+            .collection("reservations")
+            .doc(reservationIdForWa)
+            .set(
+              {
+                waConfirmationStatus: r.ok ? "SENT" : "FAILED",
+                waConfirmationAt: ts,
+                waConfirmationMessageId: r.ok ? r.messageId : null,
+                waConfirmationError: r.ok ? null : String(r.error ?? "WHATSAPP_ERROR")
+              },
+              { merge: true }
+            );
+        }
+      } catch {
+        // non-blocking
+      }
       if (!r.ok) console.error("WHATSAPP_CONFIRMATION_FAILED", r.error);
       else console.log("WHATSAPP_CONFIRMATION_ACCEPTED", { messageId: r.messageId });
+    } catch {
+      // non-blocking
+    }
+  } else {
+    try {
+      const db = getFirestore();
+      if (db && reservationIdForWa) {
+        const ts = Date.now();
+        await db
+          .collection("reservations")
+          .doc(reservationIdForWa)
+          .set(
+            {
+              waConfirmationStatus: "SKIPPED",
+              waConfirmationAt: ts,
+              waConfirmationMessageId: null,
+              waConfirmationError: !customer.phone ? "NO_PHONE" : "NO_TEMPLATE"
+            },
+            { merge: true }
+          );
+      }
     } catch {
       // non-blocking
     }

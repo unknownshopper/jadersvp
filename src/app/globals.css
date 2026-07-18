@@ -355,9 +355,19 @@ html[data-offline="true"] .requires-online {
   border: 2px solid rgba(34, 197, 94, 0.78);
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 6px 18px rgba(2, 6, 23, 0.08);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
   z-index: 2;
 }
+
+.up-marker.libre { border-color: #22c55e; box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.20), 0 6px 18px rgba(2, 6, 23, 0.08); }
+.up-marker.proxima { border-color: #f39c12; box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.18), 0 6px 18px rgba(2, 6, 23, 0.08); }
+.up-marker.ocupada { border-color: #ff3b30; background: rgba(255, 59, 48, 0.92); color: #ffffff; }
+.up-marker.reservada { border-color: #6d28d9; background: rgba(109, 40, 217, 0.92); color: #ffffff; }
+.up-marker.porlimpiar { border-color: #b7950b; opacity: 0.78; }
+.up-marker.selected { box-shadow: 0 0 0 3px rgba(42, 109, 244, 0.28), 0 6px 18px rgba(2, 6, 23, 0.08); }
 
 .up-marker.circle {
   border-radius: 999px;
@@ -394,6 +404,12 @@ html[data-offline="true"] .requires-online {
   border-left: 62px solid rgba(34, 197, 94, 0.78);
   box-shadow: none;
 }
+
+.up-marker.triangle.libre { border-left-color: rgba(34, 197, 94, 0.78); }
+.up-marker.triangle.proxima { border-left-color: rgba(243, 156, 18, 0.85); }
+.up-marker.triangle.ocupada { border-left-color: rgba(255, 59, 48, 0.92); }
+.up-marker.triangle.reservada { border-left-color: rgba(109, 40, 217, 0.92); }
+.up-marker.triangle.porlimpiar { border-left-color: rgba(183, 149, 11, 0.82); opacity: 0.78; }
 
 
 .up-marker.triangle::before {
@@ -450,6 +466,20 @@ html[data-offline="true"] .requires-online {
   border-color: rgba(42, 109, 244, 0.9);
   box-shadow: 0 0 0 2px rgba(42, 109, 244, 0.28);
 }
+
+.wa-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.wa-dot.sent { border-color: #22c55e; background: rgba(34, 197, 94, 0.92); }
+.wa-dot.failed { border-color: #ff3b30; background: rgba(255, 59, 48, 0.92); }
+.wa-dot.skipped { border-color: rgba(15, 23, 42, 0.38); background: rgba(15, 23, 42, 0.18); }
+.wa-dot.not-sent { border-color: #ff3b30; background: rgba(255, 59, 48, 0.92); }
 
 .table-chip {
   position: absolute;

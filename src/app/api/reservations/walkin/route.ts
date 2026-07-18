@@ -32,11 +32,11 @@ export async function POST(req: Request) {
   }
 
   const { customer } = await findOrCreateCustomer({ name, phone, email });
-  await walkInAssign({ name, phone, email, tableId, customerId: customer.id, createdByRole });
+  const { reservationId } = await walkInAssign({ name, phone, email, tableId, customerId: customer.id, createdByRole });
 
-  const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
   const walkbyTemplateName =
-    String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY ?? "").trim() || templateName;
+    String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY ?? "").trim() ||
+    "confirma_walkby";
   const headerImageUrl =
     String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY_HEADER_IMAGE_URL ?? "").trim() ||
     String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
@@ -60,6 +60,47 @@ export async function POST(req: Request) {
         headerImageUrl
       });
       if (!r.ok) console.error("WHATSAPP_CONFIRMATION_FAILED", r.error);
+      try {
+        const db = getFirestore();
+        if (db && reservationId) {
+          const ts = Date.now();
+          await db
+            .collection("reservations")
+            .doc(reservationId)
+            .set(
+              {
+                waConfirmationStatus: r.ok ? "SENT" : "FAILED",
+                waConfirmationAt: ts,
+                waConfirmationMessageId: r.ok ? r.messageId : null,
+                waConfirmationError: r.ok ? null : String(r.error ?? "WHATSAPP_ERROR")
+              },
+              { merge: true }
+            );
+        }
+      } catch {
+        // non-blocking
+      }
+    } catch {
+      // non-blocking
+    }
+  } else {
+    try {
+      const db = getFirestore();
+      if (db && reservationId) {
+        const ts = Date.now();
+        await db
+          .collection("reservations")
+          .doc(reservationId)
+          .set(
+            {
+              waConfirmationStatus: "SKIPPED",
+              waConfirmationAt: ts,
+              waConfirmationMessageId: null,
+              waConfirmationError: !customer.phone ? "NO_PHONE" : "NO_TEMPLATE"
+            },
+            { merge: true }
+          );
+      }
     } catch {
       // non-blocking
     }

@@ -35,16 +35,22 @@ export async function POST(req: Request) {
 
   let warn: string | null = null;
   let waMessageId: string | null = null;
+  let waStatus: "SENT" | "FAILED" | "SKIPPED" | null = null;
+  let waError: string | null = null;
 
   if (sendWhatsApp) {
     try {
       const db = getFirestore();
       if (!db) {
         warn = "WHATSAPP_DB";
+        waStatus = "FAILED";
+        waError = warn;
       } else {
         const resDoc = await db.collection("reservations").doc(reservationId).get();
         if (!resDoc.exists) {
           warn = "WHATSAPP_RES";
+          waStatus = "FAILED";
+          waError = warn;
         } else {
           const r = resDoc.data() as any;
           const customerId = String(r.customerId ?? "");
@@ -53,31 +59,79 @@ export async function POST(req: Request) {
           const custDoc = customerId ? await db.collection("customers").doc(customerId).get() : null;
           const phone = custDoc?.exists ? String((custDoc.data() as any)?.phone ?? "").trim() : "";
 
-          const templateName = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION ?? "").trim();
+          const templateName =
+            String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_WALKBY ?? "").trim() ||
+            "confirma_walkby";
           if (!templateName) {
             warn = "WHATSAPP_TEMPLATE";
+            waStatus = "FAILED";
+            waError = warn;
           } else if (!phone) {
             warn = "WHATSAPP_PHONE";
+            waStatus = "SKIPPED";
+            waError = "NO_PHONE";
           } else {
             const headerImageUrl = String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim();
             const when = new Date(reservedFor);
             const dateStr = formatDateDDMMYY(when, "America/Mexico_City");
             const timeStr = formatTimeHHMM(when, "America/Mexico_City");
 
+            let tablesStr = "";
+            try {
+              const tableNames = (tableIds ?? []).map((x) => String(x).trim()).filter(Boolean);
+              tablesStr = tableNames.join(", ");
+            } catch {
+              // non-blocking
+            }
+            const details = `${dateStr} ${timeStr}${tablesStr ? ` · Mesa(s): ${tablesStr}` : ""}`;
+
             const wa = await sendWhatsAppTemplate({
               toPhone: phone,
               templateName,
-              bodyParams: [customerName, dateStr, timeStr],
+              bodyParams: [customerName, details],
               headerImageUrl
             });
-            if (!wa.ok) warn = wa.error || "WHATSAPP_ERROR";
-            else waMessageId = wa.messageId;
+            if (!wa.ok) {
+              warn = wa.error || "WHATSAPP_ERROR";
+              waStatus = "FAILED";
+              waError = String(wa.error ?? "WHATSAPP_ERROR");
+            } else {
+              waMessageId = wa.messageId;
+              waStatus = "SENT";
+              waError = null;
+            }
           }
         }
       }
     } catch (err: any) {
       warn = typeof err?.message === "string" ? err.message : "WHATSAPP_ERROR";
+      waStatus = "FAILED";
+      waError = warn;
     }
+  } else {
+    waStatus = "SKIPPED";
+    waError = "USER_OPT_OUT";
+  }
+
+  try {
+    const db = getFirestore();
+    if (db) {
+      const ts = Date.now();
+      await db
+        .collection("reservations")
+        .doc(reservationId)
+        .set(
+          {
+            waConfirmationStatus: waStatus,
+            waConfirmationAt: ts,
+            waConfirmationMessageId: waMessageId,
+            waConfirmationError: waError
+          },
+          { merge: true }
+        );
+    }
+  } catch {
+    // non-blocking
   }
 
   const okMsg = waMessageId ? `Confirmada (WA: ${waMessageId})` : "Confirmada";

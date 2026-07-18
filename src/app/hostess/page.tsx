@@ -7,12 +7,21 @@ import AutoRefresh from "../AutoRefresh";
 import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM } from "@/lib/dateFormat";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function badgeClass(status: string) {
   if (status === "LIBRE") return "badge libre";
   if (status === "OCUPADA") return "badge ocupada";
   if (status === "RESERVADA") return "badge reservada";
   return "badge porlimpiar";
+}
+
+function waDotClass(status: any) {
+  const s = String(status ?? "").trim();
+  if (s === "SENT") return "wa-dot sent";
+  if (s === "SKIPPED") return "wa-dot skipped";
+  if (s === "FAILED") return "wa-dot failed";
+  return "wa-dot not-sent";
 }
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {
@@ -153,11 +162,23 @@ export default async function HostessPage({
     return `${h} h ${String(m).padStart(2, "0")} min`;
   }
 
+  const tz = "America/Mexico_City";
+  const now = new Date();
+
+  const todayStartMs = zonedMidnightUtcMs(now, tz);
+  const todayEndMs = zonedMidnightUtcMs(new Date(now.getTime() + 36 * 60 * 60 * 1000), tz);
+
   const focusedQueue = waitingWrapped
     .filter((w) => w.reservation.status === "WAITING" || w.reservation.status === "RESERVED")
     .filter((w) => {
       if (!selectedTableId) return false;
       return String(w.reservation.tableId ?? "") === String(selectedTableId);
+    })
+    .filter((w) => {
+      const rf = w.reservation.reservedFor ? Number(w.reservation.reservedFor) : null;
+      if (rf == null) return true;
+      // Hide old reservations from past days.
+      return rf >= todayStartMs;
     })
     .map((w) => ({
       id: w.reservation.id,
@@ -181,12 +202,6 @@ export default async function HostessPage({
       if (aMs == null && bMs != null) return 1;
       return (b.createdAt ?? 0) - (a.createdAt ?? 0);
     });
-
-  const tz = "America/Mexico_City";
-  const now = new Date();
-
-  const todayStartMs = zonedMidnightUtcMs(now, tz);
-  const todayEndMs = zonedMidnightUtcMs(new Date(now.getTime() + 36 * 60 * 60 * 1000), tz);
 
   const todayStart = new Date(todayStartMs);
   const todayEnd = new Date(todayEndMs);
@@ -437,15 +452,15 @@ export default async function HostessPage({
                         <form action="/api/reservations/seat" method="post">
                           <input type="hidden" name="reservationId" value={r.id} />
                           <input type="hidden" name="tableId" value={selectedTableId ?? ""} />
-                          <button className="btn" type="submit">
-                            Sentar
-                          </button>
+                          <span className={waDotClass((r as any).waConfirmationStatus) ?? undefined} style={{ marginRight: 8 }} />
+                          <button className="btn" type="submit">Sentar</button>
                         </form>
                       ) : null}
 
                       {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
                         <form action="/api/reservations/noshow" method="post">
                           <input type="hidden" name="reservationId" value={r.id} />
+                          <input type="hidden" name="tableId" value={selectedTableId ?? ""} />
                           <button className="btn secondary" type="submit">
                             No llegó
                           </button>
@@ -573,9 +588,12 @@ export default async function HostessPage({
                             ))}
                         </select>
                       )}
-                      <button className="btn" type="submit" style={{ marginTop: 8 }}>
-                        {r.table?.id || selectedTableId ? "Sentar" : "Sentar (elige mesa)"}
-                      </button>
+                      <div className="row" style={{ alignItems: "center", gap: 8, marginTop: 8 }}>
+                        <span className={waDotClass((r as any).waConfirmationStatus) ?? undefined} />
+                        <button className="btn" type="submit">
+                          {r.table?.id || selectedTableId ? "Sentar" : "Sentar (elige mesa)"}
+                        </button>
+                      </div>
                     </form>
                   ) : null}
 
@@ -596,6 +614,7 @@ export default async function HostessPage({
                   {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
                     <form action="/api/reservations/noshow" method="post" style={{ flex: "0 0 auto" }}>
                       <input type="hidden" name="reservationId" value={r.id} />
+                      <input type="hidden" name="tableId" value={selectedTableId ?? r.table?.id ?? ""} />
                       <button className="btn secondary" type="submit" style={{ marginTop: 8 }}>
                         No llegó
                       </button>

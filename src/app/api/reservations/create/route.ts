@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createReservation, findExistingReservedReservation, findOrCreateCustomer, reserveTables, reserveTable } from "@/lib/firestore";
+import { getFirestore } from "@/lib/firebaseAdmin";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
+import { formatDateDDMMYY, formatTimeHHMM } from "@/lib/dateFormat";
+import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {
   const dtf = new Intl.DateTimeFormat("en-US", {
@@ -103,6 +106,10 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL("/hostess?err=Selecciona+fecha+y+hora", baseUrl));
   }
 
+  if (effectiveTableIds.length === 0 && !(Number.isFinite(partySize) && (partySize as number) > 0)) {
+    return NextResponse.redirect(new URL("/hostess?err=Falta+cantidad+de+personas", baseUrl));
+  }
+
   // If a table was selected, reserve the table(s) for that datetime.
   if (effectiveTableIds.length > 0) {
     const { customer } = await findOrCreateCustomer({ name, phone, email });
@@ -116,8 +123,9 @@ export async function POST(req: Request) {
       return NextResponse.redirect(new URL("/hostess?ok=Ya+exist%C3%ADa+esa+reservaci%C3%B3n", baseUrl));
     }
 
+    let reservationId: string | null = null;
     if (effectiveTableIds.length === 1) {
-      await reserveTable({
+      const r = await reserveTable({
         name,
         phone,
         email,
@@ -128,8 +136,9 @@ export async function POST(req: Request) {
         customerId: customer.id,
         createdByRole
       });
+      reservationId = r?.reservationId ?? null;
     } else {
-      await reserveTables({
+      const r = await reserveTables({
         name,
         phone,
         email,
@@ -140,6 +149,87 @@ export async function POST(req: Request) {
         customerId: customer.id,
         createdByRole
       });
+      reservationId = r?.reservationId ?? null;
+    }
+
+    const templateName = "confirma_walkby";
+    if (reservationId) {
+      if (!customer.phone) {
+        try {
+          const db = getFirestore();
+          if (db) {
+            const ts = Date.now();
+            await db
+              .collection("reservations")
+              .doc(reservationId)
+              .set(
+                {
+                  waConfirmationStatus: "SKIPPED",
+                  waConfirmationAt: ts,
+                  waConfirmationMessageId: null,
+                  waConfirmationError: "NO_PHONE"
+                },
+                { merge: true }
+              );
+          }
+        } catch {
+          // non-blocking
+        }
+      } else {
+        const when = new Date(reservedFor.getTime());
+        const dateStr = formatDateDDMMYY(when, "America/Mexico_City");
+        const timeStr = formatTimeHHMM(when, "America/Mexico_City");
+
+        let tablesStr = "";
+        try {
+          const db = getFirestore();
+          if (db && effectiveTableIds.length > 0) {
+            const tableDocs = await Promise.all(effectiveTableIds.map((tid) => db.collection("tables").doc(tid).get()));
+            const tableNames = tableDocs
+              .map((d, i) => {
+                const rawName = d.exists ? String((d.data() as any)?.name ?? "").trim() : "";
+                return rawName || effectiveTableIds[i];
+              })
+              .filter(Boolean);
+            tablesStr = tableNames.join(", ");
+          }
+        } catch {
+          // non-blocking
+        }
+
+        const details = `${dateStr} ${timeStr}${tablesStr ? ` · Mesa(s): ${tablesStr}` : ""}`;
+
+        try {
+          const wa = await sendWhatsAppTemplate({
+            toPhone: customer.phone,
+            templateName,
+            bodyParams: [name, details],
+            headerImageUrl: String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim()
+          });
+          try {
+            const db = getFirestore();
+            if (db) {
+              const ts = Date.now();
+              await db
+                .collection("reservations")
+                .doc(reservationId)
+                .set(
+                  {
+                    waConfirmationStatus: wa.ok ? "SENT" : "FAILED",
+                    waConfirmationAt: ts,
+                    waConfirmationMessageId: wa.ok ? wa.messageId : null,
+                    waConfirmationError: wa.ok ? null : String(wa.error ?? "WHATSAPP_ERROR")
+                  },
+                  { merge: true }
+                );
+            }
+          } catch {
+            // non-blocking
+          }
+        } catch {
+          // non-blocking
+        }
+      }
     }
     return NextResponse.redirect(new URL("/hostess?ok=Reservado", baseUrl));
   }
@@ -155,7 +245,7 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL("/hostess?ok=Ya+exist%C3%ADa+esa+reservaci%C3%B3n", baseUrl));
   }
 
-  await createReservation({
+  const created = await createReservation({
     customerId: customer.id,
     customerNameSnapshot: name,
     tableId: null,
@@ -167,6 +257,65 @@ export async function POST(req: Request) {
     createdByRole,
     notes
   });
+
+  const templateName = "confirma_walkby";
+  if (!customer.phone) {
+    try {
+      const db = getFirestore();
+      if (db) {
+        const ts = Date.now();
+        await db
+          .collection("reservations")
+          .doc(created.id)
+          .set(
+            {
+              waConfirmationStatus: "SKIPPED",
+              waConfirmationAt: ts,
+              waConfirmationMessageId: null,
+              waConfirmationError: "NO_PHONE"
+            },
+            { merge: true }
+          );
+      }
+    } catch {
+      // non-blocking
+    }
+  } else {
+    const when = new Date(reservedFor.getTime());
+    const dateStr = formatDateDDMMYY(when, "America/Mexico_City");
+    const timeStr = formatTimeHHMM(when, "America/Mexico_City");
+    const details = `${dateStr} ${timeStr}`;
+    try {
+      const wa = await sendWhatsAppTemplate({
+        toPhone: customer.phone,
+        templateName,
+        bodyParams: [name, details],
+        headerImageUrl: String(process.env.WHATSAPP_TEMPLATE_CONFIRMATION_HEADER_IMAGE_URL ?? "").trim()
+      });
+      try {
+        const db = getFirestore();
+        if (db) {
+          const ts = Date.now();
+          await db
+            .collection("reservations")
+            .doc(created.id)
+            .set(
+              {
+                waConfirmationStatus: wa.ok ? "SENT" : "FAILED",
+                waConfirmationAt: ts,
+                waConfirmationMessageId: wa.ok ? wa.messageId : null,
+                waConfirmationError: wa.ok ? null : String(wa.error ?? "WHATSAPP_ERROR")
+              },
+              { merge: true }
+            );
+        }
+      } catch {
+        // non-blocking
+      }
+    } catch {
+      // non-blocking
+    }
+  }
 
   return NextResponse.redirect(new URL("/hostess?ok=Reservado", baseUrl));
 }

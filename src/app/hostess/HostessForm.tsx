@@ -187,6 +187,15 @@ export default function HostessForm({
     ] as Array<{ kind: "circle" | "diamond" | "rect" | "triangle" | "lshape" | "square"; label: string; x: number; y: number }>;
   }, []);
 
+  const tableByName = useMemo(() => {
+    const m = new Map<string, CafeTable>();
+    for (const t of tables) {
+      const key = String(t.name ?? "").trim();
+      if (key) m.set(key, t);
+    }
+    return m;
+  }, [tables]);
+
   const composedPhone = useMemo(() => {
     const cc = String(phoneCountry || "").trim();
     const national = String(phoneNational || "").replace(/\D/g, "");
@@ -250,13 +259,11 @@ export default function HostessForm({
   );
 
   const pendingFreed = useMemo(() => {
-    const now = Date.now();
     return tables
-      .filter((t) => t.status === "POR_LIMPIAR" && typeof (t as any).lastFreedAt === "number")
+      .filter((t) => t.status === "POR_LIMPIAR")
       .slice()
-      .sort((a, b) => Number((b as any).lastFreedAt) - Number((a as any).lastFreedAt))
-      .filter((t) => now - Number((t as any).lastFreedAt) <= 60 * 60 * 1000)
-      .slice(0, 12);
+      .sort((a, b) => Number((b as any).lastFreedAt ?? 0) - Number((a as any).lastFreedAt ?? 0))
+      .slice(0, 30);
   }, [tables]);
 
   return (
@@ -659,16 +666,30 @@ export default function HostessForm({
 
             <div className="table-map" data-floor={mapFloor} role="group" aria-label="Croquis de mesas">
             {mapFloor === "up" ? (
-              upstairsMarkers.map((m, i) => (
-                <div
-                  key={`${m.kind}-${m.label}-${i}`}
-                  className={`up-marker ${m.kind}`}
-                  style={{ left: `${m.x}%`, top: `${m.y}%`, transform: "translate(-50%, -50%)" } as any}
-                  title={`Mesa ${m.label}`}
-                >
-                  <span>{m.label}</span>
-                </div>
-              ))
+              upstairsMarkers.map((m, i) => {
+                const t = tableByName.get(String(m.label)) ?? null;
+                const s = t ? effectiveStatusAt(t, reservedForMs) : "LIBRE";
+                const isSelected = t ? selectedTableIds.includes(t.id) : false;
+                const cls = `up-marker ${m.kind} ${statusClass(s)} ${isSelected ? "selected" : ""}`;
+                return (
+                  <button
+                    key={`${m.kind}-${m.label}-${i}`}
+                    type="button"
+                    className={cls}
+                    style={{ left: `${m.x}%`, top: `${m.y}%`, transform: "translate(-50%, -50%)" } as any}
+                    title={`Mesa ${m.label}`}
+                    onClick={() => {
+                      if (!t) return;
+                      const es = effectiveStatusAt(t, reservedForMs);
+                      if (es !== "LIBRE") return;
+                      setSelectedTableIds((prev) => (prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]));
+                      setTableId(t.id);
+                    }}
+                  >
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })
             ) : (
               tables.map((t) => {
                 const p = pos[String(t.name)] ?? null;

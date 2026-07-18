@@ -20,6 +20,8 @@ type Table = {
   name: string;
   area?: string | null;
   status: "LIBRE" | "OCUPADA" | "RESERVADA" | string;
+  currentReservationId?: string | null;
+  currentCustomerName?: string | null;
 };
 
 type ActiveItem = {
@@ -185,9 +187,9 @@ export default function CajaDashboard({
                 <div>
                   <div style={{ fontWeight: 800 }}>Mesa {t.name}</div>
                   <div className="small">{t.area}</div>
-                  {seatedByTableId.get(t.id)?.customer?.name ? (
+                  {seatedByTableId.get(t.id)?.customer?.name || t.currentCustomerName ? (
                     <div className="small" style={{ marginTop: 2, fontWeight: 800, fontSize: 16, color: "#111" }}>
-                      {seatedByTableId.get(t.id)!.customer.name}
+                      {seatedByTableId.get(t.id)?.customer?.name ?? t.currentCustomerName}
                     </div>
                   ) : null}
                 </div>
@@ -199,7 +201,10 @@ export default function CajaDashboard({
                     </button>
                   </form>
 
-                  {seatedByTableId.get(t.id)?.id ? (
+                  {(() => {
+                    const reservationId = seatedByTableId.get(t.id)?.id ?? String(t.currentReservationId ?? "").trim();
+                    if (!reservationId) return null;
+                    return (
                     <div style={{ marginTop: 8 }}>
                       {moveFromTableId !== t.id ? (
                         <button type="button" className="btn secondary" onClick={() => setMoveFromTableId(t.id)}>
@@ -214,7 +219,7 @@ export default function CajaDashboard({
                             if (!ok) e.preventDefault();
                           }}
                         >
-                          <input type="hidden" name="reservationId" value={seatedByTableId.get(t.id)!.id} />
+                          <input type="hidden" name="reservationId" value={reservationId} />
                           <input type="hidden" name="fromTableId" value={t.id} />
                           <select className="input" name="toTableId" required defaultValue="" style={{ minWidth: 180 }}>
                             <option value="" disabled>
@@ -238,7 +243,8 @@ export default function CajaDashboard({
                         </form>
                       )}
                     </div>
-                  ) : null}
+                    );
+                  })()}
                 </div>
               </div>
             ))}

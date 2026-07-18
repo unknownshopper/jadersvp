@@ -94,6 +94,10 @@ export type Reservation = {
   id: string;
   customerId: string;
   customerNameSnapshot?: string | null;
+  waConfirmationStatus?: "SENT" | "FAILED" | "SKIPPED" | null;
+  waConfirmationAt?: number | null;
+  waConfirmationMessageId?: string | null;
+  waConfirmationError?: string | null;
   tableId?: string | null;
   tableIds?: string[] | null;
   activeTableIds?: string[] | null;
@@ -1087,7 +1091,13 @@ export async function seatReservation(params: { reservationId: string; tableId: 
       const next = (t as any).nextReservedFor as number | null | undefined;
       const reservedFor = reservation.reservedFor ? Number(reservation.reservedFor) : null;
       const nextReservedFor = reservedFor && next && next === reservedFor ? null : next ?? null;
-      tx.update(tableRefs[i], { status: "OCUPADA", nextReservedFor, updatedAt: ts });
+      tx.update(tableRefs[i], {
+        status: "OCUPADA",
+        nextReservedFor,
+        currentReservationId: reservation.id,
+        currentCustomerName: reservation.customerNameSnapshot ?? null,
+        updatedAt: ts
+      });
     }
 
     tx.update(reservationRef, {
@@ -1180,13 +1190,15 @@ export async function walkInAssign(params: {
   tableId: string;
   customerId?: string | null;
   createdByRole?: string | null;
-}) {
+}): Promise<{ reservationId: string }> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
   const phone = normalizePhone(params.phone);
 
   const tableRef = db.collection("tables").doc(params.tableId);
+
+  const reservationRef = db.collection("reservations").doc();
 
   await db.runTransaction(async (tx: any) => {
     const tableDoc = await tx.get(tableRef);
@@ -1235,7 +1247,6 @@ export async function walkInAssign(params: {
       });
     }
 
-    const reservationRef = db.collection("reservations").doc();
     tx.set(reservationRef, {
       customerId: customerRef.id,
       customerNameSnapshot: params.name,
@@ -1248,12 +1259,18 @@ export async function walkInAssign(params: {
       notes: null,
       seatedAt: null,
       completedAt: null,
+      waConfirmationStatus: null,
+      waConfirmationAt: null,
+      waConfirmationMessageId: null,
+      waConfirmationError: null,
       createdAt: ts,
       updatedAt: ts
     });
 
     tx.update(tableRef, { status: "RESERVADA", updatedAt: ts });
   });
+
+  return { reservationId: reservationRef.id };
 }
 
 export async function reserveTable(params: {
@@ -1290,7 +1307,7 @@ export async function reserveTables(params: {
   notes?: string | null;
   customerId?: string | null;
   createdByRole?: string | null;
-}) {
+}): Promise<{ reservationId: string }> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
@@ -1300,6 +1317,8 @@ export async function reserveTables(params: {
   if (tableIds.length === 0) throw new Error("Falta mesa");
 
   const tableRefs = tableIds.map((id) => db.collection("tables").doc(id));
+
+  const reservationRef = db.collection("reservations").doc();
 
   await db.runTransaction(async (tx: any) => {
     const tableDocs = await Promise.all(tableRefs.map((ref) => tx.get(ref)));
@@ -1367,7 +1386,6 @@ export async function reserveTables(params: {
       });
     }
 
-    const reservationRef = db.collection("reservations").doc();
     tx.set(reservationRef, {
       customerId: customerRef.id,
       customerNameSnapshot: params.name,
@@ -1380,6 +1398,10 @@ export async function reserveTables(params: {
       reservedFor: params.reservedFor,
       partySize: params.partySize ?? null,
       notes: params.notes ?? null,
+      waConfirmationStatus: null,
+      waConfirmationAt: null,
+      waConfirmationMessageId: null,
+      waConfirmationError: null,
       createdAt: ts,
       updatedAt: ts
     });
@@ -1401,6 +1423,8 @@ export async function reserveTables(params: {
       });
     }
   });
+
+  return { reservationId: reservationRef.id };
 }
 
 export async function freeTable(params: {
@@ -1447,7 +1471,13 @@ export async function freeTable(params: {
     const ts = nowMs();
     // Caja libera (cobra) pero la mesa puede seguir ocupada físicamente (sobremesa).
     // La mesa queda pendiente para que Hostess confirme cuando realmente se desocupe.
-    tx.update(tableRef, { status: "POR_LIMPIAR", lastFreedAt: ts, updatedAt: ts });
+    tx.update(tableRef, {
+      status: "POR_LIMPIAR",
+      lastFreedAt: ts,
+      currentReservationId: null,
+      currentCustomerName: null,
+      updatedAt: ts
+    });
 
     const resDoc = !activeSnapByActiveTableIds.empty
       ? activeSnapByActiveTableIds.docs[0]
@@ -1500,7 +1530,7 @@ export async function confirmFreedTable(params: { tableId: string }) {
     if (!tableDoc.exists) throw new Error("Table not found");
     const table = tableDoc.data() as CafeTable;
     if (table.status !== "POR_LIMPIAR") throw new Error("Table not pending");
-    tx.update(tableRef, { status: "LIBRE", updatedAt: ts });
+    tx.update(tableRef, { status: "LIBRE", currentReservationId: null, currentCustomerName: null, updatedAt: ts });
   });
 }
 
