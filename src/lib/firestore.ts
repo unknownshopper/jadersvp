@@ -133,6 +133,8 @@ export type SurveyWithCustomer = {
 
 export type SurveyConfig = {
   questions: string[];
+  recommendQuestionIndex?: number | null;
+  scoringMode?: "YESNO" | "RATING";
 };
 
 export type SurveyOutboxItem = {
@@ -229,7 +231,12 @@ export async function getSurveyConfig(): Promise<SurveyConfig> {
   const doc = await db.collection("config").doc("survey").get();
   const raw = doc.exists ? (doc.data() as any) : null;
   const questions = Array.isArray(raw?.questions) ? raw.questions.map((q: any) => String(q)).filter(Boolean) : [];
-  return { questions };
+  const recommendQuestionIndex =
+    typeof raw?.recommendQuestionIndex === "number" && Number.isFinite(raw.recommendQuestionIndex)
+      ? Number(raw.recommendQuestionIndex)
+      : null;
+  const scoringMode = raw?.scoringMode === "YESNO" || raw?.scoringMode === "RATING" ? raw.scoringMode : undefined;
+  return { questions, recommendQuestionIndex, scoringMode };
 }
 
 export async function setSurveyConfig(input: SurveyConfig) {
@@ -237,7 +244,15 @@ export async function setSurveyConfig(input: SurveyConfig) {
   if (!db) throw new Error("Firestore not configured");
 
   const questions = (input.questions ?? []).map((q) => String(q).trim()).filter(Boolean);
-  await db.collection("config").doc("survey").set({ questions, updatedAt: nowMs() }, { merge: true });
+  const recommendQuestionIndex =
+    typeof input.recommendQuestionIndex === "number" && Number.isFinite(input.recommendQuestionIndex)
+      ? Number(input.recommendQuestionIndex)
+      : null;
+  const scoringMode = input.scoringMode === "YESNO" || input.scoringMode === "RATING" ? input.scoringMode : undefined;
+  await db
+    .collection("config")
+    .doc("survey")
+    .set({ questions, recommendQuestionIndex, scoringMode, updatedAt: nowMs() }, { merge: true });
 }
 
 export async function listSurveysForDashboard(params?: { limit?: number }): Promise<SurveyResponse[]> {
@@ -1624,6 +1639,8 @@ export async function adminSummary(range: "day" | "week" | "month") {
       completedCount: 0,
       noShowCount: 0,
       customersCount: 0,
+      customersWithPhoneCount: 0,
+      customersWithoutPhoneCount: 0,
       features: { marketingEnabled: true } as FeatureFlags,
       latestCustomers: [] as Customer[],
       latestSurveys: [] as Array<{ survey: SurveyResponse; customerName: string }>
@@ -1698,6 +1715,8 @@ export async function adminSummary(range: "day" | "week" | "month") {
   }
 
   const customersCount = (await db.collection("customers").count().get()).data().count;
+  const customersWithPhoneCount = (await db.collection("customers").where("phone", ">", "").count().get()).data().count;
+  const customersWithoutPhoneCount = Math.max(0, Number(customersCount) - Number(customersWithPhoneCount));
 
   const latestCustomersSnap = await db
     .collection("customers")
@@ -1754,6 +1773,8 @@ export async function adminSummary(range: "day" | "week" | "month") {
     completedCount,
     noShowCount,
     customersCount,
+    customersWithPhoneCount,
+    customersWithoutPhoneCount,
     features,
     latestCustomers,
     latestSurveys
@@ -1770,14 +1791,39 @@ export async function adminCustomersTable(params?: { limit?: number }) {
     visitsCount: number;
     visits: Array<{ reservationId: string; at: number }>;
     surveysCount: number;
+    lastVisitAt: number | null;
   }>;
 
-  const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
+  const limit = Math.max(1, Math.min(400, Number(params?.limit ?? 50)));
 
-  const customersSnap = await db.collection("customers").orderBy("createdAt", "desc").limit(limit).get();
-  const customers = customersSnap.docs.map(
+  // Fetch a larger pool so we can prioritize customers with phone numbers.
+  const poolLimit = Math.max(limit, Math.min(800, limit * 6));
+
+  // 1) Pull a pool of customers that actually have phone numbers.
+  // Avoid composite index requirements by skipping orderBy.
+  const withPhoneSnap = await db.collection("customers").where("phone", ">", "").limit(poolLimit).get();
+  const withPhone = withPhoneSnap.docs.map(
     (d: any) => ({ id: d.id, ...(d.data() as Omit<Customer, "id">) }) as Customer
   );
+
+  // 2) Fill remaining slots from a recent pool (may include no-phone customers).
+  const recentSnap = await db.collection("customers").orderBy("createdAt", "desc").limit(poolLimit).get();
+  const recent = recentSnap.docs.map(
+    (d: any) => ({ id: d.id, ...(d.data() as Omit<Customer, "id">) }) as Customer
+  );
+
+  const mergedById = new Map<string, Customer>();
+  for (const c of withPhone) mergedById.set(c.id, c);
+  for (const c of recent) mergedById.set(c.id, c);
+
+  const customers = Array.from(mergedById.values())
+    .sort((a: Customer, b: Customer) => {
+      const aHas = Boolean(String(a.phone || "").trim());
+      const bHas = Boolean(String(b.phone || "").trim());
+      if (aHas !== bHas) return aHas ? -1 : 1;
+      return String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base" });
+    })
+    .slice(0, limit);
 
   const rows: Array<{
     id: string;
@@ -1787,6 +1833,7 @@ export async function adminCustomersTable(params?: { limit?: number }) {
     visitsCount: number;
     visits: Array<{ reservationId: string; at: number }>;
     surveysCount: number;
+    lastVisitAt: number | null;
   }> = [];
 
   for (const c of customers) {
@@ -1805,6 +1852,8 @@ export async function adminCustomersTable(params?: { limit?: number }) {
       .filter((v: any) => Number.isFinite(v.at) && v.at > 0)
       .sort((a: any, b: any) => b.at - a.at);
 
+    const lastVisitAt = visits.length ? Number(visits[0].at) : null;
+
     const reservationIds = resSnap.docs.map((d: any) => String(d.id));
     const surveyDocs = reservationIds.length
       ? await Promise.all(reservationIds.map((id) => db.collection("surveys").doc(id).get()))
@@ -1818,7 +1867,8 @@ export async function adminCustomersTable(params?: { limit?: number }) {
       email: c.email ? String(c.email) : null,
       visitsCount: resSnap.size,
       visits,
-      surveysCount
+      surveysCount,
+      lastVisitAt
     });
   }
 

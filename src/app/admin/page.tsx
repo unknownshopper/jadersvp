@@ -25,7 +25,7 @@ export default async function AdminPage({
   const range = (searchParams?.range ?? "day") as "day" | "week" | "month";
   const ready = firebaseReady();
   const summary = ready ? await adminSummary(range) : null;
-  const customersTable = ready ? await adminCustomersTable({ limit: 60 }) : [];
+  const customersTable = ready ? await adminCustomersTable({ limit: 250 }) : [];
 
   return (
     <div className="grid" style={{ gap: 16 }}>
@@ -165,6 +165,10 @@ export default async function AdminPage({
         <summary style={{ cursor: "pointer", fontWeight: 900 }}>Base de datos (clientes)</summary>
         <div className="small" style={{ marginTop: 10, marginBottom: 10 }}>
           Total: {summary?.customersCount ?? 0}
+        </div>
+        <div className="row" style={{ gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <span className="badge">Con teléfono: {summary?.customersWithPhoneCount ?? 0}</span>
+          <span className="badge">Sin teléfono: {summary?.customersWithoutPhoneCount ?? 0}</span>
         </div>
         <AdminCustomersClient rows={customersTable as any} canDelete={canDelete} />
       </details>

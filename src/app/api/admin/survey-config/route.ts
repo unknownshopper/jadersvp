@@ -32,7 +32,12 @@ export async function POST(req: Request) {
     const questionsRaw = String(form.get("questions") ?? "");
     const questions = normalizeQuestions(questionsRaw);
 
-    await setSurveyConfig({ questions });
+    const recommendQuestionIndexRaw = String(form.get("recommendQuestionIndex") ?? "").trim();
+    const recommendQuestionIndex = recommendQuestionIndexRaw ? Number(recommendQuestionIndexRaw) : null;
+    const scoringModeRaw = String(form.get("scoringMode") ?? "").trim();
+    const scoringMode = scoringModeRaw === "YESNO" || scoringModeRaw === "RATING" ? scoringModeRaw : undefined;
+
+    await setSurveyConfig({ questions, recommendQuestionIndex, scoringMode });
 
     return NextResponse.redirect(new URL("/admin/encuesta?ok=Guardado", baseUrl));
   } catch (err: any) {

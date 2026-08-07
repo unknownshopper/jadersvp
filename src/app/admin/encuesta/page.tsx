@@ -32,6 +32,12 @@ export default async function AdminEncuestaPage({
   const questionsText = (cfg.questions ?? []).join("\n");
   const questionsOpen = Boolean(searchParams?.err) || normalizeQuestions(questionsText).length === 0;
 
+  const recommendQuestionIndexDefault =
+    typeof cfg.recommendQuestionIndex === "number" && cfg.recommendQuestionIndex != null
+      ? String(cfg.recommendQuestionIndex)
+      : "";
+  const scoringModeDefault = cfg.scoringMode === "YESNO" || cfg.scoringMode === "RATING" ? cfg.scoringMode : "YESNO";
+
   return (
     <div className="grid" style={{ gap: 16 }}>
       {searchParams?.err || searchParams?.ok ? (
@@ -68,6 +74,35 @@ export default async function AdminEncuestaPage({
               defaultValue={questionsText}
               placeholder="Ej: ¿Cómo estuvo el servicio?"
             />
+          </div>
+          <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+            <div style={{ minWidth: 260 }}>
+              <div className="small" style={{ fontWeight: 900 }}>
+                Índice pregunta “Recomendaría” (0-based)
+              </div>
+              <input
+                className="input"
+                name="recommendQuestionIndex"
+                inputMode="numeric"
+                placeholder="Ej: 0"
+                defaultValue={recommendQuestionIndexDefault}
+              />
+              <div className="small" style={{ opacity: 0.75, marginTop: 6 }}>
+                Ej: si la primera pregunta es “¿Nos recomendarías?”, pon 0.
+              </div>
+            </div>
+            <div style={{ minWidth: 220 }}>
+              <div className="small" style={{ fontWeight: 900 }}>
+                Modo de scoring
+              </div>
+              <select className="input" name="scoringMode" defaultValue={scoringModeDefault}>
+                <option value="YESNO">YESNO</option>
+                <option value="RATING">RATING</option>
+              </select>
+              <div className="small" style={{ opacity: 0.75, marginTop: 6 }}>
+                Para tu encuesta actual, usa YESNO.
+              </div>
+            </div>
           </div>
           <button className="btn" type="submit">
             Guardar preguntas
