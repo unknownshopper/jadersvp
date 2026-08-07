@@ -1794,6 +1794,12 @@ export async function adminCustomersTable(params?: { limit?: number }) {
     lastVisitAt: number | null;
   }>;
 
+  function chunk<T>(arr: T[], size: number) {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
   const limit = Math.max(1, Math.min(400, Number(params?.limit ?? 50)));
 
   // Fetch a larger pool so we can prioritize customers with phone numbers.
@@ -1825,6 +1831,35 @@ export async function adminCustomersTable(params?: { limit?: number }) {
     })
     .slice(0, limit);
 
+  // Batch fetch reservations for all selected customers.
+  const customerIds = customers.map((c) => String(c.id));
+  const reservationDocs: any[] = [];
+  for (const ids of chunk(customerIds, 10)) {
+    const snap = await db.collection("reservations").where("customerId", "in", ids).limit(1000).get();
+    reservationDocs.push(...snap.docs);
+  }
+
+  const reservationsByCustomer = new Map<string, any[]>();
+  const reservationIdsAll: string[] = [];
+  for (const d of reservationDocs) {
+    const data = d.data() as any;
+    const cid = String(data?.customerId ?? "");
+    if (!cid) continue;
+    if (!reservationsByCustomer.has(cid)) reservationsByCustomer.set(cid, []);
+    reservationsByCustomer.get(cid)!.push({ id: String(d.id), data });
+    reservationIdsAll.push(String(d.id));
+  }
+
+  // Batch fetch surveys by reservationId (doc id).
+  const surveyExists = new Set<string>();
+  for (const ids of chunk(reservationIdsAll, 500)) {
+    const refs = ids.map((id) => db.collection("surveys").doc(id));
+    const docs = await db.getAll(...refs);
+    for (const s of docs) {
+      if (s.exists) surveyExists.add(String(s.id));
+    }
+  }
+
   const rows: Array<{
     id: string;
     name: string;
@@ -1837,35 +1872,25 @@ export async function adminCustomersTable(params?: { limit?: number }) {
   }> = [];
 
   for (const c of customers) {
-    const resSnap = await db
-      .collection("reservations")
-      .where("customerId", "==", c.id)
-      .limit(1000)
-      .get();
-
-    const visits = resSnap.docs
-      .map((d: any) => {
-        const data = d.data() as Reservation;
-        const at = Number(data?.reservedFor ?? data?.createdAt ?? 0);
-        return { reservationId: String(d.id), at };
+    const res = reservationsByCustomer.get(String(c.id)) ?? [];
+    const visits = res
+      .map((r: any) => {
+        const data = r.data as Reservation;
+        const at = Number((data as any)?.reservedFor ?? (data as any)?.createdAt ?? 0);
+        return { reservationId: String(r.id), at };
       })
       .filter((v: any) => Number.isFinite(v.at) && v.at > 0)
       .sort((a: any, b: any) => b.at - a.at);
 
     const lastVisitAt = visits.length ? Number(visits[0].at) : null;
-
-    const reservationIds = resSnap.docs.map((d: any) => String(d.id));
-    const surveyDocs = reservationIds.length
-      ? await Promise.all(reservationIds.map((id) => db.collection("surveys").doc(id).get()))
-      : [];
-    const surveysCount = surveyDocs.filter((d) => d.exists).length;
+    const surveysCount = res.reduce((acc: number, r: any) => acc + (surveyExists.has(String(r.id)) ? 1 : 0), 0);
 
     rows.push({
       id: c.id,
       name: String(c.name || ""),
       phone: String(c.phone || ""),
       email: c.email ? String(c.email) : null,
-      visitsCount: resSnap.size,
+      visitsCount: res.length,
       visits,
       surveysCount,
       lastVisitAt

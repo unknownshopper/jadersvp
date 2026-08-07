@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import { getSessionUser } from "@/lib/serverAuth";
 import BodyPageTag from "./BodyPageTag";
@@ -70,42 +69,42 @@ export default async function RootLayout({
                   {who ? <span style={{ opacity: 0.9 }}>{who}</span> : null}
                 </span>
               ) : (
-                <Link className="badge" href="/login">
+                <a className="badge" href="/login">
                   Login
-                </Link>
+                </a>
               )}
 
               {user?.role === "HOSTESS" || user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
-                <Link className="badge" href="/hostess">
+                <a className="badge" href="/hostess">
                   Hostess
-                </Link>
+                </a>
               ) : null}
 
               {user?.role === "CAJA" || user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
-                <Link className="badge" href="/caja">
+                <a className="badge" href="/caja">
                   Caja
-                </Link>
+                </a>
               ) : null}
 
               {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
-                <Link className="badge" href="/admin">
+                <a className="badge" href="/admin">
                   Admin
-                </Link>
+                </a>
               ) : null}
 
               {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
-                <Link className="badge" href="/admin/encuestas">
+                <a className="badge" href="/admin/encuestas">
                   Visor
-                </Link>
+                </a>
               ) : null}
               {user?.role === "ADMIN" ? (
                 <>
-                  <Link className="badge" href="/admin/encuesta">
+                  <a className="badge" href="/admin/encuesta">
                     Encuesta
-                  </Link>
-                  <Link className="badge" href="/admin/encuestas-pendientes">
+                  </a>
+                  <a className="badge" href="/admin/encuestas-pendientes">
                     Pendientes
-                  </Link>
+                  </a>
                 </>
               ) : null}
 
