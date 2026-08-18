@@ -165,15 +165,28 @@ export async function listWaitlistReservations(params?: {
   const db = getFirestore();
   if (!db) return [];
 
-  const statuses = params?.includeOffered ? ["WAITLIST", "OFFERED"] : ["WAITLIST"];
+  // FIFO must be deterministic. A where-in without orderBy + limit can return an arbitrary window.
+  // Instead, query each status ordered by createdAt and merge.
+  const baseQ = db.collection("reservations");
+  const waitlistSnap = await baseQ.where("status", "==", "WAITLIST").orderBy("createdAt", "asc").limit(200).get();
+  const offeredSnap = params?.includeOffered
+    ? await baseQ.where("status", "==", "OFFERED").orderBy("createdAt", "asc").limit(200).get()
+    : null;
 
-  // Avoid composite index requirements by not using orderBy when filtering.
-  const snap = await db.collection("reservations").where("status", "in", statuses).limit(200).get();
+  const mergedDocs = [...waitlistSnap.docs, ...(offeredSnap?.docs ?? [])];
 
-  const reservationsUnsorted = snap.docs.map(
+  const reservationsUnsorted = mergedDocs.map(
     (d: any) => ({ id: d.id, ...(d.data() as Omit<Reservation, "id">) }) as Reservation
   );
-  const reservations = reservationsUnsorted.sort((a: Reservation, b: Reservation) => a.createdAt - b.createdAt) as Reservation[];
+
+  const reservations = reservationsUnsorted
+    .slice()
+    .sort((a: Reservation, b: Reservation) => {
+      const aa = Number(a.createdAt ?? 0);
+      const bb = Number(b.createdAt ?? 0);
+      if (aa !== bb) return aa - bb;
+      return String(a.id).localeCompare(String(b.id));
+    }) as Reservation[];
 
   const customerIds = Array.from(new Set(reservations.map((r: Reservation) => String(r.customerId))));
   const customers = new Map<string, Customer>();

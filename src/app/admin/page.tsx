@@ -34,13 +34,25 @@ export default async function AdminPage({
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div className="small">Rango:</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <a className="badge" href="/admin?range=day">
+            <a
+              className="badge"
+              href="/admin?range=day"
+              style={{ opacity: range === "day" ? 1 : 0.65, borderColor: range === "day" ? "rgba(34, 197, 94, 0.95)" : undefined }}
+            >
               Día
             </a>
-            <a className="badge" href="/admin?range=week">
+            <a
+              className="badge"
+              href="/admin?range=week"
+              style={{ opacity: range === "week" ? 1 : 0.65, borderColor: range === "week" ? "rgba(34, 197, 94, 0.95)" : undefined }}
+            >
               Semana
             </a>
-            <a className="badge" href="/admin?range=month">
+            <a
+              className="badge"
+              href="/admin?range=month"
+              style={{ opacity: range === "month" ? 1 : 0.65, borderColor: range === "month" ? "rgba(34, 197, 94, 0.95)" : undefined }}
+            >
               Mes
             </a>
           </div>
@@ -112,22 +124,24 @@ export default async function AdminPage({
         </div>
       </div>
 
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Comentarios / Encuestas (últimas 20)</h3>
-        {(summary?.latestSurveys ?? []).length === 0 ? <div className="small">Sin respuestas</div> : null}
-        <div className="grid">
-          {(summary?.latestSurveys ?? []).map(({ survey, customerName }) => (
-            <div key={survey.id} className="card" style={{ background: "rgba(255, 255, 255, 0.72)" }}>
-              <div style={{ fontWeight: 900 }}>{survey.rating}/5</div>
-              <div className="small">{customerName}</div>
-              {survey.comment ? <div style={{ marginTop: 8 }}>{survey.comment}</div> : null}
-              <div className="small" style={{ marginTop: 8 }}>
-                {formatDateDDMMYY(survey.createdAt)}
+      <details className="card" style={{ opacity: 0.98 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 900 }}>Comentarios / Encuestas (últimas 20)</summary>
+        <div style={{ marginTop: 10 }}>
+          {(summary?.latestSurveys ?? []).length === 0 ? <div className="small">Sin respuestas</div> : null}
+          <div className="grid">
+            {(summary?.latestSurveys ?? []).map(({ survey, customerName }) => (
+              <div key={survey.id} className="card" style={{ background: "rgba(255, 255, 255, 0.72)" }}>
+                <div style={{ fontWeight: 900 }}>{survey.rating}/5</div>
+                <div className="small">{customerName}</div>
+                {survey.comment ? <div style={{ marginTop: 8 }}>{survey.comment}</div> : null}
+                <div className="small" style={{ marginTop: 8 }}>
+                  {formatDateDDMMYY(survey.createdAt)}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      </details>
 
       {summary?.features?.marketingEnabled ? (
         <div className="card">

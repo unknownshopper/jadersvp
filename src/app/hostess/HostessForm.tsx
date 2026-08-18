@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CafeTable, Customer, Reservation } from "@/lib/firestore";
 
@@ -140,6 +140,8 @@ export default function HostessForm({
   const [requestedTablesCount, setRequestedTablesCount] = useState<number>(1);
   const [sendWaitlistWhatsApp, setSendWaitlistWhatsApp] = useState<boolean>(true);
 
+  const didInitFromUrl = useRef(false);
+
   const normalizeDialCode = (raw: string) => {
     const s = String(raw || "").trim();
     if (!s) return "";
@@ -222,6 +224,8 @@ export default function HostessForm({
   }, [reservedDate, reservedTime]);
 
   useEffect(() => {
+    if (didInitFromUrl.current) return;
+    didInitFromUrl.current = true;
     setTableId(initialTableId ?? "");
     setSelectedTableIds(initialTableId ? [initialTableId] : []);
   }, [initialTableId]);
@@ -274,6 +278,14 @@ export default function HostessForm({
           className="grid"
           action="/api/reservations/call"
           method="post"
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            const t = e.target as any;
+            const tag = String(t?.tagName ?? "").toLowerCase();
+            if (tag === "textarea") return;
+            // Avoid accidental form submit while typing; use the submit button.
+            e.preventDefault();
+          }}
           onSubmit={(e) => {
             if (isSubmitting) {
               e.preventDefault();
@@ -682,8 +694,13 @@ export default function HostessForm({
                       if (!t) return;
                       const es = effectiveStatusAt(t, reservedForMs);
                       if (es !== "LIBRE") return;
-                      setSelectedTableIds((prev) => (prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]));
-                      setTableId(t.id);
+                      setSelectedTableIds((prev) => {
+                        const exists = prev.includes(t.id);
+                        const next = exists ? prev.filter((id) => id !== t.id) : [...prev, t.id];
+                        const primary = next[0] ?? "";
+                        setTableId(primary);
+                        return next;
+                      });
                     }}
                   >
                     <span>{m.label}</span>
@@ -708,20 +725,15 @@ export default function HostessForm({
                         : ({ position: "static" } as any)
                     }
                     onClick={() => {
-                      const url = new URL(window.location.href);
-                      url.searchParams.set("focusTableId", t.id);
                       if (s === "LIBRE") {
                         setSelectedTableIds((prev) => {
                           const exists = prev.includes(t.id);
                           let next = exists ? prev.filter((x) => x !== t.id) : [...prev, t.id];
                           const primary = next[0] ?? "";
                           setTableId(primary);
-                          if (primary) url.searchParams.set("tableId", primary);
-                          else url.searchParams.delete("tableId");
                           return next;
                         });
                       }
-                      router.replace(url.pathname + url.search, { scroll: false });
                     }}
                     title={`${t.name} · ${t.area} · ${s}`}
                   >
