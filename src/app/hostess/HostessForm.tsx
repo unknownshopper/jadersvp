@@ -612,6 +612,9 @@ export default function HostessForm({
                   return;
                 }
               }
+              // Avoid reusing a stale table selection when later confirming (seating) a waitlist entry.
+              setSelectedTableIds([]);
+              setTableId("");
               setIsSubmitting(true);
             }}
           >
@@ -843,6 +846,16 @@ export default function HostessForm({
                         if (selectedTableIds.length < Math.max(1, requested)) {
                           e.preventDefault();
                           window.alert(`Selecciona al menos ${Math.max(1, requested)} mesa(s) LIBRE(S) en el croquis.`);
+                          return;
+                        }
+
+                        const selectedTables = selectedTableIds
+                          .map((id) => tables.find((t) => t.id === id))
+                          .filter(Boolean) as CafeTable[];
+                        const anyNotFree = selectedTables.some((t) => effectiveStatusAt(t, null) !== "LIBRE");
+                        if (anyNotFree || selectedTables.length !== selectedTableIds.length) {
+                          e.preventDefault();
+                          window.alert("Las mesas seleccionadas ya no están disponibles. Selecciona mesas LIBRES en el croquis e intenta de nuevo.");
                           return;
                         }
                         const ok = window.confirm("¿Confirmar lista de espera con las mesas seleccionadas?");

@@ -877,7 +877,9 @@ export async function confirmWaitlistReservation(params: {
   const tableRefs = tableIds.map((id) => db.collection("tables").doc(id));
 
   const now = nowMs();
-  const reservedFor = now + 10 * 60 * 1000;
+  // When hostess confirms from waitlist, the guest is being seated now.
+  // Keep a timestamp for messaging/telemetry.
+  const reservedFor = now;
 
   await db.runTransaction(async (tx: any) => {
     const resDoc = await tx.get(reservationRef);
@@ -902,20 +904,28 @@ export async function confirmWaitlistReservation(params: {
       if (!isOperationallyFreeTable(t as any, now)) throw new Error("Table not free");
     }
 
-    // Mark tables reserved and keep nextReservedFor consistent.
+    // Seat now: occupy tables immediately.
     for (let i = 0; i < tableRefs.length; i++) {
       const t = tables[i];
       const existingNext = (t as any).nextReservedFor as number | null | undefined;
-      const nextReservedFor = existingNext ? Math.min(Number(existingNext), reservedFor) : reservedFor;
-      tx.update(tableRefs[i], { status: "RESERVADA", nextReservedFor, updatedAt: now });
+      // If the existing next reservation was exactly this seating time, clear it.
+      const nextReservedFor = existingNext && Number(existingNext) === reservedFor ? null : existingNext ?? null;
+      tx.update(tableRefs[i], {
+        status: "OCUPADA",
+        nextReservedFor,
+        currentReservationId: reservation.id,
+        currentCustomerName: reservation.customerNameSnapshot ?? null,
+        updatedAt: now
+      });
     }
 
     tx.update(reservationRef, {
       tableId: tableIds[0],
       tableIds,
-      activeTableIds: null,
-      reservedFor,
-      status: "RESERVED",
+      activeTableIds: tableIds,
+      reservedFor: null,
+      status: "SEATED",
+      seatedAt: now,
       offeredTableIds: null,
       offeredAt: null,
       updatedAt: now
