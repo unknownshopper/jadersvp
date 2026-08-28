@@ -15,23 +15,24 @@ function getBaseUrl(req: Request) {
 }
 
 export async function POST(req: Request) {
-  await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
-
-  const u = await getSessionUser();
-  const createdByRole = u?.role ?? null;
-
-  const form = await req.formData();
   const baseUrl = getBaseUrl(req);
+  try {
+    await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
 
-  const reservationId = String(form.get("reservationId") ?? "").trim();
-  const tableIds = (form.getAll("tableIds") ?? []).map((x) => String(x).trim()).filter(Boolean);
-  const sendWhatsApp = String(form.get("sendWhatsApp") ?? "").trim() === "1";
+    const u = await getSessionUser();
+    const createdByRole = u?.role ?? null;
 
-  if (!reservationId || tableIds.length === 0) {
-    return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", baseUrl));
-  }
+    const form = await req.formData();
 
-  const { reservedFor } = await confirmWaitlistReservation({ reservationId, tableIds, createdByRole });
+    const reservationId = String(form.get("reservationId") ?? "").trim();
+    const tableIds = (form.getAll("tableIds") ?? []).map((x) => String(x).trim()).filter(Boolean);
+    const sendWhatsApp = String(form.get("sendWhatsApp") ?? "").trim() === "1";
+
+    if (!reservationId || tableIds.length === 0) {
+      return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", baseUrl));
+    }
+
+    const { reservedFor } = await confirmWaitlistReservation({ reservationId, tableIds, createdByRole });
 
   let warn: string | null = null;
   let waMessageId: string | null = null;
@@ -134,6 +135,12 @@ export async function POST(req: Request) {
     // non-blocking
   }
 
-  const okMsg = waMessageId ? `Confirmada (WA: ${waMessageId})` : "Confirmada";
-  return NextResponse.redirect(new URL(`/hostess?ok=${encodeURIComponent(okMsg)}${warn ? `&warn=${encodeURIComponent(warn)}` : ""}`, baseUrl));
+    const okMsg = waMessageId ? `Confirmada (WA: ${waMessageId})` : "Confirmada";
+    return NextResponse.redirect(
+      new URL(`/hostess?ok=${encodeURIComponent(okMsg)}${warn ? `&warn=${encodeURIComponent(warn)}` : ""}`, baseUrl)
+    );
+  } catch (err: any) {
+    const msg = typeof err?.message === "string" && err.message.trim() ? err.message.trim() : "Error";
+    return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, baseUrl));
+  }
 }
