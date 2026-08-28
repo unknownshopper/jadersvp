@@ -154,6 +154,24 @@ function nowMs() {
   return Date.now();
 }
 
+function isOperationallyFreeTable(table: any, now: number) {
+  const status = String(table?.status ?? "");
+  if (status === "LIBRE") return true;
+  if (status !== "RESERVADA") return false;
+
+  const next = table?.nextReservedFor;
+  const nextMs = typeof next === "number" ? Number(next) : null;
+  if (!nextMs) {
+    // Legacy/backfill behavior: RESERVADA without a nextReservedFor should not block seating.
+    return true;
+  }
+
+  const windowMs = 3 * 60 * 60 * 1000;
+  const diff = nextMs - now;
+  // If the reservation is outside the operational window, allow seating today.
+  return diff > windowMs || diff < -windowMs;
+}
+
 export async function listWaitlistReservations(params?: {
   includeOffered?: boolean;
 }): Promise<
@@ -881,7 +899,7 @@ export async function confirmWaitlistReservation(params: {
     }
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
     for (const t of tables) {
-      if (t.status !== "LIBRE") throw new Error("Table not free");
+      if (!isOperationallyFreeTable(t as any, now)) throw new Error("Table not free");
     }
 
     // Mark tables reserved and keep nextReservedFor consistent.
@@ -1233,7 +1251,7 @@ export async function walkInAssign(params: {
     if (!tableDoc.exists) throw new Error("Table not found");
     const table = tableDoc.data() as CafeTable;
 
-    if (table.status !== "LIBRE") throw new Error("Table not free");
+    if (!isOperationallyFreeTable(table as any, Date.now())) throw new Error("Table not free");
 
     const ts = nowMs();
     const customerRef = params.customerId

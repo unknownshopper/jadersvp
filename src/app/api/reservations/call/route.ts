@@ -216,7 +216,7 @@ export async function POST(req: Request) {
       const r = await sendWhatsAppTemplate({
         toPhone: customer.phone,
         templateName: callTemplateName,
-        bodyParams: [name, dateStr, timeStr],
+        bodyParams: [name, dateStr, timeStr, tablesStr || "-"],
         headerImageUrl
       });
       try {
