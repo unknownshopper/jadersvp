@@ -80,12 +80,6 @@ export default async function RootLayout({
                 </a>
               ) : null}
 
-              {user?.role === "CAJA" || user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
-                <a className="badge" href="/caja">
-                  Caja
-                </a>
-              ) : null}
-
               {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
                 <a className="badge" href="/admin">
                   Admin

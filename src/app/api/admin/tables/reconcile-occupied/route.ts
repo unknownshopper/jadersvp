@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       })
     );
 
-    const updates = candidates
+    const matched = candidates
       .map((c) => {
         if (!c.reservationId) return null;
         const resolvedName = c.customerNameSnapshot ?? (c.customerId ? customers.get(c.customerId) ?? null : null);
@@ -95,9 +95,12 @@ export async function POST(req: Request) {
       })
       .filter(Boolean) as Array<{ tableId: string; reservationId: string; resolvedName: string | null }>;
 
+    const stale = candidates.filter((c) => !c.reservationId).map((c) => c.tableId);
+
     if (!dryRun) {
       const batch = db.batch();
-      for (const u of updates) {
+
+      for (const u of matched) {
         const ref = db.collection("tables").doc(u.tableId);
         batch.update(ref, {
           currentReservationId: u.reservationId,
@@ -105,12 +108,22 @@ export async function POST(req: Request) {
           updatedAt: Date.now()
         });
       }
+
+      for (const tableId of stale) {
+        const ref = db.collection("tables").doc(tableId);
+        batch.update(ref, {
+          status: "LIBRE",
+          currentReservationId: null,
+          currentCustomerName: null,
+          updatedAt: Date.now()
+        });
+      }
       await batch.commit();
     }
 
     const okMsg = dryRun
-      ? `Dry run OK. Ocuapadas=${tableDocs.length}, con match SEATED=${updates.length}`
-      : `Reconciliado. Ocuapadas=${tableDocs.length}, actualizadas=${updates.length}`;
+      ? `Dry run OK. Ocupadas=${tableDocs.length}, match SEATED=${matched.length}, stale=${stale.length}`
+      : `Reconciliado. Ocupadas=${tableDocs.length}, match SEATED=${matched.length}, stale liberadas=${stale.length}`;
 
     return NextResponse.redirect(new URL(`/hostess?ok=${encodeURIComponent(okMsg)}`, baseUrl));
   } catch (err: any) {

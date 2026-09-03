@@ -161,15 +161,12 @@ function isOperationallyFreeTable(table: any, now: number) {
 
   const next = table?.nextReservedFor;
   const nextMs = typeof next === "number" ? Number(next) : null;
-  if (!nextMs) {
-    // Legacy/backfill behavior: RESERVADA without a nextReservedFor should not block seating.
-    return true;
-  }
+  if (!nextMs) return true;
 
   const windowMs = 3 * 60 * 60 * 1000;
   const diff = nextMs - now;
-  // If the reservation is outside the operational window, allow seating today.
-  return diff > windowMs || diff < -windowMs;
+  if (Math.abs(diff) > windowMs) return true;
+  return false;
 }
 
 export async function listWaitlistReservations(params?: {
@@ -863,7 +860,7 @@ export async function confirmWaitlistReservation(params: {
   reservationId: string;
   tableIds: string[];
   createdByRole?: string | null;
-}): Promise<{ reservationId: string; reservedFor: number; tableIds: string[] }> {
+}) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
@@ -1108,12 +1105,19 @@ export async function listWaitingReservations(params?: {
     .filter(Boolean) as any;
 }
 
-export async function seatReservation(params: { reservationId: string; tableId: string }) {
+export async function seatReservation(params: {
+  reservationId: string;
+  tableId: string;
+}): Promise<{ reservationId: string }> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
-  const reservationRef = db.collection("reservations").doc(params.reservationId);
-  const tableRef = db.collection("tables").doc(params.tableId);
+  const reservationId = String(params.reservationId || "").trim();
+  const tableId = String(params.tableId || "").trim();
+  if (!reservationId || !tableId) throw new Error("Faltan datos");
+
+  const reservationRef = db.collection("reservations").doc(reservationId);
+  const tableRef = db.collection("tables").doc(tableId);
 
   await db.runTransaction(async (tx: any) => {
     const [resDoc, tableDoc] = await Promise.all([tx.get(reservationRef), tx.get(tableRef)]);
@@ -1121,7 +1125,7 @@ export async function seatReservation(params: { reservationId: string; tableId: 
     if (!tableDoc.exists) throw new Error("Table not found");
 
     const table = tableDoc.data() as CafeTable;
-    if (table.status !== "LIBRE" && table.status !== "RESERVADA") throw new Error("Table not free");
+    if (!isOperationallyFreeTable(table as any, Date.now())) throw new Error("Table not free");
 
     const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
     const reservedTableIds = Array.isArray(reservation.tableIds)
@@ -1136,17 +1140,18 @@ export async function seatReservation(params: { reservationId: string; tableId: 
     }
 
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
+    const now = Date.now();
     for (const t of tables) {
-      if (t.status !== "LIBRE" && t.status !== "RESERVADA") throw new Error("Table not free");
+      if (!isOperationallyFreeTable(t as any, now)) throw new Error("Table not free");
     }
 
     const ts = nowMs();
 
     for (let i = 0; i < tables.length; i++) {
       const t = tables[i];
-      const next = (t as any).nextReservedFor as number | null | undefined;
-      const reservedFor = reservation.reservedFor ? Number(reservation.reservedFor) : null;
-      const nextReservedFor = reservedFor && next && next === reservedFor ? null : next ?? null;
+      const existingNext = (t as any).nextReservedFor as number | null | undefined;
+      // If the existing next reservation was exactly this seating time, clear it.
+      const nextReservedFor = existingNext && Number(existingNext) === ts ? null : existingNext ?? null;
       tx.update(tableRefs[i], {
         status: "OCUPADA",
         nextReservedFor,
@@ -1166,13 +1171,15 @@ export async function seatReservation(params: { reservationId: string; tableId: 
       updatedAt: ts
     });
   });
+
+  return { reservationId };
 }
 
 export async function moveSeatedReservation(params: {
   reservationId: string;
   fromTableId: string;
   toTableId: string;
-}) {
+}): Promise<{ reservationId: string }> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
@@ -1237,6 +1244,8 @@ export async function moveSeatedReservation(params: {
       updatedAt: ts
     });
   });
+
+  return { reservationId };
 }
 
 export async function walkInAssign(params: {
@@ -1398,7 +1407,7 @@ export async function reserveTables(params: {
       const now = Date.now();
       const windowMs = 3 * 60 * 60 * 1000;
       if (params.reservedFor - now <= windowMs) {
-        if (table.status !== "LIBRE") throw new Error("Table not free");
+        if (!isOperationallyFreeTable(table, now)) throw new Error("Table not free");
       }
     }
 
@@ -1525,10 +1534,8 @@ export async function freeTable(params: {
     );
 
     const ts = nowMs();
-    // Caja libera (cobra) pero la mesa puede seguir ocupada físicamente (sobremesa).
-    // La mesa queda pendiente para que Hostess confirme cuando realmente se desocupe.
     tx.update(tableRef, {
-      status: "POR_LIMPIAR",
+      status: "LIBRE",
       lastFreedAt: ts,
       currentReservationId: null,
       currentCustomerName: null,

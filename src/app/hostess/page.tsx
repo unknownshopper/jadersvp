@@ -3,7 +3,6 @@ import HostessForm from "./HostessForm";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
-import AutoRefresh from "../AutoRefresh";
 import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM } from "@/lib/dateFormat";
 
 export const dynamic = "force-dynamic";
@@ -293,7 +292,6 @@ export default async function HostessPage({
 
   return (
     <div className="hostess-page">
-      <AutoRefresh intervalMs={5000} />
       <div className="hostess-page-left grid" style={{ gap: 16 }}>
         <OfflineBanner />
         {searchParams?.err ? (
@@ -562,11 +560,11 @@ export default async function HostessPage({
                   {r.status !== "SEATED" ? (
                     <form action="/api/reservations/seat" method="post">
                       <input type="hidden" name="reservationId" value={r.id} />
-                      {r.table?.id || selectedTableId ? (
+                      {r.table?.id ? (
                         <input
                           type="hidden"
                           name="tableId"
-                          value={r.table?.id ?? selectedTableId ?? ""}
+                          value={r.table?.id ?? ""}
                         />
                       ) : (
                         <select
@@ -591,7 +589,7 @@ export default async function HostessPage({
                       <div className="row" style={{ alignItems: "center", gap: 8, marginTop: 8 }}>
                         <span className={waDotClass((r as any).waConfirmationStatus) ?? undefined} />
                         <button className="btn" type="submit">
-                          {r.table?.id || selectedTableId ? "Sentar" : "Sentar (elige mesa)"}
+                          {r.table?.id ? "Sentar" : "Sentar (elige mesa)"}
                         </button>
                       </div>
                     </form>

@@ -14,14 +14,14 @@ function getBaseUrl(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await requireRole(["CAJA", "ADMIN"]);
+    await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
 
     const baseUrl = getBaseUrl(req);
 
     const form = await req.formData();
 
     const tableId = String(form.get("tableId") ?? "");
-    if (!tableId) return NextResponse.redirect(new URL("/caja?err=Falta+mesa", baseUrl));
+    if (!tableId) return NextResponse.redirect(new URL("/hostess?err=Falta+mesa", baseUrl));
 
     const { completedReservationId, reservationId, remainingActiveTableIds } = await freeTable({ tableId });
 
@@ -91,9 +91,9 @@ export async function POST(req: Request) {
       console.log("SURVEY_TRIGGER_SKIPPED", { reason: "NO_SEATED_RESERVATION" });
     }
 
-    return NextResponse.redirect(new URL("/caja?ok=Liberada", baseUrl));
+    return NextResponse.redirect(new URL("/hostess?ok=Liberada", baseUrl));
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "No se pudo liberar";
-    return NextResponse.redirect(new URL(`/caja?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
+    return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
   }
 }
