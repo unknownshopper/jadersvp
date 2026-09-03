@@ -60,7 +60,7 @@ export default async function HostessPage({
   };
 }) {
   try {
-    await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
+    await requireRole(["HOSTESS", "CAJA", "ADMIN", "DIRECTOR"]);
   } catch {
     redirect("/login");
   }

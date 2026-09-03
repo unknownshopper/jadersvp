@@ -17,7 +17,7 @@ function getBaseUrl(req: Request) {
 export async function POST(req: Request) {
   const baseUrl = getBaseUrl(req);
   try {
-    await requireRole(["HOSTESS", "ADMIN", "DIRECTOR"]);
+    await requireRole(["HOSTESS", "CAJA", "ADMIN", "DIRECTOR"]);
 
     const u = await getSessionUser();
     const createdByRole = u?.role ?? null;
