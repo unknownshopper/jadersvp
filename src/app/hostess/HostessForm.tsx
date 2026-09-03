@@ -262,12 +262,17 @@ export default function HostessForm({
     [tables]
   );
 
-  const pendingFreed = useMemo(() => {
+  const occupiedTables = useMemo(() => {
     return tables
-      .filter((t) => t.status === "POR_LIMPIAR")
+      .filter((t) => t.status === "OCUPADA")
       .slice()
-      .sort((a, b) => Number((b as any).lastFreedAt ?? 0) - Number((a as any).lastFreedAt ?? 0))
-      .slice(0, 30);
+      .sort((a, b) => {
+        const an = Number.parseInt(String(a.name), 10);
+        const bn = Number.parseInt(String(b.name), 10);
+        if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+        return String(a.name).localeCompare(String(b.name));
+      })
+      .slice(0, 60);
   }, [tables]);
 
   return (
@@ -781,32 +786,33 @@ export default function HostessForm({
       </div>
 
       <div className="card requires-online">
-        <h3 style={{ marginTop: 0 }}>Mesas por liberar (sobremesa)</h3>
-        <div className="small" style={{ opacity: 0.85 }}>
-          Cuando caja libera, la mesa queda en <b>Por limpiar</b>. Confirma aquí cuando de verdad se desocupe.
-        </div>
-        {pendingFreed.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
+        <h3 style={{ marginTop: 0 }}>Mesas ocupadas</h3>
+        {occupiedTables.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
 
-        {pendingFreed.length > 0 ? (
+        {occupiedTables.length > 0 ? (
           <div className="grid" style={{ marginTop: 10 }}>
-            {pendingFreed.map((t) => (
+            {occupiedTables.map((t) => (
               <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 900 }}>Mesa {t.name}</div>
                   <div className="small" style={{ opacity: 0.85 }}>
-                    {t.area}
-                    {typeof (t as any).lastFreedAt === "number"
-                      ? ` · Liberada en caja ${new Date(Number((t as any).lastFreedAt)).toLocaleTimeString("es-MX", {
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}`
+                    {String((t as any).currentCustomerName ?? "").trim()
+                      ? `Cliente: ${String((t as any).currentCustomerName ?? "").trim()}`
                       : ""}
                   </div>
                 </div>
-                <form action="/api/tables/confirm-free" method="post" style={{ flex: "0 0 auto" }}>
+                <form
+                  action="/api/tables/free"
+                  method="post"
+                  style={{ flex: "0 0 auto" }}
+                  onSubmit={(e) => {
+                    const ok = window.confirm(`¿Liberar Mesa ${String(t.name)}?`);
+                    if (!ok) e.preventDefault();
+                  }}
+                >
                   <input type="hidden" name="tableId" value={t.id} />
                   <button className="btn" type="submit">
-                    Confirmar libre
+                    Liberar
                   </button>
                 </form>
               </div>
