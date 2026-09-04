@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carta Soporte</title>
+    <style>
+      :root {
+        --page: #0b1220;
+        --surface: rgba(17, 28, 51, 0.92);
+        --text: #e8eefc;
+        --muted: #b6c3e6;
+        --line: rgba(255, 255, 255, 0.12);
+        --accent: #3b82f6;
+        --accent2: #22c55e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: linear-gradient(180deg, var(--page), #070b14);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 72px;
+      }
+
+      .doc {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .doc-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        background: radial-gradient(1100px 280px at 10% 0%, rgba(59, 130, 246, 0.2), transparent 60%),
+          radial-gradient(900px 260px at 90% 0%, rgba(34, 197, 94, 0.12), transparent 55%), rgba(17, 28, 51, 0.85);
+      }
+
+      .doc-header .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 260px;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        object-fit: contain;
+        background: #0b1220;
+      }
+
+      .brand .title {
+        font-weight: 900;
+        letter-spacing: 0.2px;
+      }
+      .brand .sub {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .vendor {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .vendor img {
+        width: 140px;
+        height: 38px;
+        border-radius: 10px;
+        object-fit: contain;
+        background: #ffffff;
+      }
+
+      h1 {
+        margin: 10px 0 0;
+        font-size: 22px;
+        letter-spacing: 0.2px;
+      }
+      .subtitle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .section {
+        padding: 16px 20px;
+        border-top: 1px solid var(--line);
+      }
+      .section:first-of-type {
+        border-top: 0;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+      p {
+        margin: 0 0 10px;
+        color: var(--text);
+        line-height: 1.55;
+      }
+
+      ul {
+        margin: 8px 0 0;
+        padding: 0 0 0 18px;
+        line-height: 1.6;
+      }
+      li {
+        margin: 6px 0;
+      }
+
+      .doc-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .doc-footer strong {
+        color: var(--text);
+      }
+
+      .actions {
+        position: sticky;
+        top: 10px;
+        z-index: 5;
+        display: flex;
+        justify-content: flex-end;
+        padding: 10px 0 0;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(59, 130, 246, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        background: rgba(59, 130, 246, 0.26);
+      }
+
+      @media print {
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+        body {
+          background: #ffffff;
+          color: #111827;
+        }
+        .wrap {
+          padding: 0;
+        }
+        .doc {
+          transform: none;
+        }
+        .doc {
+          border-color: #e5e7eb;
+          border-radius: 0;
+        }
+        .doc-header {
+          background: #ffffff;
+          border-bottom-color: #e5e7eb;
+        }
+        .section,
+        .doc-footer {
+          border-color: #e5e7eb;
+        }
+        .doc-header {
+          padding: 10px 12px;
+        }
+        .section {
+          padding: 10px 12px;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        .doc-footer {
+          padding: 10px 12px;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        h1 {
+          font-size: 16px;
+          margin-top: 6px;
+        }
+        .subtitle {
+          font-size: 11px;
+          margin-top: 4px;
+        }
+        h2 {
+          font-size: 12px;
+          margin-bottom: 6px;
+        }
+        p {
+          margin: 0 0 6px;
+          font-size: 11px;
+          line-height: 1.35;
+        }
+        ul {
+          margin-top: 6px;
+          padding-left: 16px;
+        }
+        li {
+          margin: 4px 0;
+          font-size: 11px;
+          line-height: 1.35;
+        }
+        .subtitle,
+        h2,
+        .doc-footer {
+          color: #4b5563 !important;
+        }
+        .actions {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="actions">
+        <button class="btn" type="button" onclick="window.print()">Descargar PDF</button>
+      </div>
+      <div class="doc">
+        <div class="doc-header">
+          <div class="row">
+            <div class="brand">
+              <img src="./logo.jpg" alt="Café Jade" />
+              <div>
+                <div class="title">Café Jade</div>
+                <div class="sub">Reservas y Mesas</div>
+              </div>
+            </div>
+            <div class="vendor">
+              <div style="text-align: right; min-width: 210px">
+                <div style="font-weight: 800">Carta de soporte</div>
+                <div class="sub">Documento para administración</div>
+              </div>
+              <img src="./tus.jpg" alt="The Unknown Shopper" />
+            </div>
+          </div>
+          <h1>Solicitud de pago mensual por soporte</h1>
+          <p class="subtitle">Soporte y mantenimiento de la Web App de Reservas.</p>
+        </div>
+
+        <div class="section">
+          <p>Villahermosa, Tabasco; 4 de septiembre de 2026</p>
+          <p>Administración de Café Jade</p>
+          <p>Presente.</p>
+        </div>
+
+        <div class="section">
+          <h2>Asunto</h2>
+          <p>Asunto: Solicitud de pago mensual por soporte y mantenimiento de la Web App de Reservas.</p>
+        </div>
+
+        <div class="section">
+          <h2>Contenido</h2>
+          <p>
+            Por medio de la presente, me dirijo a ustedes para hacer formal la solicitud de pago correspondiente al soporte técnico mensual de su plataforma de reservas, por un monto de $500.00 MXN.
+          </p>
+
+          <p>
+            Este pago cubre los costos operativos e infraestructura indispensables para mantener el sitio en línea y funcionando correctamente, los cuales incluyen de manera desglosada:
+          </p>
+
+          <ul>
+            <li>Pago de Hosting: Servicio de alojamiento que permite que la web app esté disponible en internet las 24 horas del día.</li>
+            <li>
+              Plataforma Firebase: Base de datos y servicios en la nube necesarios para gestionar las reservas, usuarios y la lógica de la aplicación en tiempo real.
+            </li>
+            <li>Soporte Técnico: Monitoreo y mantenimiento preventivo para asegurar la estabilidad del sistema.</li>
+          </ul>
+
+          <p style="margin-top: 10px">
+            Agradecemos de antemano su atención a esta solicitud y su confianza en nuestro trabajo. Quedamos a su entera disposición para coordinar el método de pago o resolver cualquier duda técnica que requieran.
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>Firma</h2>
+          <p>Atentamente,</p>
+          <p>aGarcía</p>
+          <p>the@unknownshoppers.com</p>
+        </div>
+
+        <div class="doc-footer">
+          <div><strong>Café Jade</strong> · Carta de soporte</div>
+          <div>Referencia: <strong>soporte.html</strong></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+
+
+
+

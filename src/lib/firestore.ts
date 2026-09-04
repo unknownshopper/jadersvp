@@ -165,7 +165,8 @@ function isOperationallyFreeTable(table: any, now: number) {
 
   const windowMs = 3 * 60 * 60 * 1000;
   const diff = nextMs - now;
-  if (Math.abs(diff) > windowMs) return true;
+  if (diff <= 0) return true;
+  if (diff > windowMs) return true;
   return false;
 }
 
