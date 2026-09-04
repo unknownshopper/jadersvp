@@ -1125,10 +1125,19 @@ export async function seatReservation(params: {
     if (!resDoc.exists) throw new Error("Reservation not found");
     if (!tableDoc.exists) throw new Error("Table not found");
 
-    const table = tableDoc.data() as CafeTable;
-    if (!isOperationallyFreeTable(table as any, Date.now())) throw new Error("Table not free");
-
     const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+    const reservationReservedFor = typeof (reservation as any).reservedFor === "number" ? Number((reservation as any).reservedFor) : null;
+
+    const isFreeForReservation = (t: any, now: number) => {
+      if (isOperationallyFreeTable(t as any, now)) return true;
+      const status = String(t?.status ?? "");
+      if (status !== "RESERVADA") return false;
+      const next = typeof t?.nextReservedFor === "number" ? Number(t.nextReservedFor) : null;
+      if (!next || !reservationReservedFor) return false;
+      const toleranceMs = 5 * 60 * 1000;
+      return Math.abs(next - reservationReservedFor) <= toleranceMs;
+    };
+
     const reservedTableIds = Array.isArray(reservation.tableIds)
       ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
       : [];
@@ -1143,7 +1152,12 @@ export async function seatReservation(params: {
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
     const now = Date.now();
     for (const t of tables) {
-      if (!isOperationallyFreeTable(t as any, now)) throw new Error("Table not free");
+      if (!isFreeForReservation(t as any, now)) {
+        const s = String((t as any)?.status ?? "");
+        const next = typeof (t as any)?.nextReservedFor === "number" ? Number((t as any).nextReservedFor) : null;
+        const rf = typeof reservationReservedFor === "number" ? reservationReservedFor : null;
+        throw new Error(`Table not free (status=${s}${next ? `, next=${next}` : ""}${rf ? `, reservedFor=${rf}` : ""})`);
+      }
     }
 
     const ts = nowMs();
@@ -1152,7 +1166,10 @@ export async function seatReservation(params: {
       const t = tables[i];
       const existingNext = (t as any).nextReservedFor as number | null | undefined;
       // If the existing next reservation was exactly this seating time, clear it.
-      const nextReservedFor = existingNext && Number(existingNext) === ts ? null : existingNext ?? null;
+      const shouldClearNext =
+        (existingNext && Number(existingNext) === ts) ||
+        (existingNext && reservationReservedFor && Math.abs(Number(existingNext) - reservationReservedFor) <= 5 * 60 * 1000);
+      const nextReservedFor = shouldClearNext ? null : existingNext ?? null;
       tx.update(tableRefs[i], {
         status: "OCUPADA",
         nextReservedFor,
