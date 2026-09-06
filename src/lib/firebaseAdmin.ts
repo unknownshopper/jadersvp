@@ -1,16 +1,29 @@
 import admin from "firebase-admin";
 
+function env(name: string) {
+  const v = process.env[name];
+  return typeof v === "string" && v.trim() ? v : undefined;
+}
+
+function envFirst(names: string[]) {
+  for (const n of names) {
+    const v = env(n);
+    if (v) return v;
+  }
+  return undefined;
+}
+
 function getPrivateKey(): string | undefined {
-  const k = process.env.FIREBASE_PRIVATE_KEY;
+  const k = env("FIREBASE_PRIVATE_KEY");
   if (!k) return undefined;
   return k.replace(/\\n/g, "\n");
 }
 
 export function isFirebaseConfigured() {
   return Boolean(
-    process.env.FIREBASE_PROJECT_ID &&
-      process.env.FIREBASE_CLIENT_EMAIL &&
-      process.env.FIREBASE_PRIVATE_KEY
+    env("FIREBASE_PROJECT_ID") &&
+      envFirst(["FIREBASE_CLIENT_EMAIL", "FIREBASE_CLIENT_EMAIL"]) &&
+      env("FIREBASE_PRIVATE_KEY")
   );
 }
 
@@ -19,8 +32,8 @@ export function getFirebaseAdminApp() {
 
   if (admin.apps.length > 0) return admin.app();
 
-  const projectId = process.env.FIREBASE_PROJECT_ID as string;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL as string;
+  const projectId = env("FIREBASE_PROJECT_ID") as string;
+  const clientEmail = envFirst(["FIREBASE_CLIENT_EMAIL", "FIREBASE_CLIENT_EMAIL"]) as string;
   const privateKey = getPrivateKey() as string;
 
   return admin.initializeApp({

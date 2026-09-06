@@ -29,6 +29,14 @@ export default async function AdminPage({
 
   return (
     <div className="grid" style={{ gap: 16 }}>
+      {!ready ? (
+        <div className="card" style={{ borderColor: "rgba(239, 68, 68, 0.45)", background: "rgba(239, 68, 68, 0.06)" }}>
+          <div style={{ fontWeight: 900 }}>Firebase no configurado</div>
+          <div className="small" style={{ marginTop: 6 }}>
+            Este entorno no tiene variables de entorno de Firebase Admin, por eso el dashboard aparece en ceros.
+          </div>
+        </div>
+      ) : null}
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Admin</h2>
         <div className="row" style={{ justifyContent: "space-between" }}>

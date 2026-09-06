@@ -1724,11 +1724,19 @@ export async function adminSummary(range: "day" | "week" | "month") {
     return d.getTime();
   })();
 
-  const reservationsSnap = await db
+  let reservationsSnap = await db
     .collection("reservations")
-    .where("createdAt", ">=", from)
+    .where("updatedAt", ">=", from)
     .limit(1000)
     .get();
+
+  if (reservationsSnap.size === 0) {
+    reservationsSnap = await db
+      .collection("reservations")
+      .where("createdAt", ">=", from)
+      .limit(1000)
+      .get();
+  }
 
   const reservations = reservationsSnap.docs.map((d: any) => d.data() as Reservation);
   const reservationsCount = reservationsSnap.size;
