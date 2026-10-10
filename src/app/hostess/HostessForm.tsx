@@ -680,7 +680,10 @@ export default function HostessForm({
                     onClick={() => {
                       if (!t) return;
                       const es = effectiveStatusAt(t, reservedForMs);
-                      if (es !== "LIBRE") return;
+                      if (es !== "LIBRE") {
+                        router.push(`/hostess?focusTableId=${encodeURIComponent(t.id)}`);
+                        return;
+                      }
                       setSelectedTableIds((prev) => {
                         const exists = prev.includes(t.id);
                         const next = exists ? prev.filter((id) => id !== t.id) : [...prev, t.id];
@@ -720,6 +723,8 @@ export default function HostessForm({
                           setTableId(primary);
                           return next;
                         });
+                      } else {
+                        router.push(`/hostess?focusTableId=${encodeURIComponent(t.id)}`);
                       }
                     }}
                     title={`${t.name} · ${t.area} · ${s}`}
@@ -790,25 +795,33 @@ export default function HostessForm({
                         : ""}
                     </div>
                   </div>
-                  <form
-                    action="/api/tables/free"
-                    method="post"
-                    style={{ flex: "0 0 auto" }}
-                    onSubmit={(e) => {
-                      const ok = window.confirm(
-                        moved
-                          ? `¿Liberar Mesa ${String(t.name)} y regresarla a su lugar?`
-                          : `¿Liberar Mesa ${String(t.name)}?`
-                      );
-                      if (!ok) e.preventDefault();
-                    }}
-                  >
-                    <input type="hidden" name="tableId" value={t.id} />
-                    {moved ? <input type="hidden" name="returnHome" value="1" /> : null}
-                    <button className="btn" type="submit">
-                      {moved ? "Liberar y devolver" : "Liberar"}
-                    </button>
-                  </form>
+                  <div style={{ display: "flex", gap: 8, flex: "0 0 auto" }}>
+                    <a
+                      className="btn secondary"
+                      href={`/hostess?focusTableId=${encodeURIComponent(t.id)}`}
+                      title="Ver grupo y sumar mesas"
+                    >
+                      Juntar
+                    </a>
+                    <form
+                      action="/api/tables/free"
+                      method="post"
+                      onSubmit={(e) => {
+                        const ok = window.confirm(
+                          moved
+                            ? `¿Liberar Mesa ${String(t.name)} y regresarla a su lugar?`
+                            : `¿Liberar Mesa ${String(t.name)}?`
+                        );
+                        if (!ok) e.preventDefault();
+                      }}
+                    >
+                      <input type="hidden" name="tableId" value={t.id} />
+                      {moved ? <input type="hidden" name="returnHome" value="1" /> : null}
+                      <button className="btn" type="submit">
+                        {moved ? "Liberar y devolver" : "Liberar"}
+                      </button>
+                    </form>
+                  </div>
                 </div>
               );
             })}
