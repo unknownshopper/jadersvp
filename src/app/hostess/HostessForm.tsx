@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CafeTable, Customer, FloorplanPositions, Reservation } from "@/lib/firestore";
+import { DEFAULT_DOWN_POSITIONS, DEFAULT_UP_MARKERS, DEFAULT_UP_POSITIONS } from "@/lib/floorplan";
 
 function defaultDateTime() {
   const d = new Date();
@@ -28,31 +29,7 @@ function defaultDateTime() {
   };
 }
 
-const pos: Record<string, { x: number; y: number }> = {
-  // Interior (center)
-  "1": { x: 55, y: 58 },
-  "2": { x: 55, y: 49 },
-  "3": { x: 55, y: 40 },
-
-  // Terraza lateral (left column)
-  "4": { x: 34, y: 35 },
-  "5": { x: 34, y: 43 },
-  "6": { x: 34, y: 51 },
-  "7": { x: 24, y: 86 },
-  "8": { x: 24, y: 77 },
-  "9": { x: 24, y: 68 },
-  "10": { x: 18, y: 46 },
-  "11": { x: 18, y: 30 },
-  "12": { x: 18, y: 38 },
-  "13": { x: 18, y: 54 },
-
-  // Terraza frontal (top right)
-  "14": { x: 72, y: 30 },
-  "15": { x: 72, y: 18 },
-  "16": { x: 82, y: 18 },
-  "17": { x: 92, y: 18 },
-  "18": { x: 88, y: 30 }
-};
+const pos = DEFAULT_DOWN_POSITIONS;
 
 function statusClass(status: string) {
   if (status === "LIBRE") return "libre";
@@ -152,45 +129,6 @@ export default function HostessForm({
     return `+${digits}`;
   };
 
-  const upstairsMarkers = useMemo(() => {
-    return [
-      // Fondo (L)
-      { kind: "square", label: "36", x: 18, y: 16 },
-      { kind: "square", label: "33", x: 62, y: 16 },
-
-      // Circulares arriba
-      { kind: "circle", label: "34", x: 40, y: 14 },
-      { kind: "circle", label: "35", x: 40, y: 30 },
-      { kind: "circle", label: "37", x: 14, y: 30 },
-      { kind: "circle", label: "38", x: 14, y: 46 },
-      { kind: "circle", label: "39", x: 14, y: 60 },
-
-      // Rectangulares derecha (6 pax)
-      { kind: "rect", label: "32", x: 64, y: 30 },
-      { kind: "rect", label: "31", x: 64, y: 50 },
-
-      // Triangular (3 pax)
-      { kind: "triangle", label: "30", x: 38, y: 46 },
-
-      // Rombo centro-abajo
-      { kind: "diamond", label: "29", x: 25, y: 66 },
-      { kind: "diamond", label: "28", x: 40, y: 66 },
-
-      // Rectangulares abajo (4 pax)
-      { kind: "rect", label: "27", x: 15, y: 84 },
-      { kind: "rect", label: "26", x: 32, y: 84 },
-      { kind: "rect", label: "25", x: 49, y: 84 },
-
-      // Cuadros derecha
-      { kind: "diamond", label: "24", x: 80, y: 66 },
-      { kind: "diamond", label: "23", x: 92, y: 66 },
-      { kind: "diamond", label: "22", x: 92, y: 78 },
-
-      // Circular abajo derecha
-      { kind: "circle", label: "21", x: 84, y: 84 }
-    ] as Array<{ kind: "circle" | "diamond" | "rect" | "triangle" | "lshape" | "square"; label: string; x: number; y: number }>;
-  }, []);
-
   const downPos = useMemo(() => {
     const merged: Record<string, { x: number; y: number }> = { ...pos };
     const saved = floorplan?.down;
@@ -207,14 +145,28 @@ export default function HostessForm({
 
   const upstairsResolved = useMemo(
     () =>
-      upstairsMarkers.map((m) => {
+      DEFAULT_UP_MARKERS.map((m) => {
         const p = floorplan?.up?.[m.label];
         const x = Number((p as any)?.x);
         const y = Number((p as any)?.y);
         return Number.isFinite(x) && Number.isFinite(y) ? { ...m, x, y } : m;
       }),
-    [upstairsMarkers, floorplan]
+    [floorplan]
   );
+
+  const movedTableIds = useMemo(() => {
+    const moved = new Set<string>();
+    for (const t of tables) {
+      const up = String(t.area) === "PLANTA_ALTA";
+      const def = up ? DEFAULT_UP_POSITIONS[String(t.name)] : DEFAULT_DOWN_POSITIONS[String(t.name)];
+      const cur = up
+        ? upstairsResolved.find((m) => m.label === String(t.name))
+        : downPos[String(t.name)];
+      if (!def || !cur) continue;
+      if (Math.abs(cur.x - def.x) > 0.5 || Math.abs(cur.y - def.y) > 0.5) moved.add(t.id);
+    }
+    return moved;
+  }, [tables, downPos, upstairsResolved]);
 
   const tableByName = useMemo(() => {
     const m = new Map<string, CafeTable>();
@@ -818,32 +770,48 @@ export default function HostessForm({
 
         {occupiedTables.length > 0 ? (
           <div className="grid" style={{ marginTop: 10 }}>
-            {occupiedTables.map((t) => (
-              <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontWeight: 900 }}>Mesa {t.name}</div>
-                  <div className="small" style={{ opacity: 0.85 }}>
-                    {String((t as any).currentCustomerName ?? "").trim()
-                      ? `Cliente: ${String((t as any).currentCustomerName ?? "").trim()}`
-                      : ""}
+            {occupiedTables.map((t) => {
+              const moved = movedTableIds.has(t.id);
+              return (
+                <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 900 }}>
+                      Mesa {t.name}
+                      {moved ? (
+                        <span className="small" style={{ fontWeight: 700, opacity: 0.75 }}>
+                          {" "}
+                          · fuera de su lugar
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="small" style={{ opacity: 0.85 }}>
+                      {String((t as any).currentCustomerName ?? "").trim()
+                        ? `Cliente: ${String((t as any).currentCustomerName ?? "").trim()}`
+                        : ""}
+                    </div>
                   </div>
+                  <form
+                    action="/api/tables/free"
+                    method="post"
+                    style={{ flex: "0 0 auto" }}
+                    onSubmit={(e) => {
+                      const ok = window.confirm(
+                        moved
+                          ? `¿Liberar Mesa ${String(t.name)} y regresarla a su lugar?`
+                          : `¿Liberar Mesa ${String(t.name)}?`
+                      );
+                      if (!ok) e.preventDefault();
+                    }}
+                  >
+                    <input type="hidden" name="tableId" value={t.id} />
+                    {moved ? <input type="hidden" name="returnHome" value="1" /> : null}
+                    <button className="btn" type="submit">
+                      {moved ? "Liberar y devolver" : "Liberar"}
+                    </button>
+                  </form>
                 </div>
-                <form
-                  action="/api/tables/free"
-                  method="post"
-                  style={{ flex: "0 0 auto" }}
-                  onSubmit={(e) => {
-                    const ok = window.confirm(`¿Liberar Mesa ${String(t.name)}?`);
-                    if (!ok) e.preventDefault();
-                  }}
-                >
-                  <input type="hidden" name="tableId" value={t.id} />
-                  <button className="btn" type="submit">
-                    Liberar
-                  </button>
-                </form>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
       </div>

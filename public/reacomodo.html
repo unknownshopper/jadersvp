@@ -116,6 +116,11 @@
         z-index: 5;
       }
 
+      .marker.moved {
+        outline: 2px dashed #f59e0b;
+        outline-offset: 3px;
+      }
+
       .marker.chip { min-width: 44px; height: 44px; padding: 0 10px; border-radius: 12px; }
       .marker.square { width: 44px; height: 44px; border-radius: 8px; }
       .marker.circle { width: 44px; height: 44px; border-radius: 50%; }
@@ -169,7 +174,7 @@
       <header>
         <div>
           <h1>Reacomodo de mesas <span class="muted">(prueba)</span></h1>
-          <div class="muted">Arrastra las mesas con el dedo o el mouse. Las posiciones se guardan en Firestore y las ve cualquier sesión.</div>
+          <div class="muted">Arrastra las mesas con el dedo o el mouse. Las posiciones se guardan en Firestore y las ve cualquier sesión. Las mesas fuera de su lugar llevan contorno naranja: click para regresarlas.</div>
         </div>
       </header>
 
@@ -253,6 +258,22 @@
 
       let positions = defaultPositions();
 
+      function homePos(f, label) {
+        if (f === "down") {
+          const d = DEFAULT_DOWN[label];
+          return d ? { x: d.x, y: d.y } : null;
+        }
+        const m = DEFAULT_UP.find((m) => m.label === label);
+        return m ? { x: m.x, y: m.y } : null;
+      }
+
+      function isMoved(f, label) {
+        const h = homePos(f, label);
+        const p = positions[f] && positions[f][label];
+        if (!h || !p) return false;
+        return Math.abs(p.x - h.x) > 0.5 || Math.abs(p.y - h.y) > 0.5;
+      }
+
       async function persist() {
         try {
           localStorage.setItem(LS_KEY, JSON.stringify(positions));
@@ -332,7 +353,7 @@
 
       function makeMarker(label, kind, pos, onMove) {
         const el = document.createElement("div");
-        el.className = `marker ${kind}`;
+        el.className = `marker ${kind}${isMoved(floor, label) ? " moved" : ""}`;
         el.style.left = `${pos.x}%`;
         el.style.top = `${pos.y}%`;
         el.title = `Mesa ${label}`;
@@ -343,7 +364,12 @@
           el.setPointerCapture(e.pointerId);
           el.classList.add("dragging");
 
+          const startX = e.clientX;
+          const startY = e.clientY;
+          let dragged = false;
+
           const move = (ev) => {
+            if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) dragged = true;
             const rect = map.getBoundingClientRect();
             const x = Math.min(97, Math.max(3, ((ev.clientX - rect.left) / rect.width) * 100));
             const y = Math.min(97, Math.max(3, ((ev.clientY - rect.top) / rect.height) * 100));
@@ -357,6 +383,13 @@
             el.removeEventListener("pointermove", move);
             el.removeEventListener("pointerup", up);
             el.removeEventListener("pointercancel", up);
+            if (!dragged) {
+              const home = homePos(floor, label);
+              if (home && isMoved(floor, label) && confirm(`¿Regresar mesa ${label} a su lugar?`)) {
+                positions[floor][label] = { x: home.x, y: home.y };
+                render();
+              }
+            }
             save();
           };
 

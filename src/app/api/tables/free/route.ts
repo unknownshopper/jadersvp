@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { enqueueSurveyOutbox, freeTable, getReservationDetail } from "@/lib/firestore";
+import { enqueueSurveyOutbox, freeTable, getReservationDetail, resetTablePositionHome } from "@/lib/firestore";
+import { getFirestore } from "@/lib/firebaseAdmin";
 import { requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
 
@@ -24,6 +25,21 @@ export async function POST(req: Request) {
     if (!tableId) return NextResponse.redirect(new URL("/hostess?err=Falta+mesa", baseUrl));
 
     const { completedReservationId, reservationId, remainingActiveTableIds } = await freeTable({ tableId });
+
+    const returnHome = String(form.get("returnHome") ?? "") === "1";
+    if (returnHome) {
+      try {
+        const db = getFirestore();
+        const tdoc = db ? await db.collection("tables").doc(tableId).get() : null;
+        const name = tdoc?.exists ? String((tdoc.data() as any)?.name ?? "").trim() : "";
+        const area = String((tdoc?.data() as any)?.area ?? "");
+        if (name) {
+          await resetTablePositionHome({ floor: area === "PLANTA_ALTA" ? "up" : "down", label: name });
+        }
+      } catch {
+        // non-blocking
+      }
+    }
 
     if (completedReservationId) {
       const detail = await getReservationDetail(completedReservationId);

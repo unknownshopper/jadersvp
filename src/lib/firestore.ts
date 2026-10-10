@@ -1,4 +1,5 @@
 import { getFirestore, isFirebaseConfigured } from "@/lib/firebaseAdmin";
+import { defaultPositionFor } from "@/lib/floorplan";
 
 export type TableStatus = "LIBRE" | "OCUPADA" | "RESERVADA" | "POR_LIMPIAR";
 export type Area = "TERRAZA_FRONTAL" | "TERRAZA_LATERAL" | "INTERIOR" | "PLANTA_ALTA";
@@ -2016,6 +2017,75 @@ export async function getFloorplanPositions(): Promise<FloorplanPositions | null
   };
 
   return { down: sanitize(positions.down), up: sanitize(positions.up) };
+}
+
+export async function resetTablePositionHome(params: { floor: "down" | "up"; label: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const floor = params.floor === "up" ? "up" : "down";
+  const label = String(params.label ?? "").trim();
+  const def = defaultPositionFor(floor, label);
+  if (!label || !def) return;
+
+  await db
+    .collection("config")
+    .doc("floorplan")
+    .set({ positions: { [floor]: { [label]: { x: def.x, y: def.y } } } }, { merge: true });
+}
+
+export async function addTableToReservation(params: {
+  reservationId: string;
+  tableId: string;
+}): Promise<{ reservationId: string }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationId = String(params.reservationId || "").trim();
+  const tableId = String(params.tableId || "").trim();
+  if (!reservationId || !tableId) throw new Error("Faltan datos");
+
+  const reservationRef = db.collection("reservations").doc(reservationId);
+  const tableRef = db.collection("tables").doc(tableId);
+
+  await db.runTransaction(async (tx: any) => {
+    const [resDoc, tableDoc] = await Promise.all([tx.get(reservationRef), tx.get(tableRef)]);
+    if (!resDoc.exists) throw new Error("Reservation not found");
+    if (!tableDoc.exists) throw new Error("Table not found");
+
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+    if (reservation.status !== "SEATED") throw new Error("Solo se puede sumar mesa a un grupo ya sentado");
+
+    const table = { id: tableDoc.id, ...(tableDoc.data() as Omit<CafeTable, "id">) } as CafeTable;
+    if (!isOperationallyFreeTable(table as any, Date.now())) throw new Error("Table not free");
+
+    const base = Array.isArray(reservation.tableIds)
+      ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
+      : reservation.tableId
+        ? [String(reservation.tableId)]
+        : [];
+    const active = Array.isArray(reservation.activeTableIds)
+      ? reservation.activeTableIds.map((x) => String(x)).filter(Boolean)
+      : base;
+
+    const ts = nowMs();
+
+    tx.update(tableRef, {
+      status: "OCUPADA",
+      currentReservationId: reservation.id,
+      currentCustomerName: reservation.customerNameSnapshot ?? null,
+      updatedAt: ts
+    });
+
+    tx.update(reservationRef, {
+      tableId: reservation.tableId ? String(reservation.tableId) : tableId,
+      tableIds: Array.from(new Set([...base, tableId])),
+      activeTableIds: Array.from(new Set([...active, tableId])),
+      updatedAt: ts
+    });
+  });
+
+  return { reservationId };
 }
 
 function reservationTableIds(r: Reservation): string[] {

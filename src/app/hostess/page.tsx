@@ -122,6 +122,13 @@ export default async function HostessPage({
       reservedFor: w.reservation.reservedFor ? Number(w.reservation.reservedFor) : null,
       customerNameSnapshot: w.reservation.customerNameSnapshot ?? null,
       notes: w.reservation.notes ?? null,
+      activeTableIds: Array.isArray(w.reservation.activeTableIds)
+        ? w.reservation.activeTableIds.map((x) => String(x))
+        : Array.isArray(w.reservation.tableIds)
+          ? w.reservation.tableIds.map((x) => String(x))
+          : w.reservation.tableId
+            ? [String(w.reservation.tableId)]
+            : [],
       customer: w.customer,
       table: w.table ?? null
     }))
@@ -153,6 +160,18 @@ export default async function HostessPage({
       })[0];
     return best ?? null;
   })();
+
+  const addableTables = focusedVisit?.status === "SEATED"
+    ? tables
+        .filter((t) => t.status === "LIBRE")
+        .filter((t) => !focusedVisit.activeTableIds.includes(String(t.id)))
+        .sort((a, b) => {
+          const an = Number.parseInt(String(a.name), 10);
+          const bn = Number.parseInt(String(b.name), 10);
+          if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+          return String(a.name).localeCompare(String(b.name));
+        })
+    : [];
 
   function formatDuration(ms: number) {
     const totalMin = Math.max(0, Math.round(ms / 60000));
@@ -381,6 +400,26 @@ export default async function HostessPage({
                     <div>Permanencia: {formatDuration(focusedVisit.completedAt - focusedVisit.seatedAt)}</div>
                   ) : null}
                   {focusedVisit.notes ? <div style={{ marginTop: 6 }}>Notas: {focusedVisit.notes}</div> : null}
+                  {focusedVisit.status === "SEATED" && addableTables.length > 0 ? (
+                    <form action="/api/tables/add" method="post" style={{ marginTop: 10 }}>
+                      <input type="hidden" name="reservationId" value={focusedVisit.id} />
+                      <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                        <select className="input" name="tableId" required defaultValue="">
+                          <option value="" disabled>
+                            Sumar mesa al grupo…
+                          </option>
+                          {addableTables.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              Mesa {t.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="btn secondary" type="submit" style={{ flex: "0 0 auto" }}>
+                          Sumar
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
                 </div>
               )}
             </div>
