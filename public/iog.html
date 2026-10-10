@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Jade · Log de reservas</title>
+    <meta name="description" content="Visor de reservas creadas: nombre, mesa, fecha, hora y teléfono." />
+    <style>
+      :root {
+        --bg: #07110c;
+        --card: rgba(255, 255, 255, 0.06);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.66);
+        --line: rgba(255, 255, 255, 0.14);
+        --brand: #2bb673;
+        --danger: #ff6b5e;
+        --radius: 14px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background:
+          radial-gradient(900px 500px at 10% -10%, rgba(43, 182, 115, 0.18), transparent 60%),
+          linear-gradient(180deg, #07110c, #05110b);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 18px 14px 40px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        font-size: 20px;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+
+      .muted { color: var(--muted); font-size: 13px; }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 14px 0;
+      }
+
+      .chip {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .chip.active { border-color: var(--brand); }
+
+      .chip.danger { border-color: rgba(255, 107, 94, 0.6); }
+
+      .chip.static { cursor: default; opacity: 0.8; }
+
+      input[type="search"] {
+        flex: 1 1 240px;
+        min-width: 200px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 14px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .scroll { overflow-x: auto; }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        table-layout: fixed;
+      }
+
+      col.c-creada { width: 100px; }
+      col.c-para { width: 100px; }
+      col.c-mesa { width: 64px; }
+      col.c-tel { width: 140px; }
+      col.c-correo { width: 90px; }
+      col.c-origen { width: 150px; }
+      col.c-estado { width: 112px; }
+
+      th, td {
+        text-align: left;
+        padding: 8px 10px;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      th[data-k] {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      th[data-k]:hover { color: var(--text); }
+
+      th.sorted { color: var(--brand); }
+
+      td {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        overflow-wrap: anywhere;
+      }
+
+      .nowrap { white-space: nowrap; overflow-wrap: normal; }
+
+      td.truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        overflow-wrap: normal;
+      }
+
+      tr.no-phone td { background: rgba(255, 107, 94, 0.07); }
+
+      .sin-tel { color: var(--danger); font-weight: 800; }
+
+      .tag {
+        display: inline-block;
+        font-size: 10px;
+        color: var(--danger);
+        border: 1px solid rgba(255, 107, 94, 0.5);
+        border-radius: 999px;
+        padding: 1px 7px;
+        margin-top: 3px;
+      }
+
+      .name { font-weight: 700; }
+      .sub { color: var(--muted); font-size: 12px; }
+      .dash { color: var(--muted); opacity: 0.5; }
+      .hora { color: var(--muted); font-size: 12px; }
+
+      .center {
+        padding: 48px 20px;
+        text-align: center;
+      }
+
+      .btn {
+        display: inline-block;
+        margin-top: 14px;
+        border: 1px solid var(--brand);
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-weight: 800;
+        color: var(--text);
+        text-decoration: none;
+        background: rgba(43, 182, 115, 0.12);
+      }
+
+      .refresh {
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 9px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>Café Jade · Log de reservas</h1>
+          <div class="muted">Reservas (no clientes) ordenadas por fecha de creación — las 1000 más recientes primero</div>
+        </div>
+        <button class="refresh" id="btnRefresh" type="button">Actualizar</button>
+      </header>
+
+      <div class="toolbar" id="toolbar" hidden>
+        <button class="chip active" data-f="all" type="button">Todas <span id="cAll"></span></button>
+        <button class="chip" data-f="with" type="button">Con teléfono <span id="cWith"></span></button>
+        <button class="chip danger" data-f="without" type="button">Sin teléfono <span id="cWithout"></span></button>
+        <span class="chip static">Sin tel. al crear: <span id="cNoPhoneAtCreation"></span></span>
+        <input type="search" id="q" placeholder="Buscar (nombre, teléfono, correo, mesa)" />
+      </div>
+
+      <div class="card">
+        <div class="scroll">
+          <table id="tbl" hidden>
+            <colgroup>
+              <col class="c-creada" />
+              <col class="c-para" />
+              <col />
+              <col class="c-mesa" />
+              <col class="c-tel" />
+              <col class="c-correo" />
+              <col class="c-origen" />
+              <col class="c-estado" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th data-k="creada">Creada</th>
+                <th data-k="para">Para</th>
+                <th data-k="nombre">Nombre</th>
+                <th data-k="mesa">Mesa(s)</th>
+                <th data-k="telefono">Teléfono</th>
+                <th data-k="correo">Correo</th>
+                <th data-k="origen">Origen</th>
+                <th data-k="estado">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="center" id="state">Cargando…</div>
+      </div>
+
+      <div class="muted" id="foot" style="margin-top: 12px"></div>
+    </div>
+
+    <script>
+      const state = document.getElementById("state");
+      const tbl = document.getElementById("tbl");
+      const tbody = document.getElementById("tbody");
+      const toolbar = document.getElementById("toolbar");
+      const foot = document.getElementById("foot");
+      const q = document.getElementById("q");
+
+      let rows = [];
+      let phoneFreq = new Map();
+      let filter = "all";
+      let sortKey = "creada";
+      let sortDir = "desc";
+
+      const collator = new Intl.Collator("es", { sensitivity: "base", numeric: true });
+
+      function sortRows(arr) {
+        const dir = sortDir === "asc" ? 1 : -1;
+        return arr.slice().sort((a, b) => {
+          let cmp = 0;
+          switch (sortKey) {
+            case "creada":
+              cmp = (a.createdAt || 0) - (b.createdAt || 0);
+              break;
+            case "para":
+              cmp = (a.reservedFor || 0) - (b.reservedFor || 0);
+              break;
+            case "nombre":
+              cmp = collator.compare(String(a.customerName || ""), String(b.customerName || ""));
+              break;
+            case "mesa":
+              cmp = collator.compare((a.tableNames || []).join(","), (b.tableNames || []).join(","));
+              break;
+            case "telefono": {
+              const ap = String(a.phone || "").trim();
+              const bp = String(b.phone || "").trim();
+              const ah = ap ? 1 : 0;
+              const bh = bp ? 1 : 0;
+              // Base (desc): con teléfono primero, luego los más repetidos.
+              cmp =
+                bh - ah ||
+                (phoneFreq.get(bp) || 0) - (phoneFreq.get(ap) || 0) ||
+                collator.compare(ap, bp);
+              break;
+            }
+            case "correo": {
+              const ae = String(a.email || "").trim();
+              const be = String(b.email || "").trim();
+              cmp = (ae ? 1 : 0) - (be ? 1 : 0) || collator.compare(ae, be);
+              break;
+            }
+            case "origen":
+              cmp = collator.compare(
+                `${a.source || ""} ${a.createdByRole || ""}`,
+                `${b.source || ""} ${b.createdByRole || ""}`
+              );
+              break;
+            case "estado":
+              cmp = collator.compare(String(a.status || ""), String(b.status || ""));
+              break;
+          }
+          if (cmp !== 0) return cmp * dir;
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        });
+      }
+
+      function updateSortUI() {
+        document.querySelectorAll("th[data-k]").forEach((th) => {
+          const active = th.dataset.k === sortKey;
+          th.classList.toggle("sorted", active);
+          const base = th.dataset.label || (th.dataset.label = th.textContent.trim());
+          th.textContent = base + (active ? (sortDir === "asc" ? " ▲" : " ▼") : "");
+        });
+      }
+
+      const dtf = new Intl.DateTimeFormat("es-MX", {
+        day: "2-digit", month: "2-digit", year: "2-digit",
+        timeZone: "America/Mexico_City"
+      });
+      const tf = new Intl.DateTimeFormat("es-MX", {
+        hour: "2-digit", minute: "2-digit", hour12: false,
+        timeZone: "America/Mexico_City"
+      });
+      const fmtDate = (ms) => (ms ? dtf.format(new Date(ms)) : "—");
+      const fmtTime = (ms) => (ms ? tf.format(new Date(ms)) : "");
+      const fmt = (ms) =>
+        ms ? `${fmtDate(ms)}<div class="hora">${fmtTime(ms)}</div>` : '<span class="dash">—</span>';
+      const esc = (s) =>
+        String(s ?? "").replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[c]);
+
+      function setState(html) {
+        state.innerHTML = html;
+        state.style.display = html ? "" : "none";
+      }
+
+      function render() {
+        const qq = q.value.trim().toLowerCase();
+        const visible = rows.filter((r) => {
+          const hasPhone = Boolean(String(r.phone || "").trim());
+          if (filter === "with" && !hasPhone) return false;
+          if (filter === "without" && hasPhone) return false;
+          if (!qq) return true;
+          const hay = [r.customerName, r.phone, r.email || "", (r.tableNames || []).join(" "), r.source || "", r.status]
+            .join(" ")
+            .toLowerCase();
+          return hay.includes(qq);
+        });
+
+        const sorted = sortRows(visible);
+
+        tbody.innerHTML = sorted
+          .map((r) => {
+            const hasPhone = Boolean(String(r.phone || "").trim());
+            const freq = hasPhone ? phoneFreq.get(String(r.phone).trim()) || 0 : 0;
+            const phoneCell = hasPhone
+              ? `<span class="nowrap">${esc(r.phone)}</span>${
+                  freq > 1 ? ` <span class="tag" style="color: var(--muted); border-color: var(--line)">×${freq}</span>` : ""
+                }${
+                  r.noPhoneAtCreation ? '<div><span class="tag">sin tel. al crear</span></div>' : ""
+                }`
+              : '<span class="sin-tel">SIN TELÉFONO</span>';
+            return `<tr class="${hasPhone ? "" : "no-phone"}">
+              <td class="nowrap">${fmt(r.createdAt)}</td>
+              <td class="nowrap">${fmt(r.reservedFor)}</td>
+              <td><div class="name">${esc(r.customerName) || '<span class="dash">—</span>'}</div>${
+                r.partySize ? `<div class="sub">${r.partySize} pax</div>` : ""
+              }</td>
+              <td>${(r.tableNames || []).length ? esc(r.tableNames.join(", ")) : '<span class="dash">—</span>'}</td>
+              <td>${phoneCell}</td>
+              <td class="truncate" title="${esc(r.email || "")}">${
+                r.email ? esc(r.email) : '<span class="dash">—</span>'
+              }</td>
+              <td class="nowrap">${esc(r.source || "—")}${
+                r.createdByRole ? ` <span class="sub">· ${esc(r.createdByRole)}</span>` : ""
+              }</td>
+              <td>${esc(r.status || "—")}</td>
+            </tr>`;
+          })
+          .join("");
+
+        tbl.hidden = false;
+        setState(sorted.length ? "" : "Sin resultados");
+        const distinctCustomers = new Set(
+          rows.map((r) => `${String(r.customerName || "").trim().toLowerCase()}|${String(r.phone || "").trim()}|${String(r.email || "").trim().toLowerCase()}`)
+        ).size;
+        foot.textContent = `Mostrando ${sorted.length} de ${rows.length} reservas (~${distinctCustomers} clientes distintos en esta vista) · Última actualización ${tf.format(new Date())}`;
+        updateSortUI();
+      }
+
+      async function load() {
+        setState("Cargando…");
+        tbl.hidden = true;
+        let res;
+        try {
+          res = await fetch("/api/admin/log?limit=1000", { credentials: "same-origin" });
+        } catch {
+          setState("No se pudo conectar. Revisa tu red e intenta de nuevo.");
+          return;
+        }
+
+        if (res.status === 401 || res.status === 403) {
+          setState(
+            `Este visor es solo para ADMIN.<br /><a class="btn" href="/login">Ir a iniciar sesión</a>`
+          );
+          toolbar.hidden = true;
+          return;
+        }
+        if (!res.ok) {
+          setState("Error al cargar el log. Intenta de nuevo.");
+          return;
+        }
+
+        const data = await res.json();
+        rows = Array.isArray(data.rows) ? data.rows : [];
+
+        phoneFreq = new Map();
+        for (const r of rows) {
+          const p = String(r.phone || "").trim();
+          if (p) phoneFreq.set(p, (phoneFreq.get(p) || 0) + 1);
+        }
+
+        const withPhone = rows.filter((r) => String(r.phone || "").trim()).length;
+        document.getElementById("cAll").textContent = `(${rows.length})`;
+        document.getElementById("cWith").textContent = `(${withPhone})`;
+        document.getElementById("cWithout").textContent = `(${rows.length - withPhone})`;
+        document.getElementById("cNoPhoneAtCreation").textContent =
+          rows.filter((r) => r.noPhoneAtCreation).length;
+
+        toolbar.hidden = false;
+        render();
+      }
+
+      document.querySelectorAll(".chip[data-f]").forEach((b) =>
+        b.addEventListener("click", () => {
+          document.querySelectorAll(".chip[data-f]").forEach((x) => x.classList.remove("active"));
+          b.classList.add("active");
+          filter = b.dataset.f;
+          render();
+        })
+      );
+      document.querySelectorAll("th[data-k]").forEach((th) =>
+        th.addEventListener("click", () => {
+          const k = th.dataset.k;
+          if (sortKey === k) {
+            sortDir = sortDir === "asc" ? "desc" : "asc";
+          } else {
+            sortKey = k;
+            sortDir = k === "creada" || k === "para" || k === "telefono" ? "desc" : "asc";
+          }
+          render();
+        })
+      );
+      q.addEventListener("input", render);
+      document.getElementById("btnRefresh").addEventListener("click", load);
+
+      load();
+    </script>
+  </body>
+</html>

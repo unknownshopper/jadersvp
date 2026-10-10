@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createCustomer, createReservation, findExistingReservedReservation, reserveTables, reserveTable } from "@/lib/firestore";
+import { createReservation, findExistingReservedReservation, findOrCreateCustomer, reserveTables, reserveTable } from "@/lib/firestore";
 import { getFirestore } from "@/lib/firebaseAdmin";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { sendWhatsAppTemplate } from "@/lib/whatsappCloud";
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
     return NextResponse.redirect(new URL("/hostess?err=Falta+cantidad+de+personas", baseUrl));
   }
 
-  const customer = await createCustomer({ name, phone, email });
+  const { customer } = await findOrCreateCustomer({ name, phone, email });
 
   const existing = await findExistingReservedReservation({
     customerId: customer.id,

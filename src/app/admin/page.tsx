@@ -38,8 +38,15 @@ export default async function AdminPage({
         </div>
       ) : null}
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Admin</h2>
-        <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Admin</h2>
+          {canDelete ? (
+            <a className="badge" href="/admin/log">
+              Log de reservas
+            </a>
+          ) : null}
+        </div>
+        <div className="row" style={{ justifyContent: "space-between", marginTop: 10 }}>
           <div className="small">Rango:</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <a

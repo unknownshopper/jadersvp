@@ -1973,3 +1973,82 @@ export async function adminCustomersTable(params?: { limit?: number }) {
 
   return rows;
 }
+
+export type ReservationLogRow = {
+  reservationId: string;
+  createdAt: number;
+  createdByRole: string | null;
+  source: ReservationSource | null;
+  status: ReservationStatus | string;
+  customerName: string;
+  phone: string;
+  email: string | null;
+  noPhoneAtCreation: boolean;
+  tableNames: string[];
+  reservedFor: number | null;
+  partySize: number | null;
+};
+
+function reservationTableIds(r: Reservation): string[] {
+  const active = Array.isArray(r.activeTableIds) ? r.activeTableIds : null;
+  const reserved = Array.isArray(r.tableIds) ? r.tableIds : null;
+  const ids = active && active.length > 0 ? active : reserved && reserved.length > 0 ? reserved : r.tableId ? [r.tableId] : [];
+  return ids.map((x) => String(x)).filter(Boolean);
+}
+
+export async function listReservationsLog(params?: { limit?: number }): Promise<ReservationLogRow[]> {
+  const db = getFirestore();
+  if (!db) return [];
+
+  const limit = Math.max(1, Math.min(1000, Number(params?.limit ?? 500)));
+  const snap = await db.collection("reservations").orderBy("createdAt", "desc").limit(limit).get();
+
+  const reservations = snap.docs.map(
+    (d: any) => ({ id: d.id, ...(d.data() as Omit<Reservation, "id">) }) as Reservation
+  );
+
+  const customerIds = Array.from(
+    new Set(reservations.map((r: Reservation) => String(r.customerId ?? "")).filter(Boolean))
+  );
+  const customers = new Map<string, Customer>();
+  await Promise.all(
+    customerIds.map(async (id) => {
+      const doc = await db.collection("customers").doc(id).get();
+      if (doc.exists) customers.set(id, { id: String(doc.id), ...(doc.data() as Omit<Customer, "id">) });
+    })
+  );
+
+  const tableIdSet = new Set<string>();
+  for (const r of reservations) {
+    for (const id of reservationTableIds(r)) tableIdSet.add(id);
+  }
+
+  const tableNames = new Map<string, string>();
+  await Promise.all(
+    Array.from(tableIdSet).map(async (id) => {
+      const doc = await db.collection("tables").doc(id).get();
+      const name = doc.exists ? String((doc.data() as any)?.name ?? "").trim() : "";
+      tableNames.set(id, name || id);
+    })
+  );
+
+  return reservations.map((r) => {
+    const customer = customers.get(String(r.customerId ?? ""));
+    const ids = reservationTableIds(r);
+
+    return {
+      reservationId: r.id,
+      createdAt: Number(r.createdAt ?? 0),
+      createdByRole: r.createdByRole ?? null,
+      source: r.source ?? null,
+      status: r.status,
+      customerName: String(r.customerNameSnapshot ?? customer?.name ?? ""),
+      phone: String(customer?.phone ?? ""),
+      email: customer?.email ? String(customer.email) : null,
+      noPhoneAtCreation: String((r as any).waConfirmationError ?? "") === "NO_PHONE",
+      tableNames: ids.map((id) => tableNames.get(id) ?? id),
+      reservedFor: typeof r.reservedFor === "number" ? r.reservedFor : null,
+      partySize: typeof r.partySize === "number" ? r.partySize : null
+    };
+  });
+}
