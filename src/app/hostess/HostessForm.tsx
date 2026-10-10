@@ -654,13 +654,18 @@ export default function HostessForm({
               <div className="small" style={{ opacity: 0.85 }}>
                 Croquis: <b>{mapFloor === "down" ? "Planta baja" : "2do piso"}</b>
               </div>
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setMapFloor((p: "down" | "up") => (p === "down" ? "up" : "down"))}
-              >
-                {mapFloor === "down" ? "Ver 2do piso" : "Ver planta baja"}
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <a className="btn secondary" href="/reacomodo.html" title="Abrir el editor de plano">
+                  Reacomodo
+                </a>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => setMapFloor((p: "down" | "up") => (p === "down" ? "up" : "down"))}
+                >
+                  {mapFloor === "down" ? "Ver 2do piso" : "Ver planta baja"}
+                </button>
+              </div>
             </div>
 
             <div className="table-map" data-floor={mapFloor} role="group" aria-label="Croquis de mesas">
