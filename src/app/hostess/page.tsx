@@ -1,4 +1,4 @@
-import { firebaseReady, listTables, listWaitingReservations, listWaitlistReservations } from "@/lib/firestore";
+import { firebaseReady, getFloorplanPositions, listTables, listWaitingReservations, listWaitlistReservations } from "@/lib/firestore";
 import HostessForm from "./HostessForm";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
@@ -94,13 +94,14 @@ export default async function HostessPage({
   })();
 
   const ready = firebaseReady();
-  const [tables, waitingWrapped, waitlistWrapped] = ready
+  const [tables, waitingWrapped, waitlistWrapped, floorplan] = ready
     ? await Promise.all([
         listTables(),
         listWaitingReservations({ allStatuses: false }),
-        listWaitlistReservations({ includeOffered: false })
+        listWaitlistReservations({ includeOffered: false }),
+        getFloorplanPositions()
       ])
-    : [[], [], []];
+    : [[], [], [], null];
 
   const focusedTable = selectedTableId ? tables.find((t) => t.id === selectedTableId) ?? null : null;
 
@@ -320,6 +321,7 @@ export default async function HostessPage({
           initialTableId={searchParams?.tableId ? String(searchParams.tableId) : ""}
           initialReservedDate={initialReservedDate}
           initialReservedTime={initialReservedTime}
+          floorplan={floorplan}
         />
 
         {focusedTable ? (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CafeTable, Customer, Reservation } from "@/lib/firestore";
+import type { CafeTable, Customer, FloorplanPositions, Reservation } from "@/lib/firestore";
 
 function defaultDateTime() {
   const d = new Date();
@@ -115,13 +115,15 @@ export default function HostessForm({
   waitlist,
   initialTableId,
   initialReservedDate,
-  initialReservedTime
+  initialReservedTime,
+  floorplan
 }: {
   tables: CafeTable[];
   waitlist: Array<{ reservation: Reservation; customer: Customer }>;
   initialTableId?: string;
   initialReservedDate?: string;
   initialReservedTime?: string;
+  floorplan?: FloorplanPositions | null;
 }) {
   const router = useRouter();
   const defaults = useMemo(() => defaultDateTime(), []);
@@ -188,6 +190,31 @@ export default function HostessForm({
       { kind: "circle", label: "21", x: 84, y: 84 }
     ] as Array<{ kind: "circle" | "diamond" | "rect" | "triangle" | "lshape" | "square"; label: string; x: number; y: number }>;
   }, []);
+
+  const downPos = useMemo(() => {
+    const merged: Record<string, { x: number; y: number }> = { ...pos };
+    const saved = floorplan?.down;
+    if (saved) {
+      for (const [label, p] of Object.entries(saved)) {
+        if (!(label in merged)) continue;
+        const x = Number((p as any)?.x);
+        const y = Number((p as any)?.y);
+        if (Number.isFinite(x) && Number.isFinite(y)) merged[label] = { x, y };
+      }
+    }
+    return merged;
+  }, [floorplan]);
+
+  const upstairsResolved = useMemo(
+    () =>
+      upstairsMarkers.map((m) => {
+        const p = floorplan?.up?.[m.label];
+        const x = Number((p as any)?.x);
+        const y = Number((p as any)?.y);
+        return Number.isFinite(x) && Number.isFinite(y) ? { ...m, x, y } : m;
+      }),
+    [upstairsMarkers, floorplan]
+  );
 
   const tableByName = useMemo(() => {
     const m = new Map<string, CafeTable>();
@@ -686,7 +713,7 @@ export default function HostessForm({
 
             <div className="table-map" data-floor={mapFloor} role="group" aria-label="Croquis de mesas">
             {mapFloor === "up" ? (
-              upstairsMarkers.map((m, i) => {
+              upstairsResolved.map((m, i) => {
                 const t = tableByName.get(String(m.label)) ?? null;
                 const s = t ? effectiveStatusAt(t, reservedForMs) : "LIBRE";
                 const isSelected = t ? selectedTableIds.includes(t.id) : false;
@@ -717,7 +744,7 @@ export default function HostessForm({
               })
             ) : (
               tables.filter((t) => t.area !== "PLANTA_ALTA").map((t) => {
-                const p = pos[String(t.name)] ?? null;
+                const p = downPos[String(t.name)] ?? null;
                 const s = effectiveStatusAt(t, reservedForMs);
                 const isSelected = selectedTableIds.includes(t.id);
                 const cls = `table-chip ${statusClass(s)} ${isSelected ? "selected" : ""}`;

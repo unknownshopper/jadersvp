@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Jade · Reacomodo de mesas (prueba)</title>
+    <style>
+      :root {
+        --card: rgba(255, 255, 255, 0.06);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.66);
+        --line: rgba(255, 255, 255, 0.14);
+        --brand: #2bb673;
+        --danger: #ff6b5e;
+        --radius: 14px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background:
+          radial-gradient(900px 500px at 10% -10%, rgba(43, 182, 115, 0.18), transparent 60%),
+          linear-gradient(180deg, #07110c, #05110b);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 18px 14px 40px;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      h1 { font-size: 20px; margin: 0; }
+      .muted { color: var(--muted); font-size: 13px; }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 12px 0;
+      }
+
+      .btn {
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 9px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn.active { border-color: var(--brand); }
+      .btn.warn { border-color: rgba(255, 107, 94, 0.6); }
+
+      .map {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background:
+          radial-gradient(900px 520px at 50% 0%, rgba(43, 182, 115, 0.10), transparent 60%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        touch-action: none;
+      }
+
+      .map::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: url("/croquismesa.png") center / contain no-repeat;
+        opacity: 0.22;
+        pointer-events: none;
+      }
+
+      .map[data-floor="up"]::before {
+        background-image: url("/croquisup.png");
+      }
+
+      .marker {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text);
+        background: rgba(43, 182, 115, 0.22);
+        border: 2px solid var(--brand);
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+        z-index: 2;
+      }
+
+      .marker:active { cursor: grabbing; }
+
+      .marker.dragging {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.28);
+        z-index: 5;
+      }
+
+      .marker.chip { min-width: 44px; height: 44px; padding: 0 10px; border-radius: 12px; }
+      .marker.square { width: 44px; height: 44px; border-radius: 8px; }
+      .marker.circle { width: 44px; height: 44px; border-radius: 50%; }
+      .marker.rect { width: 68px; height: 40px; border-radius: 8px; }
+      .marker.triangle {
+        width: 0; height: 0;
+        background: transparent;
+        border-left: 24px solid transparent;
+        border-right: 24px solid transparent;
+        border-bottom: 40px solid rgba(43, 182, 115, 0.5);
+        border-top: none;
+        border-radius: 0;
+      }
+      .marker.triangle span { transform: translateY(26px); font-size: 11px; }
+      .marker.diamond { width: 46px; height: 46px; transform: translate(-50%, -50%) rotate(45deg); border-radius: 8px; }
+      .marker.diamond span { transform: rotate(-45deg); }
+      .marker.lshape {
+        width: 56px; height: 56px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        clip-path: polygon(0 0, 55% 0, 55% 55%, 100% 55%, 100% 100%, 0 100%);
+        background-color: rgba(43, 182, 115, 0.35);
+      }
+      .marker.lshape span { transform: translate(-8px, -14px); font-size: 11px; }
+
+      .panel {
+        margin-top: 14px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 12px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        margin-top: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>Reacomodo de mesas <span class="muted">(prueba)</span></h1>
+          <div class="muted">Arrastra las mesas con el dedo o el mouse. Las posiciones se guardan en Firestore y las ve cualquier sesión.</div>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button class="btn active" id="btnDown" type="button">Planta baja</button>
+        <button class="btn" id="btnUp" type="button">2do piso</button>
+        <button class="btn warn" id="btnReset" type="button">Restablecer</button>
+        <button class="btn" id="btnExport" type="button">Exportar posiciones</button>
+        <span class="muted" id="saveState" style="align-self: center"></span>
+      </div>
+
+      <div class="map" id="map" data-floor="down"></div>
+
+      <div class="panel" id="exportPanel" hidden>
+        <div class="muted">Copia este JSON — son las posiciones actuales de todos los pisos:</div>
+        <textarea id="exportText" readonly></textarea>
+      </div>
+    </div>
+
+    <script>
+      // Posiciones originales (copia de HostessForm): planta baja = chips, 2do piso = markers con forma.
+      const DEFAULT_DOWN = {
+        "1": { x: 55, y: 58 }, "2": { x: 55, y: 49 }, "3": { x: 55, y: 40 },
+        "4": { x: 34, y: 35 }, "5": { x: 34, y: 43 }, "6": { x: 34, y: 51 },
+        "7": { x: 24, y: 86 }, "8": { x: 24, y: 77 }, "9": { x: 24, y: 68 },
+        "10": { x: 18, y: 46 }, "11": { x: 18, y: 30 }, "12": { x: 18, y: 38 },
+        "13": { x: 18, y: 54 },
+        "14": { x: 72, y: 30 }, "15": { x: 72, y: 18 }, "16": { x: 82, y: 18 },
+        "17": { x: 92, y: 18 }, "18": { x: 88, y: 30 }
+      };
+
+      const DEFAULT_UP = [
+        { kind: "square", label: "36", x: 18, y: 16 },
+        { kind: "square", label: "33", x: 62, y: 16 },
+        { kind: "circle", label: "34", x: 40, y: 14 },
+        { kind: "circle", label: "35", x: 40, y: 30 },
+        { kind: "circle", label: "37", x: 14, y: 30 },
+        { kind: "circle", label: "38", x: 14, y: 46 },
+        { kind: "circle", label: "39", x: 14, y: 60 },
+        { kind: "rect", label: "32", x: 64, y: 30 },
+        { kind: "rect", label: "31", x: 64, y: 50 },
+        { kind: "triangle", label: "30", x: 38, y: 46 },
+        { kind: "diamond", label: "29", x: 25, y: 66 },
+        { kind: "diamond", label: "28", x: 40, y: 66 },
+        { kind: "rect", label: "27", x: 15, y: 84 },
+        { kind: "rect", label: "26", x: 32, y: 84 },
+        { kind: "rect", label: "25", x: 49, y: 84 },
+        { kind: "diamond", label: "24", x: 80, y: 66 },
+        { kind: "diamond", label: "23", x: 92, y: 66 },
+        { kind: "diamond", label: "22", x: 92, y: 78 },
+        { kind: "circle", label: "21", x: 84, y: 84 }
+      ];
+
+      const LS_KEY = "reacomodo-pos-v1";
+      const map = document.getElementById("map");
+      const saveState = document.getElementById("saveState");
+      let floor = "down";
+
+      function defaultPositions() {
+        return {
+          down: JSON.parse(JSON.stringify(DEFAULT_DOWN)),
+          up: Object.fromEntries(DEFAULT_UP.map((m) => [m.label, { x: m.x, y: m.y }]))
+        };
+      }
+
+      function mergePositions(base, saved) {
+        if (!saved) return base;
+        const out = { down: { ...base.down }, up: { ...base.up } };
+        for (const floor of ["down", "up"]) {
+          const src = saved[floor];
+          if (!src || typeof src !== "object") continue;
+          for (const [label, p] of Object.entries(src)) {
+            const x = Number(p?.x), y = Number(p?.y);
+            if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+            if (!(label in out[floor])) continue;
+            out[floor][label] = { x, y };
+          }
+        }
+        return out;
+      }
+
+      let positions = defaultPositions();
+
+      async function persist() {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(positions));
+        } catch {}
+        saveState.textContent = "Guardando…";
+        try {
+          const res = await fetch("/api/floorplan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ positions })
+          });
+          if (res.ok) {
+            saveState.textContent = `Guardado ${new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`;
+          } else if (res.status === 401 || res.status === 403) {
+            saveState.textContent = "Sin permiso para guardar (necesitas sesión de staff)";
+          } else {
+            saveState.textContent = "No se pudo guardar en Firestore";
+          }
+        } catch {
+          saveState.textContent = "Sin conexión — guardado local";
+        }
+      }
+
+      function save() {
+        persist();
+      }
+
+      async function init() {
+        let res;
+        try {
+          res = await fetch("/api/floorplan", { credentials: "same-origin" });
+        } catch {
+          res = null;
+        }
+
+        if (res && (res.status === 401 || res.status === 403)) {
+          map.innerHTML =
+            '<div style="position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center">' +
+            '<div><div style="font-weight:800;margin-bottom:10px">Necesitas iniciar sesión</div>' +
+            '<a class="btn" style="display:inline-block;text-decoration:none" href="/login">Ir a iniciar sesión</a></div></div>';
+          return;
+        }
+
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          positions = mergePositions(defaultPositions(), data?.positions);
+          try {
+            localStorage.setItem(LS_KEY, JSON.stringify(positions));
+          } catch {}
+        } else {
+          try {
+            const saved = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+            positions = mergePositions(defaultPositions(), saved);
+          } catch {}
+          saveState.textContent = "Sin conexión al servidor — mostrando último acomodo local";
+        }
+
+        render();
+      }
+
+      function render() {
+        map.dataset.floor = floor;
+        map.innerHTML = "";
+
+        if (floor === "down") {
+          for (const [label, p] of Object.entries(positions.down)) {
+            map.appendChild(makeMarker(label, "chip", p, (np) => (positions.down[label] = np)));
+          }
+        } else {
+          for (const m of DEFAULT_UP) {
+            const p = positions.up[m.label] || { x: m.x, y: m.y };
+            map.appendChild(makeMarker(m.label, m.kind, p, (np) => (positions.up[m.label] = np)));
+          }
+        }
+      }
+
+      function makeMarker(label, kind, pos, onMove) {
+        const el = document.createElement("div");
+        el.className = `marker ${kind}`;
+        el.style.left = `${pos.x}%`;
+        el.style.top = `${pos.y}%`;
+        el.title = `Mesa ${label}`;
+        el.innerHTML = `<span>${label}</span>`;
+
+        el.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          el.setPointerCapture(e.pointerId);
+          el.classList.add("dragging");
+
+          const move = (ev) => {
+            const rect = map.getBoundingClientRect();
+            const x = Math.min(97, Math.max(3, ((ev.clientX - rect.left) / rect.width) * 100));
+            const y = Math.min(97, Math.max(3, ((ev.clientY - rect.top) / rect.height) * 100));
+            el.style.left = `${x}%`;
+            el.style.top = `${y}%`;
+            onMove({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+          };
+
+          const up = () => {
+            el.classList.remove("dragging");
+            el.removeEventListener("pointermove", move);
+            el.removeEventListener("pointerup", up);
+            el.removeEventListener("pointercancel", up);
+            save();
+          };
+
+          el.addEventListener("pointermove", move);
+          el.addEventListener("pointerup", up);
+          el.addEventListener("pointercancel", up);
+        });
+
+        return el;
+      }
+
+      function setFloor(f) {
+        floor = f;
+        document.getElementById("btnDown").classList.toggle("active", f === "down");
+        document.getElementById("btnUp").classList.toggle("active", f === "up");
+        render();
+      }
+
+      document.getElementById("btnDown").addEventListener("click", () => setFloor("down"));
+      document.getElementById("btnUp").addEventListener("click", () => setFloor("up"));
+
+      document.getElementById("btnReset").addEventListener("click", () => {
+        if (!confirm("¿Restablecer todas las posiciones a las originales? Esto también se guarda en Firestore.")) return;
+        positions = defaultPositions();
+        render();
+        persist();
+      });
+
+      document.getElementById("btnExport").addEventListener("click", () => {
+        const panel = document.getElementById("exportPanel");
+        const text = document.getElementById("exportText");
+        text.value = JSON.stringify(positions, null, 2);
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) text.select();
+      });
+
+      init();
+    </script>
+  </body>
+</html>

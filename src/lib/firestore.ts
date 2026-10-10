@@ -1989,6 +1989,35 @@ export type ReservationLogRow = {
   partySize: number | null;
 };
 
+export type FloorplanPositions = {
+  down: Record<string, { x: number; y: number }>;
+  up: Record<string, { x: number; y: number }>;
+};
+
+export async function getFloorplanPositions(): Promise<FloorplanPositions | null> {
+  const db = getFirestore();
+  if (!db) return null;
+
+  const doc = await db.collection("config").doc("floorplan").get();
+  if (!doc.exists) return null;
+
+  const positions = (doc.data() as any)?.positions;
+  if (!positions || typeof positions !== "object") return null;
+
+  const sanitize = (src: any) => {
+    const out: Record<string, { x: number; y: number }> = {};
+    if (!src || typeof src !== "object") return out;
+    for (const [k, p] of Object.entries(src)) {
+      const x = Number((p as any)?.x);
+      const y = Number((p as any)?.y);
+      if (Number.isFinite(x) && Number.isFinite(y)) out[k] = { x, y };
+    }
+    return out;
+  };
+
+  return { down: sanitize(positions.down), up: sanitize(positions.up) };
+}
+
 function reservationTableIds(r: Reservation): string[] {
   const active = Array.isArray(r.activeTableIds) ? r.activeTableIds : null;
   const reserved = Array.isArray(r.tableIds) ? r.tableIds : null;
