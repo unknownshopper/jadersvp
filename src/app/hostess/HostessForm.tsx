@@ -439,7 +439,7 @@ export default function HostessForm({
       setPendingQueued(queueCount());
       resetCapturedFields();
       window.alert(
-        "Sin conexión. La reserva quedó guardada en este dispositivo y se enviará automáticamente cuando regrese el internet."
+        "Sin conexión. La operación quedó guardada en este dispositivo y se enviará automáticamente cuando regrese el internet."
       );
     }
   };
@@ -508,6 +508,14 @@ export default function HostessForm({
             e.preventDefault();
             if (isSubmitting) return;
             const form = e.currentTarget;
+
+            // Outage policy: no new table assignments while offline — capture to waitlist instead.
+            if (!navigator.onLine && (tableId || selectedTableIds.length > 0)) {
+              window.alert(
+                "Sin internet: no se pueden asignar mesas nuevas.\n\nRegistra al cliente con «Guardar en lista de espera» y asígnale mesa cuando regrese la conexión."
+              );
+              return;
+            }
 
             const dial = normalizeDialCode(phoneCountry);
             const nationalDigits = String(phoneNational || "").replace(/\D/g, "");
@@ -1066,7 +1074,7 @@ export default function HostessForm({
         )}
       </div>
 
-      <div className="card requires-online">
+      <div className="card">
         <h3 style={{ marginTop: 0 }}>Mesas ocupadas</h3>
         {occupiedTables.length === 0 ? <div className="small" style={{ marginTop: 8 }}>Sin registros</div> : null}
 
@@ -1103,18 +1111,30 @@ export default function HostessForm({
                     <form
                       action="/api/tables/free"
                       method="post"
-                      onSubmit={(e) => {
+                      onSubmit={async (e) => {
+                        e.preventDefault();
                         const ok = window.confirm(
                           moved
                             ? `¿Liberar Mesa ${String(t.name)} y regresarla a su lugar?`
                             : `¿Liberar Mesa ${String(t.name)}?`
                         );
-                        if (!ok) e.preventDefault();
+                        if (!ok) return;
+                        setIsSubmitting(true);
+                        try {
+                          await submitWithQueue(e.currentTarget, "/api/tables/free");
+                        } finally {
+                          setIsSubmitting(false);
+                        }
                       }}
                     >
                       <input type="hidden" name="tableId" value={t.id} />
+                      <input
+                        type="hidden"
+                        name="expectedReservationId"
+                        value={String((t as any).currentReservationId ?? "")}
+                      />
                       {moved ? <input type="hidden" name="returnHome" value="1" /> : null}
-                      <button className="btn" type="submit">
+                      <button className="btn" type="submit" disabled={isSubmitting}>
                         {moved ? "Liberar y devolver" : "Liberar"}
                       </button>
                     </form>

@@ -1513,7 +1513,13 @@ export async function reserveTables(params: {
 
 export async function freeTable(params: {
   tableId: string;
-}): Promise<{ completedReservationId: string | null; reservationId: string | null; remainingActiveTableIds: string[] | null }> {
+  expectedReservationId?: string | null;
+}): Promise<{
+  completedReservationId: string | null;
+  reservationId: string | null;
+  remainingActiveTableIds: string[] | null;
+  skipped: boolean;
+}> {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
 
@@ -1522,6 +1528,7 @@ export async function freeTable(params: {
   let completedReservationId: string | null = null;
   let reservationId: string | null = null;
   let remainingActiveTableIds: string[] | null = null;
+  let skipped = false;
 
   await db.runTransaction(async (tx: any) => {
     const tableDoc = await tx.get(tableRef);
@@ -1552,6 +1559,22 @@ export async function freeTable(params: {
         .limit(1)
     );
 
+    const resDoc = !activeSnapByActiveTableIds.empty
+      ? activeSnapByActiveTableIds.docs[0]
+      : !activeSnapByTableId.empty
+        ? activeSnapByTableId.docs[0]
+        : !activeSnapByTableIds.empty
+          ? activeSnapByTableIds.docs[0]
+          : null;
+
+    // Stale-free guard: an offline-queued free only applies if the table is
+    // still held by the same reservation seen when it was queued.
+    const expected = String(params.expectedReservationId ?? "").trim();
+    if (expected && String(resDoc?.id ?? "") !== expected) {
+      skipped = true;
+      return;
+    }
+
     const ts = nowMs();
     tx.update(tableRef, {
       status: "LIBRE",
@@ -1560,14 +1583,6 @@ export async function freeTable(params: {
       currentCustomerName: null,
       updatedAt: ts
     });
-
-    const resDoc = !activeSnapByActiveTableIds.empty
-      ? activeSnapByActiveTableIds.docs[0]
-      : !activeSnapByTableId.empty
-        ? activeSnapByTableId.docs[0]
-        : !activeSnapByTableIds.empty
-          ? activeSnapByTableIds.docs[0]
-          : null;
 
     if (resDoc) {
       reservationId = String(resDoc.id);
@@ -1594,7 +1609,7 @@ export async function freeTable(params: {
     }
   });
 
-  return { completedReservationId, reservationId, remainingActiveTableIds };
+  return { completedReservationId, reservationId, remainingActiveTableIds, skipped };
 }
 
 export async function confirmFreedTable(params: { tableId: string }) {

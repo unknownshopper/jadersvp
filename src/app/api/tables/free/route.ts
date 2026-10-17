@@ -24,7 +24,12 @@ export async function POST(req: Request) {
     const tableId = String(form.get("tableId") ?? "");
     if (!tableId) return NextResponse.redirect(new URL("/hostess?err=Falta+mesa", baseUrl));
 
-    const { completedReservationId, reservationId, remainingActiveTableIds } = await freeTable({ tableId });
+    const expectedReservationId = String(form.get("expectedReservationId") ?? "").trim() || null;
+    const { completedReservationId, reservationId, remainingActiveTableIds, skipped } = await freeTable({
+      tableId,
+      expectedReservationId
+    });
+    if (skipped) console.log("FREE_SKIPPED_STALE", { tableId, expectedReservationId });
 
     const returnHome = String(form.get("returnHome") ?? "") === "1";
     if (returnHome) {
