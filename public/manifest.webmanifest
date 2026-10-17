@@ -1,0 +1,38 @@
+{
+  "name": "Café Jade — Reservas y Mesas",
+  "short_name": "Café Jade",
+  "description": "Sistema de reservas y mesas de Café Jade",
+  "lang": "es-MX",
+  "start_url": "/hostess",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#047734",
+  "background_color": "#047734",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

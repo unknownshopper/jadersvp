@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import LogoutButton from "./LogoutButton";
 import { getSessionUser } from "@/lib/serverAuth";
@@ -8,10 +8,24 @@ const appBaseUrl = process.env.APP_BASE_URL
   ? new URL(process.env.APP_BASE_URL)
   : new URL("https://cafejadersvp--cafejadersvp.us-central1.hosted.app");
 
+export const viewport: Viewport = {
+  themeColor: "#047734"
+};
+
 export const metadata: Metadata = {
   title: "Café Jade — Reservas",
   description: "Sistema de reservas y mesas",
   metadataBase: appBaseUrl,
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png"
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Café Jade",
+    statusBarStyle: "black-translucent"
+  },
   openGraph: {
     title: "Café Jade — Reservas",
     description: "Sistema de reservas y mesas",
@@ -174,6 +188,12 @@ export default async function RootLayout({
     document.addEventListener('DOMContentLoaded', restore);
   } else {
     restore();
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
   }
 })();`
           }}
