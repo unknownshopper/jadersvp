@@ -356,8 +356,8 @@ textarea:focus{
 
         <p class="intro-text">
             Son 21 preguntas rápidas, toma menos de 2 minutos.
-            Al final, tu cortesía llega a tu WhatsApp —
-            así comprobamos que tu número es real y tu recompensa es válida.
+            Al terminar recibirás un mensaje de confirmación en tu WhatsApp —
+            así comprobamos que tu número es real.
         </p>
 
         <button class="btn" id="btn-start">Comenzar encuesta</button>
@@ -378,15 +378,15 @@ textarea:focus{
             <label for="telefono">Tu número de WhatsApp (10 dígitos)</label>
             <input type="tel" id="telefono" placeholder="Ej. 9611234567" maxlength="10" inputmode="numeric" autocomplete="tel">
             <p class="field-note">
-                <i class="fa-solid fa-gift"></i>
-                A este número te llegará tu cortesía por WhatsApp —
+                <i class="fa-solid fa-check-to-slot"></i>
+                A este número llegará tu código por la encuesta realizada —
                 asegúrate de escribir tu número real.
             </p>
         </div>
 
         <button class="btn" id="btn-next">Continuar a la encuesta</button>
 
-        <p class="hint">Al terminar, tu cortesía se envía por WhatsApp al número que escribas. Así comprobamos que tu número es real y tu opinión cuenta.</p>
+        <p class="hint">Al terminar, tu número de confirmación se envía por WhatsApp al número que escribas. Así comprobamos que tu número es real y tu opinión cuenta.</p>
 
     </section>
 
@@ -412,15 +412,15 @@ textarea:focus{
 
         <div class="done-title" id="done-title">¡Gracias por tu opinión!</div>
 
-        <div class="folio">Folio: <span id="folio-2"></span></div>
+        <div class="folio">Confirmación: <span id="folio-2"></span></div>
 
         <p class="done-text" id="done-text">
-            En breve recibirás tu cortesía en tu WhatsApp:
+            En breve recibirás tu número de confirmación en tu WhatsApp.
+            Muéstralo al mesero en tu próxima visita para reclamar tu cortesía:
             <strong>un café americano o el pan del día</strong>.
-            Preséntala al mesero en tu próxima visita.
         </p>
 
-        <p class="hint">La cortesía se envía una vez confirmada tu encuesta en nuestro WhatsApp.</p>
+        <p class="hint">La confirmación se envía una vez registrada tu encuesta.</p>
 
     </section>
 
@@ -649,7 +649,7 @@ document.getElementById('btn-submit').onclick = async () => {
         const data = await res.json().catch(() => ({}));
         if (!data.rewardSent) {
             document.getElementById('done-text').innerHTML =
-                'Tu encuesta quedó registrada. Muestra este <strong>folio al mesero</strong> ' +
+                'Tu encuesta quedó registrada. Muestra este <strong>número de confirmación al mesero</strong> ' +
                 'para reclamar tu cortesía: <strong>un café americano o el pan del día</strong>.';
         }
         show('step-done');
