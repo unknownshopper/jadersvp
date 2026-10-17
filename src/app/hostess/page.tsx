@@ -762,6 +762,14 @@ export default async function HostessPage({
         </div>
       </div>
       </div>
+      <div className="small" style={{ textAlign: "center", padding: "6px 0 22px", opacity: 0.7 }}>
+        <a href="/aviso.html" style={{ margin: "0 10px" }}>
+          Aviso de privacidad
+        </a>
+        <a href="/terms.html" style={{ margin: "0 10px" }}>
+          Términos y condiciones
+        </a>
+      </div>
     </div>
   );
 }
