@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Café Jade — Guía rápida de operación</title>
-    <meta name="description" content="Guía rápida para operar reservaciones, hostess y caja en el sistema de Café Jade." />
+    <title>Café Jade — Manual de atención y operación</title>
+    <meta name="description" content="Protocolo completo de Café Jade: reservación, recepción, sentado, venta, reventa, cierre, encuesta y contingencia sin internet." />
 
     <style>
       :root{
@@ -83,26 +83,35 @@
       h1{margin:0; font-size:20px}
       h2{margin:0 0 8px; font-size:16px}
       p{margin:8px 0; color:var(--muted); line-height:1.45}
+      ol,ul{margin:8px 0; padding-left:20px; color:var(--muted); line-height:1.5}
+      li{margin:4px 0}
       .grid{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;}
       @media (max-width: 840px){.grid{grid-template-columns:1fr}}
 
       .step{padding:14px; border:1px solid var(--border); border-radius:14px; background: rgba(255,255,255,0.78)}
       .step b{display:block; margin-bottom:6px}
       .pill{display:inline-block; padding:2px 10px; border-radius:999px; border:1px solid rgba(34,197,94,0.28); background: rgba(34,197,94,0.10); font-weight:800; font-size:12px; color: var(--jade-dark);}
+      .pill.warn{border-color: rgba(239,68,68,0.30); background: rgba(239,68,68,0.08); color:#b03a2e;}
 
       .role{display:flex; align-items:flex-start; gap:12px;}
       .role .tag{min-width:110px}
       .role ul{margin:0; padding-left:18px; color:var(--muted)}
-      .role li{margin:4px 0}
 
       .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
       .callout{border-left:4px solid rgba(34,197,94,0.55); background: rgba(34,197,94,0.06); padding:12px 14px; border-radius:12px; color: var(--muted)}
+      .callout.warn{border-left-color: rgba(245,158,11,0.6); background: rgba(245,158,11,0.07);}
+
+      table.cmp{width:100%; border-collapse:collapse; font-size:14px; margin-top:8px}
+      table.cmp th{text-align:left; padding:8px 10px; border-bottom:2px solid var(--border)}
+      table.cmp td{padding:8px 10px; border-top:1px solid rgba(15,23,42,0.07); color:var(--muted); vertical-align:top}
+      .yes{color:var(--jade-dark); font-weight:800}
+      .no{color:#b03a2e; font-weight:800}
 
       @media print{
         body{background:#fff}
         .top{box-shadow:none}
-        .btn{display:none}
-        .card{box-shadow:none}
+        .actions{display:none}
+        .card{box-shadow:none; page-break-inside:avoid}
       }
     </style>
   </head>
@@ -115,8 +124,8 @@
             <img src="/logo.jpg" alt="Logo Café Jade" />
           </div>
           <div class="title">
-            <b>Café Jade — Guía rápida</b>
-            <span>Operación de reservaciones, hostess y caja</span>
+            <b>Café Jade — Manual de operación</b>
+            <span>Atención y venta: de la reservación a la encuesta</span>
           </div>
         </div>
         <div class="actions">
@@ -125,84 +134,124 @@
       </div>
 
       <div class="card">
-        <h1>Cómo usar el sistema (paso a paso)</h1>
-        <p>Esta guía es para operar el sistema diariamente. Si algo no cuadra con el proceso real del restaurante, se ajusta el flujo en el sistema.</p>
+        <h2>Roles</h2>
+        <table class="cmp">
+          <thead><tr><th>Rol</th><th>Pantalla</th><th>Responsabilidad</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill">HOSTESS</span></td><td class="mono">/hostess</td><td>Capturar reservas, asignar mesas, lista de espera, liberar mesas</td></tr>
+            <tr><td><span class="pill">CAJA</span></td><td class="mono">/caja</td><td>Cobro y cierre de cuentas</td></tr>
+            <tr><td><span class="pill">ADMIN</span></td><td class="mono">/admin · /admin/log · /reacomodo.html</td><td>Supervisión, registro histórico, acomodo del plano</td></tr>
+            <tr><td><span class="pill">DIRECTOR</span></td><td class="mono">Todo</td><td>Dirección y reportes</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px">La tablet de recepción trabaja instalada como aplicación (ícono Café Jade), sesión de hostess iniciada.</p>
+      </div>
 
-        <div class="grid" style="margin-top:12px">
-          <div class="step">
-            <b>1) Iniciar sesión</b>
-            <p>Entra al enlace del sistema y usa tu correo y contraseña. Según tu rol, verás tu pantalla.</p>
-          </div>
-          <div class="step">
-            <b>2) Crear reserva / asignar mesa (Hostess)</b>
-            <p>Captura nombre y <span class="pill">WhatsApp (obligatorio)</span>. Correo es opcional.</p>
-            <p>Si ya sabes la mesa, selecciónala en el mapa o en el selector.</p>
-          </div>
-          <div class="step">
-            <b>3) Sentar</b>
-            <p>En <b>Lista de espera / Reservas</b>, elige la mesa (si no estaba asignada) y presiona <b>Sentar</b>.</p>
-          </div>
-          <div class="step">
-            <b>4) No Show (no llegó)</b>
-            <p>Si pasaron <b>10 min</b> después de la hora reservada y el cliente no llegó, presiona <b>No llegó</b>.</p>
-          </div>
-          <div class="step">
-            <b>5) Liberar mesa (Caja)</b>
-            <p>Después del pago, en <b>Caja</b> presiona <b>Liberar</b>. La mesa queda disponible para reasignar.</p>
-          </div>
-          <div class="step">
-            <b>6) Reasignar mesas</b>
-            <p>Hostess puede reasignar (sentar) en otra mesa si es necesario, según disponibilidad.</p>
-          </div>
+      <div class="card">
+        <h2>1 · Reservación</h2>
+        <p>Cuando el cliente aparta — por llamada, WhatsApp o en persona:</p>
+        <ol>
+          <li>Captura el <b>nombre</b>. Al escribir aparecen clientes registrados que coinciden — elige el correcto y se rellenan teléfono y correo solos.</li>
+          <li>Si es nuevo, captura el <b>teléfono</b>: también sugiere coincidencias mientras escribes, y al salir del campo reconoce si el cliente ya existe.</li>
+          <li>Selecciona fecha/hora y las mesas en el croquis — para grupos grandes puedes tocar varias mesas libres.</li>
+          <li>Al guardar, el cliente recibe <b>confirmación por WhatsApp</b> con fecha, hora y mesas.</li>
+        </ol>
+        <div class="callout">
+          <b>Regla de oro:</b> siempre captura teléfono. Sin él el cliente no recibe confirmación ni encuesta, y la reserva queda marcada como <span class="pill warn">SIN TELÉFONO</span> en el registro.
         </div>
       </div>
 
       <div class="card">
-        <h2>Roles y permisos (hoy)</h2>
-        <div class="role" style="margin-top:10px">
-          <div class="tag"><span class="pill">HOSTESS</span></div>
-          <ul>
-            <li>Crear reservas y asignar mesa</li>
-            <li>Sentar clientes</li>
-            <li>Marcar <b>No llegó</b> (No Show)</li>
-          </ul>
-        </div>
-        <div class="role" style="margin-top:10px">
-          <div class="tag"><span class="pill">CAJA</span></div>
-          <ul>
-            <li>Liberar mesa después del pago</li>
-          </ul>
-        </div>
-        <div class="role" style="margin-top:10px">
-          <div class="tag"><span class="pill">ADMIN</span></div>
-          <ul>
-            <li>Puede operar como hostess y como caja</li>
-          </ul>
-        </div>
+        <h2>2 · Recepción y sentado</h2>
+        <ol>
+          <li>Al llegar el cliente, localiza su reserva (lista del día o registro por nombre/teléfono).</li>
+          <li>Siéntalo en la(s) mesa(s) asignada(s) — el croquis las marca OCUPADA.</li>
+          <li><b>Walk-in:</b> crea la reserva en el momento con la mesa libre seleccionada.</li>
+          <li><b>Mesas llenas:</b> usa <b>Guardar en lista de espera</b> (nombre + teléfono + mesas requeridas). Al liberarse mesas, <b>Confirmar</b> las asigna y puede avisar por WhatsApp.</li>
+        </ol>
+        <h2 style="margin-top:14px">Juntar mesas (grupos grandes)</h2>
+        <ol>
+          <li>Toca una mesa ocupada del grupo (o el botón <b>Juntar</b>).</li>
+          <li>En la ficha, <b>Sumar mesa al grupo…</b> → elige la mesa libre. Repite para una tercera o más.</li>
+        </ol>
+        <p>Un grupo es <b>una sola reservación con varias mesas</b>; se completa al liberar la última.</p>
+      </div>
 
-        <div class="callout" style="margin-top:12px">
-          <b>Notas</b>
-          <p style="margin:6px 0 0">Host y hostv (turnos distintos) usan el mismo rol <span class="mono">HOSTESS</span>. Los campos de turno (ej. MAÑANA/TARDE) son informativos por ahora.</p>
+      <div class="card">
+        <h2>3 · Venta (estándares de servicio)</h2>
+        <p>La encuesta mide exactamente esto — el mesero debe:</p>
+        <ol>
+          <li>Dar la <b>bienvenida</b> y <b>presentarse por su nombre</b>.</li>
+          <li>Ofrecer <b>bebida apenas se sientan</b>.</li>
+          <li>Recomendar <b>especialidades, promociones o el pan del día</b>.</li>
+          <li>Sugerir <b>acompañamientos</b> a la bebida o platillo.</li>
+          <li><b>Regresar a la mesa</b> para verificar que todo esté bien.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>4 · Reventa (segunda venta)</h2>
+        <p>Antes de que pidan la cuenta, siempre ofrecer:</p>
+        <ul>
+          <li>Postre o repostería.</li>
+          <li>Otra bebida, refill o digestivo.</li>
+          <li>Invitación a volver: promociones y próximas reservas.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>5 · Cierre de mesa</h2>
+        <ol>
+          <li>Despedida y agradecimiento al cliente.</li>
+          <li>En <span class="mono">/hostess</span> → <b>Mesas ocupadas</b> → <b>Liberar</b>. Si la mesa está fuera de su lugar, el botón dice <b>Liberar y devolver</b>: la libera y regresa su posición en el plano.</li>
+          <li>Al liberar la última mesa del grupo, la reserva se completa y el sistema envía la <b>encuesta de satisfacción por WhatsApp</b> automáticamente.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>6 · Encuesta y cortesía</h2>
+        <p>El cliente abre la encuesta desde el WhatsApp que recibe o el QR de mesa:</p>
+        <ol>
+          <li>Escribe <b>nombre y teléfono</b>.</li>
+          <li>Recibe un <b>código de 6 dígitos por WhatsApp</b> y lo escribe en la página — así se verifica que el número es real (si el número no tiene WhatsApp, el código nunca llega y la encuesta no se abre).</li>
+          <li>Contesta las 21 preguntas.</li>
+          <li>Recibe su <b>número de confirmación (folio CJ-XXXX)</b>.</li>
+        </ol>
+        <p>El folio vale <b>un café americano o el pan del día</b> en su próxima visita — el mesero lo anota en caja.</p>
+        <div class="callout">
+          Solo una encuesta por número de teléfono: el sistema rechaza duplicados.
         </div>
       </div>
 
       <div class="card">
-        <h2>Mensaje sugerido para enviar por WhatsApp (manual)</h2>
-        <p>Copiar/pegar:</p>
-        <div class="step" style="background: rgba(255,255,255,0.92)">
-          <div class="mono" style="white-space:pre-wrap; line-height:1.45">
-Hola, buen día. Te comparto el acceso al sistema de reservaciones de Café Jade:
+        <h2>7 · Registro y supervisión</h2>
+        <ul>
+          <li><span class="mono">/admin/log</span> (administradores): historial completo con nombre, mesa(s), fecha/hora, teléfono o <span class="pill warn">SIN TELÉFONO</span>, correo, origen y estado.</li>
+          <li>El contador <b>"Sin tel. al crear"</b> muestra quién registró sin teléfono.</li>
+          <li><span class="mono">/reacomodo.html</span> (admin): mover mesas del plano; <span class="mono">/hostess</span> lo refleja. En operación el croquis es de solo lectura — se edita solo en el editor para evitar movimientos accidentales.</li>
+        </ul>
+      </div>
 
-ENLACE: (pega aquí el enlace)
-
-Roles:
-- Hostess: crear/sentar/no-show
-- Caja: liberar mesas después del pago
-
-Guía rápida (PDF): (pega aquí el enlace a esta guía)
-
-Cualquier detalle me dices y lo ajustamos.
-          </div>
+      <div class="card">
+        <h2>8 · Contingencia: sin internet</h2>
+        <p>Si se va la luz o el internet, la tablet muestra el aviso amarillo <b>Sin conexión</b> y el sistema entra en modo degradado:</p>
+        <table class="cmp">
+          <thead><tr><th>Acción</th><th>Sin internet</th></tr></thead>
+          <tbody>
+            <tr><td>Liberar mesas ocupadas</td><td><span class="yes">Sí</span> — se encolan y se ejecutan solas al volver</td></tr>
+            <tr><td>Lista de espera</td><td><span class="yes">Sí</span> — se encola</td></tr>
+            <tr><td>Reserva sin mesa (a futuro)</td><td><span class="yes">Sí</span> — se encola</td></tr>
+            <tr><td>Reserva con mesa / sentar</td><td><span class="no">No</span> — sin internet no sabemos si la mesa sigue libre; usa lista de espera</td></tr>
+            <tr><td>Sumar mesa a un grupo</td><td><span class="no">No</span></td></tr>
+            <tr><td>Confirmar lista de espera</td><td><span class="no">No</span></td></tr>
+          </tbody>
+        </table>
+        <div class="callout warn" style="margin-top:12px">
+          <ul style="margin:0">
+            <li>El formulario guarda <b>borrador automático</b>: si la página se recarga, lo capturado se restaura.</li>
+            <li>Al regresar la conexión, lo encolado se envía solo y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde, pero llegan.</li>
+            <li>Regla operativa durante el corte: <b>solo se libera lo sentado y se captura lista de espera</b>; no se sienta gente nueva en mesa.</li>
+          </ul>
         </div>
       </div>
     </div>
