@@ -151,6 +151,25 @@ export default async function RootLayout({
     save();
   }, true);
 
+  // Bloquea pull-to-refresh (iOS Safari no soporta overscroll-behavior).
+  let touchStartY = null;
+  document.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches && e.touches.length ? e.touches[0].clientY : null;
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (touchStartY == null) return;
+    const y = e.touches && e.touches.length ? e.touches[0].clientY : null;
+    if (y == null || y <= touchStartY) return;
+    // Gesto hacia abajo: solo bloquear si ni la página ni el contenedor tocado pueden subir.
+    if (window.scrollY > 0) return;
+    let el = e.target instanceof Element ? e.target : null;
+    while (el && el !== document.body && el !== document.documentElement) {
+      if (el.scrollTop > 0) return;
+      el = el.parentElement;
+    }
+    e.preventDefault();
+  }, { passive: false });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', restore);
   } else {

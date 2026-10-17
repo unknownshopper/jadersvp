@@ -1,6 +1,7 @@
 html, body {
   padding: 0;
   margin: 0;
+  overscroll-behavior: none;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   font-size: 18px;
   background:
