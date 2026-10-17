@@ -114,6 +114,8 @@ export default function HostessForm({
   const [phoneNational, setPhoneNational] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [customerHint, setCustomerHint] = useState<string>("");
+  const [phoneSuggestions, setPhoneSuggestions] = useState<Array<{ id: string; name: string; phone: string; email: string }>>([]);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [partySize, setPartySize] = useState<string>("1");
   const [partyTouched, setPartyTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,6 +188,54 @@ export default function HostessForm({
     const prefix = ccDigits.startsWith("+") ? ccDigits : `+${ccDigits}`;
     return `${prefix}${national}`;
   }, [phoneCountry, phoneNational]);
+
+  const pickSuggestion = (c: { name: string; phone: string; email: string }) => {
+    const digits = String(c.phone ?? "").replace(/\D/g, "");
+    const ccDigits = String(phoneCountry ?? "").replace(/\D/g, "");
+    if (ccDigits && digits.startsWith(ccDigits) && digits.length > ccDigits.length) {
+      setPhoneNational(digits.slice(ccDigits.length));
+    } else if (digits.startsWith("52") && digits.length === 12) {
+      setPhoneCountry("+52");
+      setPhoneNational(digits.slice(2));
+    } else if (digits.startsWith("1") && digits.length === 11) {
+      setPhoneCountry("+1");
+      setPhoneNational(digits.slice(1));
+    } else {
+      setPhoneCountry("+");
+      setPhoneNational(digits);
+    }
+    if (c.name) setName(String(c.name).toUpperCase());
+    if (c.email && !email.trim()) setEmail(String(c.email));
+    setPhoneSuggestions([]);
+    setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"}`);
+  };
+
+  const onPhoneNationalChange = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    setPhoneNational(digits);
+    setCustomerHint("");
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (digits.length < 3) {
+      setPhoneSuggestions([]);
+      return;
+    }
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const phone = `${normalizeDialCode(phoneCountry) || "+52"}${digits}`;
+        const res = await fetch(`/api/customers/suggest?phone=${encodeURIComponent(phone)}`, {
+          credentials: "same-origin"
+        });
+        if (!res.ok) {
+          setPhoneSuggestions([]);
+          return;
+        }
+        const data = (await res.json().catch(() => null)) as any;
+        setPhoneSuggestions(Array.isArray(data?.customers) ? data.customers : []);
+      } catch {
+        setPhoneSuggestions([]);
+      }
+    }, 250);
+  };
 
   const lookupCustomerByPhone = async () => {
     const digits = composedPhone.replace(/\D/g, "");
@@ -488,21 +538,66 @@ export default function HostessForm({
                   <option value="+598">UY Uruguay</option>
                 </datalist>
               </div>
-              <input
-                className="input"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder={phoneCountry === "+52" ? "10 dígitos" : "número"}
-                value={phoneNational}
-                onChange={(e) => {
-                  setPhoneNational(e.target.value.replace(/\D/g, ""));
-                  setCustomerHint("");
-                }}
-                onBlur={() => {
-                  void lookupCustomerByPhone();
-                }}
-                style={{ flex: 1, minWidth: 180 }}
-              />
+              <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder={phoneCountry === "+52" ? "10 dígitos" : "número"}
+                  value={phoneNational}
+                  onChange={(e) => onPhoneNationalChange(e.target.value)}
+                  onBlur={() => {
+                    setTimeout(() => setPhoneSuggestions([]), 180);
+                    void lookupCustomerByPhone();
+                  }}
+                  onFocus={() => {
+                    if (phoneNational.replace(/\D/g, "").length >= 3) onPhoneNationalChange(phoneNational);
+                  }}
+                  style={{ width: "100%" }}
+                />
+                {phoneSuggestions.length > 0 ? (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 4px)",
+                      left: 0,
+                      right: 0,
+                      zIndex: 30,
+                      background: "#ffffff",
+                      border: "1px solid rgba(17,24,39,0.14)",
+                      borderRadius: 10,
+                      boxShadow: "0 10px 28px rgba(17,24,39,0.18)",
+                      overflow: "hidden"
+                    }}
+                  >
+                    {phoneSuggestions.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          pickSuggestion(c);
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "9px 12px",
+                          background: "transparent",
+                          border: "none",
+                          borderBottom: "1px solid rgba(17,24,39,0.06)",
+                          cursor: "pointer",
+                          fontSize: 13
+                        }}
+                      >
+                        <b>{c.name || "Sin nombre"}</b>
+                        <span style={{ opacity: 0.75 }}> · {c.phone}</span>
+                        {c.email ? <span style={{ opacity: 0.55 }}> · {c.email}</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
             <input type="hidden" name="phone" value={composedPhone} />
             {customerHint ? (
