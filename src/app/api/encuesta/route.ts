@@ -43,7 +43,8 @@ export async function POST(req: Request) {
       const r = await sendWhatsAppTemplate({
         toPhone: waPhone,
         templateName,
-        bodyParams: [name, folio]
+        bodyParams: [folio],
+        buttonUrlParams: [folio]
       });
       rewardSent = r.ok;
       if (!r.ok) {
