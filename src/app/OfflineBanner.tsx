@@ -27,7 +27,8 @@ export default function OfflineBanner() {
     <div className="card offline-banner">
       <div style={{ fontWeight: 900 }}>Sin conexión</div>
       <div className="small">
-        Estás sin internet. Los cambios no se guardarán. Trabaja en modo manual hasta que regrese la conexión.
+        Estás sin internet. Las reservas nuevas se guardarán en este dispositivo y se enviarán solas cuando regrese
+        la conexión; liberar mesas y confirmar lista de espera requieren internet.
       </div>
     </div>
   );

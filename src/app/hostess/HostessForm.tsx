@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CafeTable, Customer, FloorplanPositions, Reservation } from "@/lib/firestore";
 import { DEFAULT_DOWN_POSITIONS, DEFAULT_UP_MARKERS, DEFAULT_UP_POSITIONS } from "@/lib/floorplan";
+import { enqueuePost, fieldsFromFormData, flushQueue, queueCount } from "@/lib/offlineQueue";
+
+const DRAFT_KEY = "cj_hostess_draft_v1";
+const DRAFT_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 
 function defaultDateTime() {
   const d = new Date();
@@ -121,6 +125,9 @@ export default function HostessForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestedTablesCount, setRequestedTablesCount] = useState<number>(1);
   const [sendWaitlistWhatsApp, setSendWaitlistWhatsApp] = useState<boolean>(true);
+  const [notes, setNotes] = useState<string>("");
+  const [pendingQueued, setPendingQueued] = useState<number>(0);
+  const [draftRestored, setDraftRestored] = useState<boolean>(false);
 
   const didInitFromUrl = useRef(false);
 
@@ -307,6 +314,136 @@ export default function HostessForm({
     router.replace(url.pathname + url.search, { scroll: false });
   }, [reservedDate, reservedTime, router]);
 
+  // Restore an unfinished form draft (survives accidental reloads / network drops).
+  const didRestoreDraft = useRef(false);
+  useEffect(() => {
+    if (didRestoreDraft.current) return;
+    didRestoreDraft.current = true;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (!d?.savedAt || Date.now() - Number(d.savedAt) > DRAFT_MAX_AGE_MS) {
+        localStorage.removeItem(DRAFT_KEY);
+        return;
+      }
+      if (d.name) setName(String(d.name));
+      if (d.phoneCountry) setPhoneCountry(String(d.phoneCountry));
+      if (d.phoneNational) setPhoneNational(String(d.phoneNational));
+      if (d.email) setEmail(String(d.email));
+      if (d.partySize) { setPartySize(String(d.partySize)); setPartyTouched(true); }
+      if (d.notes) setNotes(String(d.notes));
+      if (Array.isArray(d.selectedTableIds) && d.selectedTableIds.length) {
+        setSelectedTableIds(d.selectedTableIds.map(String));
+        setTableId(String(d.selectedTableIds[0]));
+      }
+      setDraftRestored(true);
+    } catch {
+      // ignore corrupt draft
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const hasData =
+          name.trim() || phoneNational.trim() || email.trim() || notes.trim() || selectedTableIds.length > 0;
+        if (!hasData) {
+          localStorage.removeItem(DRAFT_KEY);
+          return;
+        }
+        localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({
+            savedAt: Date.now(),
+            name,
+            phoneCountry,
+            phoneNational,
+            email,
+            partySize,
+            notes,
+            selectedTableIds
+          })
+        );
+      } catch {
+        // storage unavailable
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [name, phoneCountry, phoneNational, email, partySize, notes, selectedTableIds]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+    setDraftRestored(false);
+  };
+
+  const resetCapturedFields = () => {
+    setName("");
+    setPhoneNational("");
+    setEmail("");
+    setNotes("");
+    setPartySize("1");
+    setPartyTouched(false);
+    setSelectedTableIds([]);
+    setTableId("");
+    setCustomerHint("");
+    setPhoneSuggestions([]);
+    clearDraft();
+  };
+
+  // Flush queued submissions when connectivity returns, then reload fresh data.
+  useEffect(() => {
+    let cancelled = false;
+    let flushing = false;
+    const flush = async () => {
+      if (flushing) return;
+      flushing = true;
+      try {
+        const { sent, remaining } = await flushQueue();
+        if (cancelled) return;
+        setPendingQueued(remaining);
+        if (sent > 0) window.location.reload();
+      } finally {
+        flushing = false;
+      }
+    };
+    setPendingQueued(queueCount());
+    flush();
+    window.addEventListener("online", flush);
+    const t = setInterval(flush, 30000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", flush);
+      clearInterval(t);
+    };
+  }, []);
+
+  // Submits a create-style form via fetch; on network failure queues it locally.
+  const submitWithQueue = async (form: HTMLFormElement, url: string): Promise<void> => {
+    const fd = new FormData(form);
+    try {
+      const res = await fetch(url, { method: "POST", body: fd, credentials: "same-origin" });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = "/login";
+        return;
+      }
+      if (res.status >= 500) throw new Error(`HTTP_${res.status}`);
+      clearDraft();
+      window.location.href = res.redirected && res.url ? res.url : "/hostess";
+    } catch {
+      enqueuePost(url, fieldsFromFormData(fd));
+      setPendingQueued(queueCount());
+      resetCapturedFields();
+      window.alert(
+        "Sin conexión. La reserva quedó guardada en este dispositivo y se enviará automáticamente cuando regrese el internet."
+      );
+    }
+  };
+
   const tablesForPicker = useMemo(
     () =>
       [...tables].sort((a, b) => {
@@ -335,6 +472,26 @@ export default function HostessForm({
     <div className="hostess-form-grid">
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Crear reserva / Asignar mesa</h3>
+        {pendingQueued > 0 ? (
+          <div
+            className="small"
+            style={{
+              marginBottom: 10,
+              padding: "8px 10px",
+              borderRadius: 8,
+              background: "rgba(245,158,11,0.12)",
+              border: "1px solid rgba(245,158,11,0.35)",
+              fontWeight: 700
+            }}
+          >
+            {pendingQueued} envío(s) pendiente(s) — se enviarán automáticamente cuando regrese el internet.
+          </div>
+        ) : null}
+        {draftRestored ? (
+          <div className="small" style={{ marginBottom: 10, opacity: 0.85 }}>
+            Se recuperó un borrador guardado antes de que se recargara la página.
+          </div>
+        ) : null}
         <form
           className="grid"
           action="/api/reservations/call"
@@ -347,30 +504,26 @@ export default function HostessForm({
             // Avoid accidental form submit while typing; use the submit button.
             e.preventDefault();
           }}
-          onSubmit={(e) => {
-            if (isSubmitting) {
-              e.preventDefault();
-              return;
-            }
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (isSubmitting) return;
+            const form = e.currentTarget;
 
             const dial = normalizeDialCode(phoneCountry);
             const nationalDigits = String(phoneNational || "").replace(/\D/g, "");
             const wantsPhone = nationalDigits.length > 0 || String(phoneCountry || "").trim().length > 0;
             if (wantsPhone) {
               if (!dial || dial === "+") {
-                e.preventDefault();
                 window.alert("LADA inválida. Ejemplo: +52, +48, +972");
                 return;
               }
               if (dial === "+52") {
                 if (nationalDigits.length !== 10) {
-                  e.preventDefault();
                   window.alert("Para México (+52) el número debe tener 10 dígitos.");
                   return;
                 }
               } else {
                 if (nationalDigits.length < 6 || nationalDigits.length > 15) {
-                  e.preventDefault();
                   window.alert("Número inválido. Revisa que esté completo (6 a 15 dígitos) y sin espacios.");
                   return;
                 }
@@ -378,15 +531,11 @@ export default function HostessForm({
             }
             if (!tableId) {
               if (!partyTouched) {
-                e.preventDefault();
                 window.alert("Si no seleccionas mesa, debes ingresar la cantidad de personas.");
                 return;
               }
               const ok = window.confirm("¿No se va a seleccionar mesa?");
-              if (!ok) {
-                e.preventDefault();
-                return;
-              }
+              if (!ok) return;
             }
 
             const hasPhone = composedPhone.trim().length > 0;
@@ -395,10 +544,15 @@ export default function HostessForm({
               const ok = window.confirm(
                 "Estás a punto de guardar una reserva SIN datos de contacto (WhatsApp/correo).\n\nCualquiera podría reclamar la reservación. ¿Deseas continuar?"
               );
-              if (!ok) e.preventDefault();
+              if (!ok) return;
             }
 
             setIsSubmitting(true);
+            try {
+              await submitWithQueue(form, "/api/reservations/call");
+            } finally {
+              setIsSubmitting(false);
+            }
           }}
         >
           <div>
@@ -637,7 +791,14 @@ export default function HostessForm({
           </div>
           <div>
             <label className="label">Indicaciones especiales / notas</label>
-            <textarea className="input" name="notes" rows={3} placeholder="Cumpleaños, celebración, alergias, etc." />
+            <textarea
+              className="input"
+              name="notes"
+              rows={3}
+              placeholder="Cumpleaños, celebración, alergias, etc."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
           <div>
             <label className="label">Fecha</label>
@@ -709,30 +870,28 @@ export default function HostessForm({
             className="grid"
             action="/api/waitlist/create"
             method="post"
-            onSubmit={(e) => {
-              if (isSubmitting) {
-                e.preventDefault();
-                return;
-              }
-              if (!name.trim()) {
-                e.preventDefault();
-                return;
-              }
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (isSubmitting) return;
+              const form = e.currentTarget;
+              if (!name.trim()) return;
               const hasPhone = composedPhone.trim().length > 0;
               const hasEmail = email.trim().length > 0;
               if (!hasPhone && !hasEmail) {
                 const ok = window.confirm(
                   "Estás a punto de guardar en lista de espera SIN datos de contacto (WhatsApp/correo).\n\n¿Deseas continuar?"
                 );
-                if (!ok) {
-                  e.preventDefault();
-                  return;
-                }
+                if (!ok) return;
               }
               // Avoid reusing a stale table selection when later confirming (seating) a waitlist entry.
               setSelectedTableIds([]);
               setTableId("");
               setIsSubmitting(true);
+              try {
+                await submitWithQueue(form, "/api/waitlist/create");
+              } finally {
+                setIsSubmitting(false);
+              }
             }}
           >
             <input type="hidden" name="name" value={name} />

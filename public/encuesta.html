@@ -436,8 +436,28 @@ textarea:focus{
 
 <script>
 
-const folio = 'CJ-' + Math.random().toString(36).slice(2,6).toUpperCase();
+const PENDING_KEY = 'cj_encuesta_pending';
+const stored = (() => { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch { return null; } })();
+const folio = stored?.folio || 'CJ-' + Math.random().toString(36).slice(2,6).toUpperCase();
 document.getElementById('folio-2').textContent = folio;
+
+async function flushPendingSurvey(){
+    let raw;
+    try { raw = localStorage.getItem(PENDING_KEY); } catch { return; }
+    if(!raw) return;
+    try {
+        const res = await fetch('/api/encuesta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: raw
+        });
+        if(res.ok || res.status === 400 || res.status === 409){
+            try { localStorage.removeItem(PENDING_KEY); } catch {}
+        }
+    } catch {}
+}
+window.addEventListener('online', flushPendingSurvey);
+flushPendingSurvey();
 
 const QUESTIONS = [
     { section: 'Actitud de servicio' },
@@ -654,9 +674,12 @@ document.getElementById('btn-submit').onclick = async () => {
         }
         show('step-done');
     } catch {
-        alert('No se pudo enviar. Revisa tu conexión e intenta de nuevo.');
-        btn.disabled = false;
-        btn.textContent = 'Enviar encuesta';
+        try { localStorage.setItem(PENDING_KEY, JSON.stringify(payload)); } catch {}
+        document.getElementById('done-text').innerHTML =
+            'Sin conexión a internet — tu encuesta quedó guardada en este dispositivo y ' +
+            '<strong>se enviará sola cuando regrese la señal</strong>. Guarda tu número de confirmación ' +
+            'y muéstraselo al mesero para reclamar tu cortesía.';
+        show('step-done');
     }
 };
 
