@@ -119,7 +119,9 @@ export default function HostessForm({
   const [email, setEmail] = useState<string>("");
   const [customerHint, setCustomerHint] = useState<string>("");
   const [phoneSuggestions, setPhoneSuggestions] = useState<Array<{ id: string; name: string; phone: string; email: string }>>([]);
+  const [nameSuggestions, setNameSuggestions] = useState<Array<{ id: string; name: string; phone: string; email: string }>>([]);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nameSuggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [partySize, setPartySize] = useState<string>("1");
   const [partyTouched, setPartyTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -214,7 +216,33 @@ export default function HostessForm({
     if (c.name) setName(String(c.name).toUpperCase());
     if (c.email && !email.trim()) setEmail(String(c.email));
     setPhoneSuggestions([]);
+    setNameSuggestions([]);
     setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"}`);
+  };
+
+  const onNameChange = (value: string) => {
+    setName(value.toUpperCase());
+    setCustomerHint("");
+    if (nameSuggestTimer.current) clearTimeout(nameSuggestTimer.current);
+    if (value.trim().length < 2) {
+      setNameSuggestions([]);
+      return;
+    }
+    nameSuggestTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/customers/suggest?name=${encodeURIComponent(value.trim())}`, {
+          credentials: "same-origin"
+        });
+        if (!res.ok) {
+          setNameSuggestions([]);
+          return;
+        }
+        const data = (await res.json().catch(() => null)) as any;
+        setNameSuggestions(Array.isArray(data?.customers) ? data.customers : []);
+      } catch {
+        setNameSuggestions([]);
+      }
+    }, 250);
   };
 
   const onPhoneNationalChange = (value: string) => {
@@ -392,6 +420,7 @@ export default function HostessForm({
     setTableId("");
     setCustomerHint("");
     setPhoneSuggestions([]);
+    setNameSuggestions([]);
     clearDraft();
   };
 
@@ -565,13 +594,64 @@ export default function HostessForm({
         >
           <div>
             <label className="label">Nombre</label>
-            <input
-              className="input"
-              name="name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value.toUpperCase())}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                className="input"
+                name="name"
+                required
+                value={name}
+                onChange={(e) => onNameChange(e.target.value)}
+                onBlur={() => {
+                  setTimeout(() => setNameSuggestions([]), 180);
+                }}
+                onFocus={() => {
+                  if (name.trim().length >= 2) onNameChange(name);
+                }}
+                autoComplete="off"
+              />
+              {nameSuggestions.length > 0 ? (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 4px)",
+                    left: 0,
+                    right: 0,
+                    zIndex: 30,
+                    background: "#ffffff",
+                    border: "1px solid rgba(17,24,39,0.14)",
+                    borderRadius: 10,
+                    boxShadow: "0 10px 28px rgba(17,24,39,0.18)",
+                    overflow: "hidden"
+                  }}
+                >
+                  {nameSuggestions.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        pickSuggestion(c);
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "9px 12px",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: "1px solid rgba(17,24,39,0.06)",
+                        cursor: "pointer",
+                        fontSize: 13
+                      }}
+                    >
+                      <b>{c.name || "Sin nombre"}</b>
+                      <span style={{ opacity: 0.75 }}> · {c.phone}</span>
+                      {c.email ? <span style={{ opacity: 0.55 }}> · {c.email}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
           <div>
             <label className="label">Teléfono (WhatsApp)</label>

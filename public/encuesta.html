@@ -356,7 +356,7 @@ textarea:focus{
 
         <p class="intro-text">
             Son 21 preguntas rápidas, toma menos de 2 minutos.
-            Al terminar recibirás un mensaje de confirmación en tu WhatsApp —
+            Te enviaremos un código por WhatsApp para abrir la encuesta —
             así comprobamos que tu número es real.
         </p>
 
@@ -379,14 +379,47 @@ textarea:focus{
             <input type="tel" id="telefono" placeholder="Ej. 9611234567" maxlength="10" inputmode="numeric" autocomplete="tel">
             <p class="field-note">
                 <i class="fa-solid fa-check-to-slot"></i>
-                A este número llegará tu código por la encuesta realizada —
-                asegúrate de escribir tu número real.
+                A este número te enviaremos un código por WhatsApp para
+                abrir la encuesta — asegúrate de escribir tu número real.
             </p>
         </div>
 
-        <button class="btn" id="btn-next">Continuar a la encuesta</button>
+        <button class="btn" id="btn-next">Enviar código por WhatsApp</button>
 
-        <p class="hint">Al terminar, tu número de confirmación se envía por WhatsApp al número que escribas. Así comprobamos que tu número es real y tu opinión cuenta.</p>
+        <p class="hint" id="datos-error" style="color:#f87171;"></p>
+        <p class="hint">Primero verificamos tu número con un código de WhatsApp; con ese código se abre la encuesta y al terminarla recibes tu confirmación.</p>
+
+    </section>
+
+    <!-- PASO 1.5: CÓDIGO DE VERIFICACIÓN -->
+    <section class="step" id="step-code" hidden>
+
+        <div class="field">
+            <label for="codigo">Escribe el código que te llegó por WhatsApp</label>
+            <input
+                type="tel"
+                id="codigo"
+                placeholder="6 dígitos"
+                maxlength="6"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                style="text-align:center; font-size:26px; font-weight:900; letter-spacing:8px;"
+            >
+            <p class="field-note">
+                <i class="fa-brands fa-whatsapp"></i>
+                Lo enviamos al <strong id="codigo-phone"></strong>.
+                Si el número no recibe WhatsApp, el código no llega.
+            </p>
+        </div>
+
+        <button class="btn" id="btn-verify">Verificar y comenzar encuesta</button>
+
+        <p class="hint" id="code-error" style="color:#f87171;"></p>
+        <p class="hint">
+            ¿No te llegó?
+            <a href="#" id="btn-resend" style="color:#5eead4;">Reenviar código</a>
+            · <a href="#" id="btn-cambiar" style="color:#5eead4;">Corregir número</a>
+        </p>
 
     </section>
 
@@ -619,11 +652,80 @@ function datos(){
 
 document.getElementById('btn-start').onclick = () => show('step-datos');
 
-document.getElementById('btn-next').onclick = () => {
+let vid = null;
+
+async function sendCode(){
     const { nombre, tel } = datos();
-    if(!nombre){ alert('Escribe tu nombre.'); return; }
-    if(tel.length !== 10){ alert('Escribe un número de WhatsApp de 10 dígitos.'); return; }
-    show('step-survey');
+    const errEl = document.getElementById('datos-error');
+    errEl.textContent = '';
+    if(!nombre){ errEl.textContent = 'Escribe tu nombre.'; return false; }
+    if(tel.length !== 10){ errEl.textContent = 'Escribe un número de WhatsApp de 10 dígitos.'; return false; }
+
+    const btn = document.getElementById('btn-next');
+    btn.disabled = true;
+    btn.textContent = 'Enviando código…';
+    try {
+        const res = await fetch('/api/encuesta/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: nombre, phone: tel })
+        });
+        if (res.status === 409) {
+            document.getElementById('done-title').textContent = 'Esta encuesta ya fue registrada';
+            document.getElementById('done-text').innerHTML =
+                'Este número ya participó. <strong>Solo una encuesta por número de teléfono.</strong>';
+            show('step-done');
+            return false;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 502 || data.error === 'WHATSAPP_FAILED' || data.error === 'WHATSAPP_NOT_CONFIGURED') {
+            errEl.textContent = 'No pudimos enviar el código a ese número. Revisa que tenga WhatsApp e intenta de nuevo.';
+            return false;
+        }
+        if (!res.ok || !data.vid) throw new Error('HTTP_' + res.status);
+        vid = data.vid;
+        document.getElementById('codigo-phone').textContent = '+52 ' + tel;
+        show('step-code');
+        return true;
+    } catch {
+        errEl.textContent = 'Sin conexión a internet. El código necesita enviarse por WhatsApp — intenta cuando regrese la señal.';
+        return false;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar código por WhatsApp';
+    }
+}
+
+document.getElementById('btn-next').onclick = sendCode;
+document.getElementById('btn-resend').onclick = (e) => { e.preventDefault(); sendCode(); };
+document.getElementById('btn-cambiar').onclick = (e) => { e.preventDefault(); show('step-datos'); };
+
+document.getElementById('btn-verify').onclick = async () => {
+    const errEl = document.getElementById('code-error');
+    errEl.textContent = '';
+    const code = document.getElementById('codigo').value.replace(/\D/g,'');
+    if(code.length !== 6){ errEl.textContent = 'Escribe el código de 6 dígitos.'; return; }
+
+    const btn = document.getElementById('btn-verify');
+    btn.disabled = true;
+    btn.textContent = 'Verificando…';
+    try {
+        const res = await fetch('/api/encuesta/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vid, code })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) { show('step-survey'); return; }
+        if (data.error === 'CODE_EXPIRED') errEl.textContent = 'El código caducó. Pide uno nuevo con «Reenviar código».';
+        else if (data.error === 'CODE_LOCKED') errEl.textContent = 'Demasiados intentos. Pide un código nuevo.';
+        else errEl.textContent = 'Código incorrecto. Revísalo en tu WhatsApp.';
+    } catch {
+        errEl.textContent = 'Sin conexión. Intenta cuando regrese la señal.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verificar y comenzar encuesta';
+    }
 };
 
 document.getElementById('btn-submit').onclick = async () => {
@@ -637,14 +739,12 @@ document.getElementById('btn-submit').onclick = async () => {
         return;
     }
 
-    const { nombre, tel } = datos();
     const btn = document.getElementById('btn-submit');
     btn.disabled = true;
     btn.textContent = 'Enviando…';
 
     const payload = {
-        name: nombre,
-        phone: tel,
+        vid,
         folio,
         answers: qIndex.map(i => ({ q: QUESTIONS[i].s, a: String(answers[i] ?? '—') }))
     };
@@ -667,6 +767,7 @@ document.getElementById('btn-submit').onclick = async () => {
         if (!res.ok) throw new Error('HTTP_' + res.status);
 
         const data = await res.json().catch(() => ({}));
+        if (data.folio) document.getElementById('folio-2').textContent = data.folio;
         if (!data.rewardSent) {
             document.getElementById('done-text').innerHTML =
                 'Tu encuesta quedó registrada. Muestra este <strong>número de confirmación al mesero</strong> ' +

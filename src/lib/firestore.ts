@@ -2145,6 +2145,64 @@ export async function createStandaloneSurvey(params: {
   return { id: ref.id, duplicate: false };
 }
 
+export type SurveyVerification = {
+  id: string;
+  name: string;
+  phone: string;
+  waPhone: string;
+  codeHash: string;
+  attempts: number;
+  createdAt: number;
+  expiresAt: number;
+  verifiedAt: number | null;
+  usedAt: number | null;
+};
+
+export async function createSurveyVerification(params: {
+  name: string;
+  phone: string;
+  waPhone: string;
+  codeHash: string;
+}): Promise<{ id: string | null; duplicate: boolean }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const dup = await db
+    .collection("standaloneSurveys")
+    .where("waPhone", "==", params.waPhone)
+    .limit(1)
+    .get();
+  if (!dup.empty) return { id: null, duplicate: true };
+
+  const ts = nowMs();
+  const ref = await db.collection("surveyVerifications").add({
+    name: params.name,
+    phone: params.phone,
+    waPhone: params.waPhone,
+    codeHash: params.codeHash,
+    attempts: 0,
+    createdAt: ts,
+    expiresAt: ts + 30 * 60 * 1000,
+    verifiedAt: null,
+    usedAt: null
+  });
+  return { id: ref.id, duplicate: false };
+}
+
+export async function getSurveyVerification(id: string): Promise<SurveyVerification | null> {
+  const db = getFirestore();
+  if (!db) return null;
+  const doc = await db.collection("surveyVerifications").doc(String(id)).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...(doc.data() as Omit<SurveyVerification, "id">) };
+}
+
+export async function updateSurveyVerification(id: string, patch: Record<string, unknown>) {
+  const db = getFirestore();
+  if (!db) return;
+  await db.collection("surveyVerifications").doc(String(id)).set({ ...patch, updatedAt: nowMs() }, { merge: true });
+}
+
 export async function markStandaloneSurveyReward(params: { id: string; ok: boolean; error?: string | null }) {
   const db = getFirestore();
   if (!db) return;
