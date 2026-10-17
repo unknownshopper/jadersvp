@@ -538,14 +538,6 @@ export default function HostessForm({
             if (isSubmitting) return;
             const form = e.currentTarget;
 
-            // Outage policy: no new table assignments while offline — capture to waitlist instead.
-            if (!navigator.onLine && (tableId || selectedTableIds.length > 0)) {
-              window.alert(
-                "Sin internet: no se pueden asignar mesas nuevas.\n\nRegistra al cliente con «Guardar en lista de espera» y asígnale mesa cuando regrese la conexión."
-              );
-              return;
-            }
-
             const dial = normalizeDialCode(phoneCountry);
             const nationalDigits = String(phoneNational || "").replace(/\D/g, "");
             const wantsPhone = nationalDigits.length > 0 || String(phoneCountry || "").trim().length > 0;
@@ -1226,7 +1218,7 @@ export default function HostessForm({
         ) : null}
       </div>
 
-      <div className="card requires-online">
+      <div className="card">
         <h3 style={{ marginTop: 0 }}>Lista de espera (FIFO)</h3>
         {waitlist.length === 0 ? <div className="small">Sin registros</div> : null}
 
@@ -1253,9 +1245,11 @@ export default function HostessForm({
                     <form
                       action="/api/waitlist/confirm"
                       method="post"
-                      onSubmit={(e) => {
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (isSubmitting) return;
+                        const form = e.currentTarget;
                         if (selectedTableIds.length < Math.max(1, requested)) {
-                          e.preventDefault();
                           window.alert(`Selecciona al menos ${Math.max(1, requested)} mesa(s) LIBRE(S) en el croquis.`);
                           return;
                         }
@@ -1265,13 +1259,16 @@ export default function HostessForm({
                           .filter(Boolean) as CafeTable[];
                         const anyNotFree = selectedTables.some((t) => effectiveStatusAt(t, null) !== "LIBRE");
                         if (anyNotFree || selectedTables.length !== selectedTableIds.length) {
-                          e.preventDefault();
                           window.alert("Las mesas seleccionadas ya no están disponibles. Selecciona mesas LIBRES en el croquis e intenta de nuevo.");
                           return;
                         }
                         const ok = window.confirm("¿Confirmar lista de espera con las mesas seleccionadas?");
-                        if (!ok) {
-                          e.preventDefault();
+                        if (!ok) return;
+                        setIsSubmitting(true);
+                        try {
+                          await submitWithQueue(form, "/api/waitlist/confirm");
+                        } finally {
+                          setIsSubmitting(false);
                         }
                       }}
                       style={{ display: "inline-block" }}
@@ -1300,9 +1297,17 @@ export default function HostessForm({
                     <form
                       action="/api/waitlist/cancel"
                       method="post"
-                      onSubmit={(e) => {
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (isSubmitting) return;
                         const ok = window.confirm("¿Cancelar esta entrada de lista de espera?");
-                        if (!ok) e.preventDefault();
+                        if (!ok) return;
+                        setIsSubmitting(true);
+                        try {
+                          await submitWithQueue(e.currentTarget, "/api/waitlist/cancel");
+                        } finally {
+                          setIsSubmitting(false);
+                        }
                       }}
                       style={{ display: "inline-block", marginTop: 8 }}
                     >

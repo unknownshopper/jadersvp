@@ -79,17 +79,19 @@ Antes de que pidan la cuenta, siempre ofrecer:
 
 ## 8. Contingencia: sin internet
 
-Si se va la luz o el internet, el sistema entra en modo degradado — la tablet muestra el aviso amarillo *Sin conexión*:
+Si se va la luz o el internet, el sistema entra en modo degradado — la tablet muestra el aviso amarillo *Sin conexión*. **La operación sigue solo en la tablet**: lo que se haga ahí queda guardado en el dispositivo y se sincroniza con el sistema al recuperar el internet.
 
 | Acción | ¿Disponible sin internet? |
 |---|---|
-| Liberar mesas ocupadas | Sí — se encolan y se ejecutan solas al volver |
-| Lista de espera | Sí — se encola |
-| Reserva sin mesa | Sí — se encola |
-| Reserva con mesa / sentar | **No** — sin internet no podemos saber si la mesa sigue libre; usar lista de espera |
-| Sumar mesa a un grupo | **No** |
-| Confirmar lista de espera | **No** |
+| Reservar (con o sin mesa) / sentar | Sí — se encola y se confirma al volver |
+| Liberar mesas ocupadas | Sí — se encola |
+| Sumar mesa a un grupo | Sí — se encola |
+| Lista de espera (capturar, confirmar, cancelar) | Sí — se encola |
+| Marcar "No llegó" | Sí — se encola |
+| WhatsApp de confirmación y encuesta | Salen solos al recuperar internet |
+| Registro/log, editor de plano | No — son consultas, necesitan conexión |
 
 - El formulario guarda **borrador automático**: si la página se recarga, lo capturado se restaura.
-- Al regresar la conexión, todo lo encolado se envía solo y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde pero llegan.
+- Al regresar la conexión, todo lo encolado se envía solo **en el mismo orden en que se hizo** y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde pero llegan.
 - Como toda la operación corre en una sola sesión (la tablet de hostess), no hay riesgo de que otra persona haya movido las mismas mesas mientras tanto — lo encolado describe exactamente lo que pasó en piso.
+- Única limitante real: lo que ves en pantalla es el estado del último momento con internet; las mesas no se actualizan visualmente hasta reconectar.

@@ -233,24 +233,25 @@
 
       <div class="card">
         <h2>8 · Contingencia: sin internet</h2>
-        <p>Si se va la luz o el internet, la tablet muestra el aviso amarillo <b>Sin conexión</b> y el sistema entra en modo degradado:</p>
+        <p>Si se va la luz o el internet, la tablet muestra el aviso amarillo <b>Sin conexión</b> y el sistema entra en modo degradado. <b>La operación sigue solo en la tablet</b>: lo que se haga ahí queda guardado en el dispositivo y se sincroniza con el sistema al recuperar el internet.</p>
         <table class="cmp">
           <thead><tr><th>Acción</th><th>Sin internet</th></tr></thead>
           <tbody>
-            <tr><td>Liberar mesas ocupadas</td><td><span class="yes">Sí</span> — se encolan y se ejecutan solas al volver</td></tr>
-            <tr><td>Lista de espera</td><td><span class="yes">Sí</span> — se encola</td></tr>
-            <tr><td>Reserva sin mesa (a futuro)</td><td><span class="yes">Sí</span> — se encola</td></tr>
-            <tr><td>Reserva con mesa / sentar</td><td><span class="no">No</span> — sin internet no sabemos si la mesa sigue libre; usa lista de espera</td></tr>
-            <tr><td>Sumar mesa a un grupo</td><td><span class="no">No</span></td></tr>
-            <tr><td>Confirmar lista de espera</td><td><span class="no">No</span></td></tr>
+            <tr><td>Reservar (con o sin mesa) / sentar</td><td><span class="yes">Sí</span> — se encola y se confirma al volver</td></tr>
+            <tr><td>Liberar mesas ocupadas</td><td><span class="yes">Sí</span> — se encola</td></tr>
+            <tr><td>Sumar mesa a un grupo</td><td><span class="yes">Sí</span> — se encola</td></tr>
+            <tr><td>Lista de espera (capturar, confirmar, cancelar)</td><td><span class="yes">Sí</span> — se encola</td></tr>
+            <tr><td>Marcar "No llegó"</td><td><span class="yes">Sí</span> — se encola</td></tr>
+            <tr><td>WhatsApp de confirmación y encuesta</td><td>Salen solos al recuperar internet</td></tr>
+            <tr><td>Registro/log, editor de plano</td><td><span class="no">No</span> — son consultas, necesitan conexión</td></tr>
           </tbody>
         </table>
         <div class="callout warn" style="margin-top:12px">
           <ul style="margin:0">
             <li>El formulario guarda <b>borrador automático</b>: si la página se recarga, lo capturado se restaura.</li>
-            <li>Al regresar la conexión, lo encolado se envía solo y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde, pero llegan.</li>
+            <li>Al regresar la conexión, lo encolado se envía solo <b>en el mismo orden en que se hizo</b> y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde, pero llegan.</li>
             <li>Como toda la operación corre en una sola sesión (la tablet de hostess), no hay riesgo de que otra persona haya movido las mismas mesas mientras tanto — lo encolado describe exactamente lo que pasó en piso.</li>
-            <li>Regla operativa durante el corte: <b>solo se libera lo sentado y se captura lista de espera</b>; no se sienta gente nueva en mesa.</li>
+            <li>Única limitante real: lo que ves en pantalla es el estado del último momento con internet; las mesas no se actualizan visualmente hasta reconectar.</li>
           </ul>
         </div>
       </div>

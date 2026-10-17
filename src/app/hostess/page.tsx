@@ -3,6 +3,7 @@ import HostessForm from "./HostessForm";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
+import QueueableForm from "../QueueableForm";
 import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM } from "@/lib/dateFormat";
 
 export const dynamic = "force-dynamic";
@@ -344,7 +345,7 @@ export default async function HostessPage({
         />
 
         {focusedTable ? (
-          <div className="card requires-online" style={{ borderColor: "rgba(168, 85, 247, 0.28)" }}>
+          <div className="card" style={{ borderColor: "rgba(168, 85, 247, 0.28)" }}>
             <div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontWeight: 900 }}>Mesa {focusedTable.name}</div>
@@ -401,7 +402,7 @@ export default async function HostessPage({
                   ) : null}
                   {focusedVisit.notes ? <div style={{ marginTop: 6 }}>Notas: {focusedVisit.notes}</div> : null}
                   {focusedVisit.status === "SEATED" && addableTables.length > 0 ? (
-                    <form action="/api/tables/add" method="post" style={{ marginTop: 10 }}>
+                    <QueueableForm action="/api/tables/add" style={{ marginTop: 10 }}>
                       <input type="hidden" name="reservationId" value={focusedVisit.id} />
                       <div className="row" style={{ gap: 8, alignItems: "center" }}>
                         <select className="input" name="tableId" required defaultValue="">
@@ -418,7 +419,7 @@ export default async function HostessPage({
                           Sumar
                         </button>
                       </div>
-                    </form>
+                    </QueueableForm>
                   ) : null}
                 </div>
               )}
@@ -488,22 +489,22 @@ export default async function HostessPage({
 
                     <div style={{ flex: "0 0 auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {r.status !== "SEATED" ? (
-                        <form action="/api/reservations/seat" method="post">
+                        <QueueableForm action="/api/reservations/seat">
                           <input type="hidden" name="reservationId" value={r.id} />
                           <input type="hidden" name="tableId" value={selectedTableId ?? ""} />
                           <span className={waDotClass((r as any).waConfirmationStatus) ?? undefined} style={{ marginRight: 8 }} />
                           <button className="btn" type="submit">Sentar</button>
-                        </form>
+                        </QueueableForm>
                       ) : null}
 
                       {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
-                        <form action="/api/reservations/noshow" method="post">
+                        <QueueableForm action="/api/reservations/noshow">
                           <input type="hidden" name="reservationId" value={r.id} />
                           <input type="hidden" name="tableId" value={selectedTableId ?? ""} />
                           <button className="btn secondary" type="submit">
                             No llegó
                           </button>
-                        </form>
+                        </QueueableForm>
                       ) : null}
                     </div>
                   </div>
@@ -515,7 +516,7 @@ export default async function HostessPage({
       </div>
 
       <div className="hostess-page-right grid" style={{ gap: 16 }}>
-        <div className="card requires-online">
+        <div className="card">
         <h3 style={{ marginTop: 0 }}>Lista de espera / Reservas</h3>
         <div className="grid">
           {waiting.length === 0 ? <div className="small">Sin registros</div> : null}
@@ -599,7 +600,7 @@ export default async function HostessPage({
                 </div>
                 <div style={{ flex: "0 0 auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {r.status !== "SEATED" ? (
-                    <form action="/api/reservations/seat" method="post">
+                    <QueueableForm action="/api/reservations/seat">
                       <input type="hidden" name="reservationId" value={r.id} />
                       {r.table?.id ? (
                         <input
@@ -633,7 +634,7 @@ export default async function HostessPage({
                           {r.table?.id ? "Sentar" : "Sentar (elige mesa)"}
                         </button>
                       </div>
-                    </form>
+                    </QueueableForm>
                   ) : null}
 
                   {canDelete ? (
@@ -651,13 +652,13 @@ export default async function HostessPage({
                   ) : null}
 
                   {r.status !== "SEATED" && r.reservedFor && nowMs - r.reservedFor.getTime() >= noShowAfterMs ? (
-                    <form action="/api/reservations/noshow" method="post" style={{ flex: "0 0 auto" }}>
+                    <QueueableForm action="/api/reservations/noshow" style={{ flex: "0 0 auto" }}>
                       <input type="hidden" name="reservationId" value={r.id} />
                       <input type="hidden" name="tableId" value={selectedTableId ?? r.table?.id ?? ""} />
                       <button className="btn secondary" type="submit" style={{ marginTop: 8 }}>
                         No llegó
                       </button>
-                    </form>
+                    </QueueableForm>
                   ) : null}
                 </div>
               </div>

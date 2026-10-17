@@ -27,8 +27,8 @@ export default function OfflineBanner() {
     <div className="card offline-banner">
       <div style={{ fontWeight: 900 }}>Sin conexión</div>
       <div className="small">
-        Estás sin internet. Las reservas nuevas se guardarán en este dispositivo y se enviarán solas cuando regrese
-        la conexión; liberar mesas y confirmar lista de espera requieren internet.
+        Estás sin internet. Sigue operando normal en esta tablet — reservas, liberar, sentar, sumar y lista de
+        espera se guardan aquí y se envían solas al volver la conexión; los mensajes de WhatsApp salen en ese momento.
       </div>
     </div>
   );
