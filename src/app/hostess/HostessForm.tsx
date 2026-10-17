@@ -113,6 +113,7 @@ export default function HostessForm({
   const [phoneCountry, setPhoneCountry] = useState<string>("+52");
   const [phoneNational, setPhoneNational] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [customerHint, setCustomerHint] = useState<string>("");
   const [partySize, setPartySize] = useState<string>("1");
   const [partyTouched, setPartyTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,6 +186,32 @@ export default function HostessForm({
     const prefix = ccDigits.startsWith("+") ? ccDigits : `+${ccDigits}`;
     return `${prefix}${national}`;
   }, [phoneCountry, phoneNational]);
+
+  const lookupCustomerByPhone = async () => {
+    const digits = composedPhone.replace(/\D/g, "");
+    if (digits.length < 10) return;
+    setCustomerHint("Buscando cliente…");
+    try {
+      const res = await fetch(`/api/customers/lookup?phone=${encodeURIComponent(composedPhone)}`, {
+        credentials: "same-origin"
+      });
+      if (!res.ok) {
+        setCustomerHint("");
+        return;
+      }
+      const data = (await res.json().catch(() => null)) as any;
+      const c = data?.customer;
+      if (!c) {
+        setCustomerHint("Cliente nuevo");
+        return;
+      }
+      if (!name.trim() && c.name) setName(String(c.name).toUpperCase());
+      if (!email.trim() && c.email) setEmail(String(c.email));
+      setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"}`);
+    } catch {
+      setCustomerHint("");
+    }
+  };
 
   const reservedForMs = useMemo(() => {
     const ds = String(reservedDate || "").trim();
@@ -467,11 +494,22 @@ export default function HostessForm({
                 pattern="[0-9]*"
                 placeholder={phoneCountry === "+52" ? "10 dígitos" : "número"}
                 value={phoneNational}
-                onChange={(e) => setPhoneNational(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  setPhoneNational(e.target.value.replace(/\D/g, ""));
+                  setCustomerHint("");
+                }}
+                onBlur={() => {
+                  void lookupCustomerByPhone();
+                }}
                 style={{ flex: 1, minWidth: 180 }}
               />
             </div>
             <input type="hidden" name="phone" value={composedPhone} />
+            {customerHint ? (
+              <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
+                {customerHint}
+              </div>
+            ) : null}
           </div>
           <div>
             <label className="label">Correo (opcional)</label>
