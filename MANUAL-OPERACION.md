@@ -6,12 +6,11 @@ Protocolo del ciclo completo del cliente: reservación → recepción → sentad
 
 | Rol | Acceso | Responsabilidad |
 |---|---|---|
-| Hostess | `/hostess` | Capturar reservas, asignar mesas, lista de espera, liberar mesas |
-| Caja | `/caja` | Cobro y cierre de cuentas |
+| Hostess | `/hostess` | Toda la operación de piso: reservas, mesas, lista de espera, liberar mesas |
 | Admin | `/admin`, `/admin/log`, `/iog.html`, `/reacomodo.html` | Supervisión, registro histórico, acomodo del plano |
 | Director | Todo | Dirección y reportes |
 
-La tablet de recepción trabaja en modo aplicación (PWA instalada, sesión de hostess iniciada).
+La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesión de hostess iniciada. **Toda la operación corre por esa única sesión**: nadie más crea reservaciones ni libera mesas, así que lo que ve la tablet es el estado real del salón.
 
 ---
 
@@ -68,7 +67,7 @@ Antes de que pidan la cuenta, siempre ofrecer:
 
 - El cliente recibe la encuesta por WhatsApp (o la abre desde el QR de mesa en `/encuesta.html`).
 - **Flujo:** escribe nombre + teléfono → recibe un **código de 6 dígitos por WhatsApp** → lo escribe en la página → contesta las 21 preguntas → recibe su **número de confirmación (folio CJ-XXXX)**.
-- El número de confirmación vale **un café americano o el pan del día** en su próxima visita. El mesero lo anota y lo muestra en caja.
+- El número de confirmación vale **un café americano o el pan del día** en su próxima visita. El mesero lo anota en la cuenta de la mesa.
 - Solo una encuesta por número de teléfono — el sistema rechaza duplicados.
 - Si el número no tiene WhatsApp, el código nunca llega y la encuesta no se abre: así se verifica que el dato es real.
 
@@ -93,4 +92,4 @@ Si se va la luz o el internet, el sistema entra en modo degradado — la tablet 
 
 - El formulario guarda **borrador automático**: si la página se recarga, lo capturado se restaura.
 - Al regresar la conexión, todo lo encolado se envía solo y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde pero llegan.
-- Trabajo en papel durante el corte: anotar liberaciones y lista de espera igual; el sistema las sincroniza al volver.
+- Como toda la operación corre en una sola sesión (la tablet de hostess), no hay riesgo de que otra persona haya movido las mismas mesas mientras tanto — lo encolado describe exactamente lo que pasó en piso.

@@ -138,13 +138,12 @@
         <table class="cmp">
           <thead><tr><th>Rol</th><th>Pantalla</th><th>Responsabilidad</th></tr></thead>
           <tbody>
-            <tr><td><span class="pill">HOSTESS</span></td><td class="mono">/hostess</td><td>Capturar reservas, asignar mesas, lista de espera, liberar mesas</td></tr>
-            <tr><td><span class="pill">CAJA</span></td><td class="mono">/caja</td><td>Cobro y cierre de cuentas</td></tr>
+            <tr><td><span class="pill">HOSTESS</span></td><td class="mono">/hostess</td><td>Toda la operación de piso: reservas, mesas, lista de espera, liberar mesas</td></tr>
             <tr><td><span class="pill">ADMIN</span></td><td class="mono">/admin · /admin/log · /reacomodo.html</td><td>Supervisión, registro histórico, acomodo del plano</td></tr>
             <tr><td><span class="pill">DIRECTOR</span></td><td class="mono">Todo</td><td>Dirección y reportes</td></tr>
           </tbody>
         </table>
-        <p style="margin-top:8px">La tablet de recepción trabaja instalada como aplicación (ícono Café Jade), sesión de hostess iniciada.</p>
+        <p style="margin-top:8px">La tablet de recepción trabaja instalada como aplicación (ícono Café Jade) con la sesión de hostess iniciada. <b>Toda la operación corre por esa única sesión</b>: nadie más crea reservaciones ni libera mesas, así que lo que ve la tablet es el estado real del salón.</p>
       </div>
 
       <div class="card">
@@ -217,7 +216,7 @@
           <li>Contesta las 21 preguntas.</li>
           <li>Recibe su <b>número de confirmación (folio CJ-XXXX)</b>.</li>
         </ol>
-        <p>El folio vale <b>un café americano o el pan del día</b> en su próxima visita — el mesero lo anota en caja.</p>
+        <p>El folio vale <b>un café americano o el pan del día</b> en su próxima visita — el mesero lo anota en la cuenta de la mesa.</p>
         <div class="callout">
           Solo una encuesta por número de teléfono: el sistema rechaza duplicados.
         </div>
@@ -250,6 +249,7 @@
           <ul style="margin:0">
             <li>El formulario guarda <b>borrador automático</b>: si la página se recarga, lo capturado se restaura.</li>
             <li>Al regresar la conexión, lo encolado se envía solo y la página se actualiza. Los WhatsApp de confirmación y encuesta salen en ese momento — llegan tarde, pero llegan.</li>
+            <li>Como toda la operación corre en una sola sesión (la tablet de hostess), no hay riesgo de que otra persona haya movido las mismas mesas mientras tanto — lo encolado describe exactamente lo que pasó en piso.</li>
             <li>Regla operativa durante el corte: <b>solo se libera lo sentado y se captura lista de espera</b>; no se sienta gente nueva en mesa.</li>
           </ul>
         </div>
