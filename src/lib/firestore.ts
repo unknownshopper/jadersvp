@@ -2095,6 +2095,54 @@ function reservationTableIds(r: Reservation): string[] {
   return ids.map((x) => String(x)).filter(Boolean);
 }
 
+export async function createStandaloneSurvey(params: {
+  name: string;
+  phone: string;
+  waPhone: string;
+  folio: string;
+  answers: Array<{ q: string; a: string }>;
+  nps: string | null;
+}): Promise<{ id: string; duplicate: boolean }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const dup = await db
+    .collection("standaloneSurveys")
+    .where("waPhone", "==", params.waPhone)
+    .limit(1)
+    .get();
+  if (!dup.empty) return { id: dup.docs[0].id, duplicate: true };
+
+  const { customer } = await findOrCreateCustomer({ name: params.name, phone: params.phone });
+
+  const ref = await db.collection("standaloneSurveys").add({
+    customerId: customer.id,
+    name: params.name,
+    phone: params.phone,
+    waPhone: params.waPhone,
+    folio: params.folio,
+    answers: params.answers,
+    nps: params.nps,
+    rewardSent: false,
+    createdAt: nowMs()
+  });
+
+  return { id: ref.id, duplicate: false };
+}
+
+export async function markStandaloneSurveyReward(params: { id: string; ok: boolean; error?: string | null }) {
+  const db = getFirestore();
+  if (!db) return;
+  await db.collection("standaloneSurveys").doc(params.id).set(
+    {
+      rewardSent: params.ok,
+      rewardError: params.ok ? null : String(params.error ?? "").slice(0, 500),
+      rewardAt: nowMs()
+    },
+    { merge: true }
+  );
+}
+
 export async function listReservationsLog(params?: { limit?: number }): Promise<ReservationLogRow[]> {
   const db = getFirestore();
   if (!db) return [];

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Encuesta | Café Jade</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<meta name="description" content="Encuesta de satisfacción Café Jade. Tu opinión tiene recompensa.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Encuesta Café Jade">
+<meta property="og:description" content="Cuéntanos tu experiencia y gana un café americano o el pan del día.">
+<meta property="og:image" content="https://cafejadersvp.web.app/logo.jpg">
+<meta property="og:url" content="https://cafejadersvp.web.app/encuesta.html">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Inter',sans-serif;
+    background:#0f172a;
+    color:white;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.card{
+    width:100%;
+    max-width:480px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.1);
+    backdrop-filter:blur(18px);
+    border-radius:28px;
+    padding:35px;
+    text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.45);
+}
+
+.logo{
+    width:90px;
+    height:90px;
+    object-fit:cover;
+    border-radius:50%;
+    margin-bottom:16px;
+    border:4px solid rgba(255,255,255,0.15);
+}
+
+h1{
+    font-size:28px;
+    margin-bottom:6px;
+}
+
+.role{
+    color:#cbd5e1;
+    margin-bottom:18px;
+    font-size:15px;
+}
+
+.step[hidden]{
+    display:none;
+}
+
+.reward-banner{
+    background:linear-gradient(135deg,#059669,#10b981);
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:22px;
+    font-weight:600;
+    font-size:15px;
+    line-height:1.5;
+}
+
+.reward-banner i{
+    font-size:22px;
+    margin-bottom:8px;
+    display:block;
+}
+
+.intro-text{
+    color:#94a3b8;
+    font-size:14px;
+    line-height:1.6;
+    margin-bottom:24px;
+}
+
+.btn{
+    display:inline-block;
+    width:100%;
+    background:#10b981;
+    color:white;
+    border:none;
+    padding:15px;
+    border-radius:16px;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.2s;
+    text-decoration:none;
+    font-family:inherit;
+}
+
+.btn:hover{
+    transform:translateY(-2px);
+    filter:brightness(1.08);
+}
+
+.btn:disabled{
+    opacity:.35;
+    cursor:not-allowed;
+    transform:none;
+}
+
+.btn-wa{
+    background:#25D366;
+}
+
+.btn-ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.2);
+    font-weight:600;
+}
+
+.hint{
+    font-size:12px;
+    color:#64748b;
+    margin-top:14px;
+    line-height:1.5;
+}
+
+.field-note{
+    font-size:12px;
+    color:#6ee7b7;
+    margin-top:8px;
+    line-height:1.5;
+}
+
+.field{
+    text-align:left;
+    margin-bottom:16px;
+}
+
+.field label{
+    display:block;
+    font-size:13px;
+    color:#cbd5e1;
+    margin-bottom:6px;
+    font-weight:600;
+}
+
+.field input{
+    width:100%;
+    padding:13px 15px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.06);
+    color:white;
+    font-size:15px;
+    font-family:inherit;
+}
+
+.field input:focus{
+    outline:none;
+    border-color:#10b981;
+}
+
+.folio{
+    display:inline-block;
+    background:rgba(16,185,129,0.15);
+    border:1px dashed #10b981;
+    color:#6ee7b7;
+    border-radius:12px;
+    padding:8px 16px;
+    font-weight:700;
+    letter-spacing:1px;
+    margin:10px 0 18px;
+    font-size:15px;
+}
+
+.section-title{
+    text-align:left;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#6ee7b7;
+    margin:26px 0 14px;
+    font-weight:700;
+}
+
+.question{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:18px;
+    padding:16px;
+    margin-bottom:14px;
+    text-align:left;
+}
+
+.question.unanswered{
+    border-color:rgba(248,113,113,0.5);
+}
+
+.q-text{
+    font-size:14px;
+    line-height:1.45;
+    margin-bottom:12px;
+    font-weight:600;
+}
+
+.q-num{
+    color:#6ee7b7;
+    margin-right:6px;
+}
+
+.opts{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+}
+
+.opt{
+    padding:9px 14px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.18);
+    background:transparent;
+    color:#e2e8f0;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+    transition:.15s;
+}
+
+.opt.sel{
+    background:#10b981;
+    border-color:#10b981;
+    color:white;
+    font-weight:700;
+}
+
+.stars{
+    display:flex;
+    gap:8px;
+}
+
+.stars i{
+    font-size:28px;
+    color:#475569;
+    cursor:pointer;
+    transition:.15s;
+}
+
+.stars i.on{
+    color:#fbbf24;
+}
+
+.nps{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+}
+
+.nps .opt{
+    width:34px;
+    height:34px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+}
+
+textarea{
+    width:100%;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.06);
+    color:white;
+    font-size:14px;
+    font-family:inherit;
+    min-height:80px;
+    resize:vertical;
+}
+
+textarea:focus{
+    outline:none;
+    border-color:#10b981;
+}
+
+.done-icon{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:#10b981;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:36px;
+    margin:0 auto 20px;
+}
+
+.done-title{
+    font-size:22px;
+    font-weight:800;
+    margin-bottom:10px;
+}
+
+.done-text{
+    color:#cbd5e1;
+    font-size:14px;
+    line-height:1.6;
+    margin-bottom:16px;
+}
+
+.footer{
+    margin-top:28px;
+    font-size:12px;
+    color:#64748b;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+    <img src="/logo.jpg" class="logo">
+
+    <h1>Café Jade</h1>
+
+    <div class="role">Encuesta de satisfacción</div>
+
+    <!-- PASO 0: INTRO -->
+    <section class="step" id="step-intro">
+
+        <div class="reward-banner">
+            <i class="fa-solid fa-mug-saucer"></i>
+            Tu opinión tiene recompensa:<br>
+            un café americano o el pan del día
+        </div>
+
+        <p class="intro-text">
+            Son 21 preguntas rápidas, toma menos de 2 minutos.
+            Al final, tu cortesía llega a tu WhatsApp —
+            así comprobamos que tu número es real y tu recompensa es válida.
+        </p>
+
+        <button class="btn" id="btn-start">Comenzar encuesta</button>
+
+        <p class="hint">Solo una encuesta por número de teléfono.</p>
+
+    </section>
+
+    <!-- PASO 1: DATOS -->
+    <section class="step" id="step-datos" hidden>
+
+        <div class="field">
+            <label for="nombre">Tu nombre</label>
+            <input type="text" id="nombre" placeholder="Nombre y apellido" autocomplete="name">
+        </div>
+
+        <div class="field">
+            <label for="telefono">Tu número de WhatsApp (10 dígitos)</label>
+            <input type="tel" id="telefono" placeholder="Ej. 9611234567" maxlength="10" inputmode="numeric" autocomplete="tel">
+            <p class="field-note">
+                <i class="fa-solid fa-gift"></i>
+                A este número te llegará tu cortesía por WhatsApp —
+                asegúrate de escribir tu número real.
+            </p>
+        </div>
+
+        <button class="btn" id="btn-next">Continuar a la encuesta</button>
+
+        <p class="hint">Al terminar, tu cortesía se envía por WhatsApp al número que escribas. Así comprobamos que tu número es real y tu opinión cuenta.</p>
+
+    </section>
+
+    <!-- PASO 2: ENCUESTA -->
+    <section class="step" id="step-survey" hidden>
+
+        <div id="questions"></div>
+
+        <button class="btn" id="btn-submit" disabled>
+            Enviar encuesta
+        </button>
+
+        <p class="hint" id="submit-hint">Responde todas las preguntas para poder enviar.</p>
+
+    </section>
+
+    <!-- PASO 3: RECOMPENSA -->
+    <section class="step" id="step-done" hidden>
+
+        <div class="done-icon">
+            <i class="fa-solid fa-check"></i>
+        </div>
+
+        <div class="done-title" id="done-title">¡Gracias por tu opinión!</div>
+
+        <div class="folio">Folio: <span id="folio-2"></span></div>
+
+        <p class="done-text" id="done-text">
+            En breve recibirás tu cortesía en tu WhatsApp:
+            <strong>un café americano o el pan del día</strong>.
+            Preséntala al mesero en tu próxima visita.
+        </p>
+
+        <p class="hint">La cortesía se envía una vez confirmada tu encuesta en nuestro WhatsApp.</p>
+
+    </section>
+
+    <div class="footer" style="color: white;">
+        Powered by <a href="https://unknownshoppers.com" style="color: white; text-decoration: none;">The Unknown Shopper</a>
+        <div style="margin-top: 8px; opacity: 0.75;">
+            <a href="./aviso.html" style="color: white; text-decoration: none;">Aviso de privacidad</a> ·
+            <a href="./terms.html" style="color: white; text-decoration: none;">Términos</a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const folio = 'CJ-' + Math.random().toString(36).slice(2,6).toUpperCase();
+document.getElementById('folio-2').textContent = folio;
+
+const QUESTIONS = [
+    { section: 'Actitud de servicio' },
+    { t:'yesno',  s:'Bienvenida',     q:'¿El personal te dio la bienvenida al llegar?' },
+    { t:'choice', s:'Tiempo espera',  q:'¿Cuánto tiempo pasó antes de que te atendieran?', opts:['Menos de 1 min','1 a 3 min','3 a 5 min','Más de 5 min'] },
+    { t:'stars',  s:'Amabilidad',     q:'¿Cómo calificarías la amabilidad y sonrisa del personal?' },
+    { t:'yesno3', s:'Se presentó',    q:'¿Tu mesero se presentó por su nombre?', opts:['Sí','No','No recuerdo'] },
+    { t:'yesno',  s:'Atención mesa',  q:'¿Durante tu visita regresaron a tu mesa para asegurarse de que todo estuviera bien?' },
+    { t:'yesno',  s:'Disposición',    q:'¿Tus peticiones o aclaraciones fueron atendidas con buena disposición?' },
+    { t:'choice', s:'Rapidez pedido', q:'¿Qué tan rápido llegó tu pedido?', opts:['Muy rápido','Rápido','Normal','Tardado','Muy tardado'] },
+    { t:'yesno',  s:'Despedida',      q:'¿Recibiste una despedida o agradecimiento al finalizar?' },
+
+    { section: 'Esfuerzo de venta' },
+    { t:'yesno',  s:'Ofreció bebida',     q:'¿Te ofrecieron una bebida apenas te sentaste?' },
+    { t:'yesno',  s:'Recomendación',      q:'¿El mesero te recomendó algún platillo o bebida en particular?' },
+    { t:'yesno',  s:'Especialidades',     q:'¿Te mencionaron las especialidades, promociones o el pan del día?' },
+    { t:'yesno',  s:'Sugerencia extra',   q:'¿Te sugirieron algo para acompañar tu bebida o platillo?' },
+    { t:'yesno',  s:'Ofreció postre',     q:'¿Te ofrecieron postre o algo de la repostería?' },
+    { t:'yesno',  s:'Oferta final',       q:'¿Antes de pedir la cuenta te ofrecieron algo más (otra bebida, refill, digestivo)?' },
+    { t:'yesno',  s:'Invitación volver',  q:'¿Te invitaron a volver o te platicaron de promociones, reservaciones o contacto?' },
+
+    { section: 'Producto y experiencia' },
+    { t:'stars',   s:'Sabor alimentos',   q:'¿Cómo calificarías el sabor de los alimentos?' },
+    { t:'starsna', s:'Repostería',        q:'¿Cómo calificarías la repostería o pan?' },
+    { t:'stars',   s:'Limpieza',          q:'¿Cómo calificarías la limpieza del lugar, la mesa y los baños?' },
+    { t:'stars',   s:'Ambiente',          q:'¿Cómo calificarías el ambiente (música, iluminación, comodidad)?' },
+    { t:'nps',     s:'Recomendación',     q:'Del 0 al 10, ¿qué tan probable es que recomiendes Café Jade?' },
+    { t:'text',    s:'Comentario',        q:'¿Qué fue lo que más te gustó, o qué podríamos mejorar? (opcional)', required:false }
+];
+
+const answers = new Array(QUESTIONS.length).fill(null);
+const qIndex = [];
+QUESTIONS.forEach((it, i) => { if(!it.section) qIndex.push(i); });
+
+const container = document.getElementById('questions');
+
+QUESTIONS.forEach((item, i) => {
+
+    if(item.section){
+        const h = document.createElement('div');
+        h.className = 'section-title';
+        h.textContent = item.section;
+        container.appendChild(h);
+        return;
+    }
+
+    const num = qIndex.indexOf(i) + 1;
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.dataset.idx = i;
+
+    div.innerHTML = `<div class="q-text"><span class="q-num">${num}.</span>${item.q}</div>`;
+
+    if(item.t === 'stars' || item.t === 'starsna'){
+        const st = document.createElement('div');
+        st.className = 'stars';
+        for(let v = 1; v <= 5; v++){
+            const ic = document.createElement('i');
+            ic.className = 'fa-solid fa-star';
+            ic.onclick = () => {
+                answers[i] = v + '/5';
+                [...st.children].forEach((el, k) => el.classList.toggle('on', k < v));
+                mark(div);
+            };
+            st.appendChild(ic);
+        }
+        div.appendChild(st);
+        if(item.t === 'starsna'){
+            const opts = document.createElement('div');
+            opts.className = 'opts';
+            opts.style.marginTop = '10px';
+            opts.innerHTML = `<button class="opt" type="button">No pedí repostería</button>`;
+            opts.firstChild.onclick = e => {
+                answers[i] = 'No aplica';
+                e.target.classList.add('sel');
+                [...st.children].forEach(el => el.classList.remove('on'));
+                mark(div);
+            };
+            div.appendChild(opts);
+        }
+    }
+
+    if(item.t === 'yesno' || item.t === 'yesno3' || item.t === 'choice'){
+        const opts = document.createElement('div');
+        opts.className = 'opts';
+        (item.opts || ['Sí','No']).forEach(label => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'opt';
+            b.textContent = label;
+            b.onclick = () => {
+                answers[i] = label;
+                [...opts.children].forEach(el => el.classList.remove('sel'));
+                b.classList.add('sel');
+                mark(div);
+            };
+            opts.appendChild(b);
+        });
+        div.appendChild(opts);
+    }
+
+    if(item.t === 'nps'){
+        const opts = document.createElement('div');
+        opts.className = 'nps';
+        for(let v = 0; v <= 10; v++){
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'opt';
+            b.textContent = v;
+            b.onclick = () => {
+                answers[i] = String(v);
+                [...opts.children].forEach(el => el.classList.remove('sel'));
+                b.classList.add('sel');
+                mark(div);
+            };
+            opts.appendChild(b);
+        }
+        div.appendChild(opts);
+    }
+
+    if(item.t === 'text'){
+        const ta = document.createElement('textarea');
+        ta.placeholder = 'Escribe aquí...';
+        ta.oninput = () => answers[i] = ta.value.trim() || null;
+        div.appendChild(ta);
+        answers[i] = '—';
+    }
+
+    container.appendChild(div);
+});
+
+function mark(div){
+    div.classList.remove('unanswered');
+    checkDone();
+}
+
+function checkDone(){
+    const missing = qIndex.filter(i => answers[i] === null);
+    document.getElementById('btn-submit').disabled = missing.length > 0;
+    document.getElementById('submit-hint').textContent =
+        missing.length > 0
+            ? `Te faltan ${missing.length} pregunta(s) por responder.`
+            : 'Listo. Al enviar se abrirá WhatsApp con tus respuestas.';
+    return missing;
+}
+
+function show(id){
+    document.querySelectorAll('.step').forEach(s => s.hidden = true);
+    document.getElementById(id).hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function datos(){
+    return {
+        nombre: document.getElementById('nombre').value.trim(),
+        tel: document.getElementById('telefono').value.replace(/\D/g,'')
+    };
+}
+
+document.getElementById('btn-start').onclick = () => show('step-datos');
+
+document.getElementById('btn-next').onclick = () => {
+    const { nombre, tel } = datos();
+    if(!nombre){ alert('Escribe tu nombre.'); return; }
+    if(tel.length !== 10){ alert('Escribe un número de WhatsApp de 10 dígitos.'); return; }
+    show('step-survey');
+};
+
+document.getElementById('btn-submit').onclick = async () => {
+    const missing = checkDone();
+    if(missing.length){
+        qIndex.forEach(i => {
+            if(answers[i] === null){
+                document.querySelector(`.question[data-idx="${i}"]`).classList.add('unanswered');
+            }
+        });
+        return;
+    }
+
+    const { nombre, tel } = datos();
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    const payload = {
+        name: nombre,
+        phone: tel,
+        folio,
+        answers: qIndex.map(i => ({ q: QUESTIONS[i].s, a: String(answers[i] ?? '—') }))
+    };
+
+    try {
+        const res = await fetch('/api/encuesta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.status === 409) {
+            document.getElementById('done-title').textContent = 'Esta encuesta ya fue registrada';
+            document.getElementById('done-text').innerHTML =
+                'Este número ya participó. <strong>Solo una encuesta por número de teléfono.</strong>';
+            show('step-done');
+            return;
+        }
+
+        if (!res.ok) throw new Error('HTTP_' + res.status);
+
+        const data = await res.json().catch(() => ({}));
+        if (!data.rewardSent) {
+            document.getElementById('done-text').innerHTML =
+                'Tu encuesta quedó registrada. Muestra este <strong>folio al mesero</strong> ' +
+                'para reclamar tu cortesía: <strong>un café americano o el pan del día</strong>.';
+        }
+        show('step-done');
+    } catch {
+        alert('No se pudo enviar. Revisa tu conexión e intenta de nuevo.');
+        btn.disabled = false;
+        btn.textContent = 'Enviar encuesta';
+    }
+};
+
+</script>
+
+</body>
+
+</html>
