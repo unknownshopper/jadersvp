@@ -34,6 +34,14 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 3. **Sin reserva (walk-in):** crea la reserva en el momento con la mesa libre seleccionada.
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.
 
+### Control del walk-in (nadie se sienta solo)
+
+Si alguien entra buscando mesa por su cuenta, acércate y dirige con cortesía firme:
+
+- "Las mesas están reservadas, por favor regrese para poder registrarla y asignarle una mesa."
+- "Bienvenidos a Café Jade. Permítanme acompañarlos — las mesas se asignan desde recepción para darles el mejor lugar disponible."
+- "Un momento por favor — esa mesa está reservada. Regálenme su nombre y les asigno una libre enseguida."
+
 ### Juntar mesas (grupos grandes)
 
 - Toca una mesa ocupada (o el botón **Juntar**) → *Sumar mesa al grupo…* → elige la mesa libre. Repite para una tercera o más.
