@@ -34,13 +34,25 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 3. **Sin reserva (walk-in):** crea la reserva en el momento con la mesa libre seleccionada.
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.
 
-### Control del walk-in (nadie se sienta solo)
+### Control de acceso: la hostess no abandona recepción
 
-Si alguien entra buscando mesa por su cuenta, acércate y dirige con cortesía firme:
+Tu lugar es la entrada. Controlas **quién entra y quién sale** — si acompañas a una mesa, vas y vienes rápido; nunca dejas el acceso sin vigilancia.
+
+**Contener a quien llega mientras atiendes:**
+
+- "Bienvenidos a Café Jade, un momento por favor y les atiendo."
+- "Buenas tardes — en un momento les registro y les asigno su mesa."
+
+**Detener a quien busca mesa solo:**
 
 - "Las mesas están reservadas, por favor regrese para poder registrarla y asignarle una mesa."
-- "Bienvenidos a Café Jade. Permítanme acompañarlos — las mesas se asignan desde recepción para darles el mejor lugar disponible."
+- "Permítanme acompañarlos — las mesas se asignan desde recepción para darles el mejor lugar disponible."
 - "Un momento por favor — esa mesa está reservada. Regálenme su nombre y les asigno una libre enseguida."
+
+**Despedida (siempre, a cada cliente que sale):**
+
+- "Gracias por su visita, ¡los esperamos pronto!"
+- "Que tengan excelente día — para su próxima visita pueden reservar por WhatsApp."
 
 ### Juntar mesas (grupos grandes)
 
