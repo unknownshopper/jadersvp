@@ -42,6 +42,8 @@ Tu lugar es la entrada. Controlas **quién entra y quién sale** — **nunca te 
 
 Desde tu lugar también **vigilas el salón**: si una mesa levanta la mano o solicita mesero, lo llamas por radio de inmediato ("mesero a la 12, por favor") — agilizas el servicio sin moverte de recepción.
 
+**Sala de espera (solo bebidas):** si hay fila, la jefa de piso escolta al grupo a la sala de espera — ahí van viendo el menú y pueden **abrir cuenta solo de bebidas**. Al liberarse su mesa, la confirmas en el sistema y pasan sentados con la cuenta ya abierta.
+
 **Contener a quien llega mientras atiendes:**
 
 - "Bienvenidos a Café Jade, un momento por favor y les atiendo."
