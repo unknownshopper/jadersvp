@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CafeTable, Customer, FloorplanPositions, Reservation } from "@/lib/firestore";
-import { DEFAULT_DOWN_POSITIONS, DEFAULT_UP_MARKERS, DEFAULT_UP_POSITIONS } from "@/lib/floorplan";
+import { DEFAULT_DOWN_POSITIONS, DEFAULT_UP_MARKERS, DEFAULT_UP_POSITIONS, isWaitingRoomTableName } from "@/lib/floorplan";
 import { enqueuePost, fieldsFromFormData, flushQueue, queueCount } from "@/lib/offlineQueue";
 
 const DRAFT_KEY = "cj_hostess_draft_v1";
@@ -503,7 +503,7 @@ export default function HostessForm({
 
   const tablesForPicker = useMemo(
     () =>
-      [...tables].sort((a, b) => {
+      [...tables].filter((t) => !isWaitingRoomTableName(t.name)).sort((a, b) => {
         const an = Number.parseInt(String(a.name), 10);
         const bn = Number.parseInt(String(b.name), 10);
         if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
@@ -1073,19 +1073,20 @@ export default function HostessForm({
             <div className="table-map" data-floor={mapFloor} role="group" aria-label="Croquis de mesas">
             {mapFloor === "up" ? (
               upstairsResolved.map((m, i) => {
+                const waitingRoom = isWaitingRoomTableName(m.label);
                 const t = tableByName.get(String(m.label)) ?? null;
                 const s = t ? effectiveStatusAt(t, reservedForMs) : "LIBRE";
                 const isSelected = t ? selectedTableIds.includes(t.id) : false;
-                const cls = `up-marker ${m.kind} ${statusClass(s)} ${isSelected ? "selected" : ""}`;
+                const cls = `up-marker ${m.kind} ${waitingRoom ? "espera" : statusClass(s)} ${isSelected ? "selected" : ""}`;
                 return (
                   <button
                     key={`${m.kind}-${m.label}-${i}`}
                     type="button"
                     className={cls}
                     style={{ left: `${m.x}%`, top: `${m.y}%`, transform: "translate(-50%, -50%)" } as any}
-                    title={`Mesa ${m.label}`}
+                    title={waitingRoom ? `Mesa ${m.label} · Sala de espera` : `Mesa ${m.label}`}
                     onClick={() => {
-                      if (!t) return;
+                      if (waitingRoom || !t) return;
                       const es = effectiveStatusAt(t, reservedForMs);
                       if (es !== "LIBRE") {
                         router.push(`/hostess?focusTableId=${encodeURIComponent(t.id)}`);
@@ -1163,6 +1164,10 @@ export default function HostessForm({
                 <span className="table-legend-item">
                   <span className="table-legend-dot porlimpiar" />
                   Por limpiar
+                </span>
+                <span className="table-legend-item">
+                  <span className="table-legend-dot espera" />
+                  Sala de espera (30–39)
                 </span>
                 <span className="table-legend-item">
                   <span className="table-legend-dot selected" />

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
 import QueueableForm from "../QueueableForm";
 import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM } from "@/lib/dateFormat";
+import { isWaitingRoomTableName } from "@/lib/floorplan";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -165,6 +166,7 @@ export default async function HostessPage({
   const addableTables = focusedVisit?.status === "SEATED"
     ? tables
         .filter((t) => t.status === "LIBRE")
+        .filter((t) => !isWaitingRoomTableName(t.name))
         .filter((t) => !focusedVisit.activeTableIds.includes(String(t.id)))
         .sort((a, b) => {
           const an = Number.parseInt(String(a.name), 10);
@@ -621,6 +623,7 @@ export default async function HostessPage({
                           </option>
                           {tables
                             .filter((t) => t.status === "LIBRE")
+                            .filter((t) => !isWaitingRoomTableName(t.name))
                             .map((t) => (
                               <option key={t.id} value={t.id}>
                                 {t.name}

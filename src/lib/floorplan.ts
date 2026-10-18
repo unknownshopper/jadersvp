@@ -50,3 +50,9 @@ export const DEFAULT_UP_POSITIONS: Record<string, { x: number; y: number }> = Ob
 export function defaultPositionFor(floor: "down" | "up", label: string) {
   return floor === "up" ? DEFAULT_UP_POSITIONS[label] ?? null : DEFAULT_DOWN_POSITIONS[label] ?? null;
 }
+
+// Tables 30–39 (upstairs) are the waiting room: never reservable or seatable.
+export function isWaitingRoomTableName(name: string | null | undefined) {
+  const n = Number.parseInt(String(name ?? "").trim(), 10);
+  return Number.isFinite(n) && n >= 30 && n <= 39;
+}

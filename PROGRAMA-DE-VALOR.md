@@ -42,7 +42,7 @@ Tu lugar es la entrada. Controlas **quién entra y quién sale** — **nunca te 
 
 Desde tu lugar también **vigilas el salón**: si una mesa levanta la mano o solicita mesero, lo llamas por radio de inmediato ("mesero a la 12, por favor") — agilizas el servicio sin moverte de recepción.
 
-**Sala de espera (solo bebidas):** si hay fila, la jefa de piso escolta al grupo a la sala de espera — **mesas 30 a 39 de planta alta**. Ahí van viendo el menú y pueden **abrir cuenta solo de bebidas** (nada de cocina). En el sistema siguen en **lista de espera** — no se marcan sentados en el croquis hasta que bajen a su mesa real. Al liberarse su mesa, la confirmas y bajan con la cuenta ya abierta.
+**Sala de espera (solo bebidas):** si hay fila, ofrece al cliente elegir entre dos espacios — el **sofá del área de molido y tostado (planta baja)** o las **mesas 30 a 39 de planta alta**. La jefa de piso los escolta. Ahí van viendo el menú y pueden **abrir cuenta solo de bebidas** (nada de cocina). En el sistema siguen en **lista de espera** — no se marcan sentados en el croquis hasta que bajen a su mesa real (las 30–39 no son reservables en el sistema). Al liberarse su mesa, la confirmas y bajan con la cuenta ya abierta.
 
 **Contener a quien llega mientras atiendes:**
 

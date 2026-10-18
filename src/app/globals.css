@@ -368,6 +368,7 @@ html[data-offline="true"] .requires-online {
 .up-marker.ocupada { border-color: #ff3b30; background: rgba(255, 59, 48, 0.92); color: #ffffff; }
 .up-marker.reservada { border-color: #6d28d9; background: rgba(109, 40, 217, 0.92); color: #ffffff; }
 .up-marker.porlimpiar { border-color: #b7950b; opacity: 0.78; }
+.up-marker.espera { border-color: #64748b; border-style: dashed; background: rgba(100, 116, 139, 0.10); color: rgba(100, 116, 139, 0.95); cursor: default; }
 .up-marker.selected {
   outline: 2px solid rgba(168, 85, 247, 0.95);
   outline-offset: 2px;
@@ -417,6 +418,8 @@ html[data-offline="true"] .requires-online {
 .up-marker.triangle.ocupada { border-left-color: rgba(255, 59, 48, 0.92); }
 .up-marker.triangle.reservada { border-left-color: rgba(109, 40, 217, 0.92); }
 .up-marker.triangle.porlimpiar { border-left-color: rgba(183, 149, 11, 0.82); opacity: 0.78; }
+.up-marker.triangle.espera { border-left-color: rgba(100, 116, 139, 0.75); cursor: default; }
+.up-marker.triangle.espera > span { color: rgba(71, 85, 105, 0.95); }
 
 
 .up-marker.triangle::before {
@@ -469,6 +472,7 @@ html[data-offline="true"] .requires-online {
 .table-legend-dot.ocupada { border-color: #ff3b30; background: rgba(255, 59, 48, 0.92); }
 .table-legend-dot.reservada { border-color: #6d28d9; background: rgba(109, 40, 217, 0.92); }
 .table-legend-dot.porlimpiar { border-color: #b7950b; opacity: 0.75; }
+.table-legend-dot.espera { border-color: #64748b; border-style: dashed; background: rgba(100, 116, 139, 0.10); }
 .table-legend-dot.selected {
   border-color: rgba(42, 109, 244, 0.9);
   box-shadow: 0 0 0 2px rgba(42, 109, 244, 0.28);
