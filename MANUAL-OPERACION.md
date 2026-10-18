@@ -34,9 +34,11 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 3. **Sin reserva (walk-in):** crea la reserva en el momento con la mesa libre seleccionada.
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.
 
-### Control de acceso: la hostess no abandona recepción
+### Control de acceso: la hostess nunca abandona su sitio
 
-Tu lugar es la entrada. Controlas **quién entra y quién sale** — si acompañas a una mesa, vas y vienes rápido; nunca dejas el acceso sin vigilancia.
+Tu lugar es la entrada. Controlas **quién entra y quién sale** — **nunca te mueves de recepción**. Si hay que acompañar a un cliente a su mesa, llamas por radio a la **jefa de piso** (o al mesero disponible) para que lo escolte.
+
+**Todo el personal de piso trae radio encendido durante el servicio** — hostess, jefa de piso y meseros. Es el canal de comunicación del salón.
 
 Desde tu lugar también **vigilas el salón**: si una mesa levanta la mano o solicita mesero, lo llamas por radio de inmediato ("mesero a la 12, por favor") — agilizas el servicio sin moverte de recepción.
 
