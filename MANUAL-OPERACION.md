@@ -41,29 +41,29 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 
 ## 3. Venta (servicio)
 
-Estándares que mide la encuesta — el mesero debe:
+Estándares que mide la encuesta — el mesero debe dar la **bienvenida**, **presentarse por su nombre** y **regresar a la mesa** a verificar que todo esté bien.
 
-1. Dar la **bienvenida** y **presentarse por su nombre**.
-2. Ofrecer **bebida apenas se sientan**.
-3. Recomendar **especialidades, promociones o el pan del día**.
-4. Sugerir **acompañamientos** a la bebida/platillo.
-5. Regresar a la mesa para verificar que todo esté bien.
+**Detectar el momento → hacer la oferta.** Pocas palabras, siempre una sugerencia concreta, nunca "¿desean algo más?":
 
-## 4. Reventa (segunda venta)
+| Momento | Qué ofrecer |
+|---|---|
+| Apenas se sientan | Bebida primero — "¿qué les traigo de tomar?" |
+| Dudan con el menú | 2 recomendaciones, nunca el menú entero — "el X está muy bueno, o el Y" |
+| Piden café | Pan del día o repostería — "¿lo acompaño con…?" |
+| Traen prisa | Lo más rápido de cocina — dilo |
+| Llega el plato | Vuelve en 2 minutos — "¿todo bien, les falta algo?" |
+| Bebida a la mitad | La siguiente o refill — "¿le traigo otro?" |
+| Terminan de comer | Postre o café de olla |
+| Antes de la cuenta | Última oferta — "¿algo para llevar?" |
+| Al despedirse | Invitación a volver — promoción o próxima reserva |
 
-Antes de que pidan la cuenta, siempre ofrecer:
-
-- Postre o repostería.
-- Otra bebida, refill o digestivo.
-- Invitación a volver (promociones, próximas reservas).
-
-## 5. Cierre de mesa
+## 4. Cierre de mesa
 
 1. Despedida y agradecimiento.
 2. En `/hostess` → *Mesas ocupadas* → **Liberar** (o **Liberar y devolver** si la mesa está fuera de su lugar: la libera y regresa su posición en el plano).
 3. Al liberar la última mesa del grupo, la reserva se completa y el sistema **envía la encuesta de satisfacción por WhatsApp** automáticamente.
 
-## 6. Encuesta y cortesía
+## 5. Encuesta y cortesía
 
 - El cliente recibe la encuesta por WhatsApp (o la abre desde el QR de mesa en `/encuesta.html`).
 - **Flujo:** escribe nombre + teléfono → recibe un **código de 6 dígitos por WhatsApp** → lo escribe en la página → contesta las 21 preguntas → recibe su **número de confirmación (folio CJ-XXXX)**.
@@ -71,13 +71,13 @@ Antes de que pidan la cuenta, siempre ofrecer:
 - Solo una encuesta por número de teléfono — el sistema rechaza duplicados.
 - Si el número no tiene WhatsApp, el código nunca llega y la encuesta no se abre: así se verifica que el dato es real.
 
-## 7. Registro y supervisión
+## 6. Registro y supervisión
 
 - `/admin/log` o `/iog.html` (solo administradores): historial completo con nombre, mesa(s), fecha/hora, teléfono (o *SIN TELÉFONO*), correo, origen y estado.
 - El filtro muestra quién registró sin teléfono y el contador *Sin tel. al crear*.
 - `/reacomodo.html` (admin): mover mesas del plano; `/hostess` lo refleja. Nunca se mueven mesas en operación — solo en el editor.
 
-## 8. Contingencia: sin internet
+## 7. Contingencia: sin internet
 
 Si se va la luz o el internet, el sistema entra en modo degradado — la tablet muestra el aviso amarillo *Sin conexión*. **La operación sigue solo en la tablet**: lo que se haga ahí queda guardado en el dispositivo y se sincroniza con el sistema al recuperar el internet.
 
