@@ -32,6 +32,7 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 1. Al llegar el cliente **"con reservación"**, localiza su reserva comenzando con su **número o nombre** — al teclear, el sistema sugiere clientes registrados; al elegir uno, se autocompleta teléfono/correo y se muestra su **última visita** y cuántas veces ha venido.
 2. **Sienta** la reserva en la(s) mesa(s) asignada(s) — el croquis la marca OCUPADA.
 3. **Sin reserva (walk-in):** crea la reserva en el momento con la mesa libre seleccionada.
+   - **Si no quieren dar su número**, explícalo por el sistema: *"El sistema me pide un número para poder asignar la mesa — sin él, podría asignar la mesa donde están sentados a una reserva en línea."* El número es lo que les aparta la mesa, no un capricho.
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.
 
 ### Control de acceso: la hostess nunca abandona su sitio
