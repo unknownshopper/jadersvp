@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getFirestore } from "@/lib/firebaseAdmin";
 import { requireRole } from "@/lib/serverAuth";
+import { customerVisitStats } from "@/lib/firestore";
 
 function norm(s: string) {
   return String(s ?? "")
@@ -21,6 +22,14 @@ export async function GET(req: Request) {
     const db = getFirestore();
     if (!db) return NextResponse.json({ customers: [] });
 
+    const withStats = async (list: Array<{ id: string; name: string; phone: string; email: string }>) =>
+      Promise.all(
+        list.map(async (c) => {
+          const s = await customerVisitStats(String(c.id));
+          return { ...c, visitsCount: s.visitsCount, lastVisitAt: s.lastVisitAt };
+        })
+      );
+
     const toCustomer = (d: any) => ({
       id: d.id,
       name: String(d.data()?.name ?? ""),
@@ -37,7 +46,7 @@ export async function GET(req: Request) {
         .where("phone", "<", `${phonePrefix}`)
         .limit(8)
         .get();
-      return NextResponse.json({ customers: snap.docs.map(toCustomer) });
+      return NextResponse.json({ customers: await withStats(snap.docs.map(toCustomer)) });
     }
 
     // Name search: normalize + substring match over the contactable pool.
@@ -49,7 +58,7 @@ export async function GET(req: Request) {
         .filter((c: { name: string }) => norm(c.name).includes(nq))
         .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "es"))
         .slice(0, 8);
-      return NextResponse.json({ customers });
+      return NextResponse.json({ customers: await withStats(customers) });
     }
 
     return NextResponse.json({ customers: [] });

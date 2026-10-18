@@ -29,7 +29,7 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 
 ## 2. Recepción y sentado
 
-1. Al llegar el cliente, localiza su reserva (lista del día o por nombre en el buscador del registro).
+1. Al llegar el cliente **"con reservación"**, localiza su reserva comenzando con su **número o nombre** — al teclear, el sistema sugiere clientes registrados; al elegir uno, se autocompleta teléfono/correo y se muestra su **última visita** y cuántas veces ha venido.
 2. **Sienta** la reserva en la(s) mesa(s) asignada(s) — el croquis la marca OCUPADA.
 3. **Sin reserva (walk-in):** crea la reserva en el momento con la mesa libre seleccionada.
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.

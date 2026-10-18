@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findCustomerByContact } from "@/lib/firestore";
+import { findCustomerByContact, customerVisitStats } from "@/lib/firestore";
 import { requireRole } from "@/lib/serverAuth";
 
 export async function GET(req: Request) {
@@ -16,12 +16,16 @@ export async function GET(req: Request) {
     const customer = await findCustomerByContact({ phone, email });
     if (!customer) return NextResponse.json({ customer: null });
 
+    const stats = await customerVisitStats(customer.id);
+
     return NextResponse.json({
       customer: {
         id: customer.id,
         name: customer.name ?? "",
         phone: customer.phone ?? "",
-        email: customer.email ?? ""
+        email: customer.email ?? "",
+        visitsCount: stats.visitsCount,
+        lastVisitAt: stats.lastVisitAt
       }
     });
   } catch (err: any) {

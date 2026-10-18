@@ -43,6 +43,34 @@ function statusClass(status: string) {
   return "porlimpiar";
 }
 
+type CustomerSuggestion = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  visitsCount?: number;
+  lastVisitAt?: number | null;
+};
+
+function formatVisitAgo(ms: number | null | undefined) {
+  const n = Number(ms ?? 0);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const days = Math.max(0, Math.floor((Date.now() - n) / 86400000));
+  if (days === 0) return "hoy";
+  if (days === 1) return "ayer";
+  return `hace ${days} días`;
+}
+
+function visitSummary(c: { visitsCount?: number; lastVisitAt?: number | null }) {
+  const ago = formatVisitAgo(c.lastVisitAt);
+  const n = Number(c.visitsCount ?? 0);
+  if (!ago && n <= 0) return "primera visita registrada";
+  const parts: string[] = [];
+  if (ago) parts.push(`última visita ${ago}`);
+  if (n > 0) parts.push(`${n} visita${n === 1 ? "" : "s"}`);
+  return parts.join(" · ");
+}
+
 function effectiveStatus(t: CafeTable) {
   const next = (t as any).nextReservedFor as number | null | undefined;
   if (!next) {
@@ -118,8 +146,8 @@ export default function HostessForm({
   const [phoneNational, setPhoneNational] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [customerHint, setCustomerHint] = useState<string>("");
-  const [phoneSuggestions, setPhoneSuggestions] = useState<Array<{ id: string; name: string; phone: string; email: string }>>([]);
-  const [nameSuggestions, setNameSuggestions] = useState<Array<{ id: string; name: string; phone: string; email: string }>>([]);
+  const [phoneSuggestions, setPhoneSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [nameSuggestions, setNameSuggestions] = useState<CustomerSuggestion[]>([]);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nameSuggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [partySize, setPartySize] = useState<string>("1");
@@ -198,7 +226,7 @@ export default function HostessForm({
     return `${prefix}${national}`;
   }, [phoneCountry, phoneNational]);
 
-  const pickSuggestion = (c: { name: string; phone: string; email: string }) => {
+  const pickSuggestion = (c: CustomerSuggestion) => {
     const digits = String(c.phone ?? "").replace(/\D/g, "");
     const ccDigits = String(phoneCountry ?? "").replace(/\D/g, "");
     if (ccDigits && digits.startsWith(ccDigits) && digits.length > ccDigits.length) {
@@ -217,7 +245,7 @@ export default function HostessForm({
     if (c.email && !email.trim()) setEmail(String(c.email));
     setPhoneSuggestions([]);
     setNameSuggestions([]);
-    setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"}`);
+    setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"} · ${visitSummary(c)}`);
   };
 
   const onNameChange = (value: string) => {
@@ -292,7 +320,7 @@ export default function HostessForm({
       }
       if (!name.trim() && c.name) setName(String(c.name).toUpperCase());
       if (!email.trim() && c.email) setEmail(String(c.email));
-      setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"}`);
+      setCustomerHint(`Cliente reconocido: ${String(c.name ?? "").trim() || "sin nombre"} · ${visitSummary(c)}`);
     } catch {
       setCustomerHint("");
     }
@@ -639,6 +667,7 @@ export default function HostessForm({
                       <b>{c.name || "Sin nombre"}</b>
                       <span style={{ opacity: 0.75 }}> · {c.phone}</span>
                       {c.email ? <span style={{ opacity: 0.55 }}> · {c.email}</span> : null}
+                      <span style={{ display: "block", opacity: 0.6, fontSize: 12 }}>{visitSummary(c)}</span>
                     </button>
                   ))}
                 </div>
@@ -827,6 +856,7 @@ export default function HostessForm({
                         <b>{c.name || "Sin nombre"}</b>
                         <span style={{ opacity: 0.75 }}> · {c.phone}</span>
                         {c.email ? <span style={{ opacity: 0.55 }}> · {c.email}</span> : null}
+                        <span style={{ display: "block", opacity: 0.6, fontSize: 12 }}>{visitSummary(c)}</span>
                       </button>
                     ))}
                   </div>

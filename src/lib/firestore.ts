@@ -767,6 +767,27 @@ export async function findCustomerByContact(input: {
   return null;
 }
 
+// A visit counts only when the party was actually seated (SEATED) or the table
+// cycle finished (COMPLETED) — cancelled/no-show reservations are not visits.
+export async function customerVisitStats(customerId: string): Promise<{
+  visitsCount: number;
+  lastVisitAt: number | null;
+}> {
+  const db = getFirestore();
+  const id = String(customerId ?? "").trim();
+  if (!db || !id) return { visitsCount: 0, lastVisitAt: null };
+
+  const snap = await db.collection("reservations").where("customerId", "==", id).limit(300).get();
+  const ats = snap.docs
+    .map((d: any) => d.data() as Reservation)
+    .filter((r: any) => r?.status === "SEATED" || r?.status === "COMPLETED")
+    .map((r: any) => Number((r as any)?.reservedFor ?? (r as any)?.createdAt ?? 0))
+    .filter((n: number) => Number.isFinite(n) && n > 0)
+    .sort((a: number, b: number) => b - a);
+
+  return { visitsCount: ats.length, lastVisitAt: ats.length ? ats[0] : null };
+}
+
 export async function findOrCreateCustomer(input: {
   name: string;
   phone?: string | null;
