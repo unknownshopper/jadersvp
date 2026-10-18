@@ -6,7 +6,7 @@ Protocolo del ciclo completo del cliente: reservación → recepción → sentad
 
 | Rol | Acceso | Responsabilidad |
 |---|---|---|
-| Hostess | `/hostess` | Toda la operación de piso: reservas, mesas, lista de espera, liberar mesas |
+| Hostess | `/hostess` | Toda la operación de piso: reservas, mesas, lista de espera, liberar mesas. Vigila el salón desde recepción y llama al mesero por radio cuando una mesa lo solicita |
 | Admin | `/admin`, `/admin/log`, `/iog.html`, `/reacomodo.html` | Supervisión, registro histórico, acomodo del plano |
 | Director | Todo | Dirección y reportes |
 
@@ -37,6 +37,8 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 ### Control de acceso: la hostess no abandona recepción
 
 Tu lugar es la entrada. Controlas **quién entra y quién sale** — si acompañas a una mesa, vas y vienes rápido; nunca dejas el acceso sin vigilancia.
+
+Desde tu lugar también **vigilas el salón**: si una mesa levanta la mano o solicita mesero, lo llamas por radio de inmediato ("mesero a la 12, por favor") — agilizas el servicio sin moverte de recepción.
 
 **Contener a quien llega mientras atiendes:**
 
