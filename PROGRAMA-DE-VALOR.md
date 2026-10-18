@@ -1,4 +1,4 @@
-# Café Jade — Manual de atención y operación del sistema
+# Café Jade — Programa de Valor
 
 Protocolo del ciclo completo del cliente: reservación → recepción → sentado → venta → reventa → cierre → encuesta. Describe qué hace el personal y qué hace el sistema en cada etapa.
 
