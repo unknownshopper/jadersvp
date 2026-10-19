@@ -351,13 +351,16 @@
         }
       }
 
+      const TABLE_DISPLAY_NAMES = { "31": "Sala 1", "32": "Sala 2", "33": "Sala 3", "36": "Sala 4" };
+      function displayTableName(label) { return TABLE_DISPLAY_NAMES[label] ?? label; }
+
       function makeMarker(label, kind, pos, onMove) {
         const el = document.createElement("div");
         el.className = `marker ${kind}${isMoved(floor, label) ? " moved" : ""}`;
         el.style.left = `${pos.x}%`;
         el.style.top = `${pos.y}%`;
-        el.title = `Mesa ${label}`;
-        el.innerHTML = `<span>${label}</span>`;
+        el.title = `${displayTableName(label)}`;
+        el.innerHTML = `<span>${displayTableName(label)}</span>`;
 
         el.addEventListener("pointerdown", (e) => {
           e.preventDefault();

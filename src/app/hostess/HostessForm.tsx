@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CafeTable, Customer, FloorplanPositions, Reservation } from "@/lib/firestore";
-import { DEFAULT_DOWN_POSITIONS, DEFAULT_UP_MARKERS, DEFAULT_UP_POSITIONS, isWaitingRoomTableName } from "@/lib/floorplan";
+import { DEFAULT_DOWN_POSITIONS, DEFAULT_UP_MARKERS, DEFAULT_UP_POSITIONS, displayTableName, isWaitingRoomTableName } from "@/lib/floorplan";
 import { enqueuePost, fieldsFromFormData, flushQueue, queueCount } from "@/lib/offlineQueue";
 
 const DRAFT_KEY = "cj_hostess_draft_v1";
@@ -950,7 +950,7 @@ export default function HostessForm({
                 const s = effectiveStatusAt(t, reservedForMs);
                 return (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({t.area}) · {s}
+                  {displayTableName(t.name)} ({t.area}) · {s}
                 </option>
                 );
               })}
@@ -1084,7 +1084,7 @@ export default function HostessForm({
                     type="button"
                     className={cls}
                     style={{ left: `${m.x}%`, top: `${m.y}%`, transform: "translate(-50%, -50%)" } as any}
-                    title={waitingRoom ? `Mesa ${m.label} · Sala de espera` : `Mesa ${m.label}`}
+                    title={waitingRoom ? `${displayTableName(m.label)} · Sala de espera` : `Mesa ${m.label}`}
                     onClick={() => {
                       if (waitingRoom || !t) return;
                       const es = effectiveStatusAt(t, reservedForMs);
@@ -1101,7 +1101,7 @@ export default function HostessForm({
                       });
                     }}
                   >
-                    <span>{m.label}</span>
+                    <span>{displayTableName(m.label)}</span>
                   </button>
                 );
               })
@@ -1135,9 +1135,9 @@ export default function HostessForm({
                         router.push(`/hostess?focusTableId=${encodeURIComponent(t.id)}`);
                       }
                     }}
-                    title={`${t.name} · ${t.area} · ${s}`}
+                    title={`${displayTableName(t.name)} · ${t.area} · ${s}`}
                   >
-                    {t.name}
+                    {displayTableName(t.name)}
                   </button>
                 );
               })

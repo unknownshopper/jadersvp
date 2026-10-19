@@ -1,5 +1,5 @@
 import { getFirestore, isFirebaseConfigured } from "@/lib/firebaseAdmin";
-import { defaultPositionFor, isWaitingRoomTableName } from "@/lib/floorplan";
+import { defaultPositionFor, displayTableName, isWaitingRoomTableName } from "@/lib/floorplan";
 
 export type TableStatus = "LIBRE" | "OCUPADA" | "RESERVADA" | "POR_LIMPIAR";
 export type Area = "TERRAZA_FRONTAL" | "TERRAZA_LATERAL" | "INTERIOR" | "PLANTA_ALTA";
@@ -2282,7 +2282,7 @@ export async function listReservationsLog(params?: { limit?: number }): Promise<
     Array.from(tableIdSet).map(async (id) => {
       const doc = await db.collection("tables").doc(id).get();
       const name = doc.exists ? String((doc.data() as any)?.name ?? "").trim() : "";
-      tableNames.set(id, name || id);
+      tableNames.set(id, displayTableName(name || id));
     })
   );
 
