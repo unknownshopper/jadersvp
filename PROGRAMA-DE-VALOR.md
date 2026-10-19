@@ -39,8 +39,9 @@ Pídelo con seguridad y da el motivo **antes** de que pregunten — justificar p
 
 1. **Beneficio directo (la de por defecto):** *"¿Me regala un WhatsApp? Es para enviarle la confirmación de su mesa — llega al momento y ya tiene comprobante."*
 2. **Privacidad (cuando notas dudas):** *"Su número se usa únicamente para confirmar y avisar de su mesa — no se comparte, no se vende y no recibe publicidad. Puede ver el aviso de privacidad en la carta."*
-3. **El sistema (cuando insisten en negarse):** *"El sistema me pide un número para poder asignar la mesa — sin él, podría asignar la mesa donde están sentados a una reserva en línea."*
-4. **Beneficio recurrente:** *"Con su número el sistema lo reconoce en su próxima visita — le agilizamos el registro y vemos cuántas veces nos ha visitado."*
+3. **"Es invasión a la privacidad":** *"Entiendo perfectamente. Su número queda solo en el sistema de reservaciones del restaurante — se usa para su mesa, nada más. Si prefiere, puede revisar el aviso de privacidad que está en la carta; es su derecho conocerlo."*
+4. **El sistema (cuando insisten en negarse):** *"El sistema me pide un número para poder asignar la mesa — sin él, podría asignar la mesa donde están sentados a una reserva en línea."*
+5. **Beneficio recurrente:** *"Con su número el sistema lo reconoce en su próxima visita — le agilizamos el registro y vemos cuántas veces nos ha visitado."*
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.
 
 ### Control de acceso: la hostess nunca abandona su sitio
