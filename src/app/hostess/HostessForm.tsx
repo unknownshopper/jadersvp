@@ -503,7 +503,7 @@ export default function HostessForm({
 
   const tablesForPicker = useMemo(
     () =>
-      [...tables].filter((t) => !isWaitingRoomTableName(t.name)).sort((a, b) => {
+      [...tables].sort((a, b) => {
         const an = Number.parseInt(String(a.name), 10);
         const bn = Number.parseInt(String(b.name), 10);
         if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
@@ -950,7 +950,7 @@ export default function HostessForm({
                 const s = effectiveStatusAt(t, reservedForMs);
                 return (
                 <option key={t.id} value={t.id}>
-                  {displayTableName(t.name)} ({t.area}) · {s}
+                  {displayTableName(t.name)} ({t.area}) · {s}{isWaitingRoomTableName(t.name) ? " · solo espera" : ""}
                 </option>
                 );
               })}
@@ -1088,7 +1088,6 @@ export default function HostessForm({
                     onClick={() => {
                       if (!t) return;
                       const es = effectiveStatusAt(t, reservedForMs);
-                      if (waitingRoom && es === "LIBRE") return;
                       if (es !== "LIBRE") {
                         router.push(`/hostess?focusTableId=${encodeURIComponent(t.id)}`);
                         return;

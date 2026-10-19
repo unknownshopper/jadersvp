@@ -1434,7 +1434,14 @@ export async function reserveTables(params: {
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
 
     for (const table of tables) {
-      if (isWaitingRoomTableName(table.name)) throw new Error(`Mesa ${table.name} es sala de espera`);
+      // Waiting-room spots (30-39) are occupiable now but never bookable ahead:
+      // allow only when the reservation time is immediate.
+      if (isWaitingRoomTableName(table.name)) {
+        const leadMs = Number(params.reservedFor) - Date.now();
+        if (leadMs > 45 * 60 * 1000) {
+          throw new Error(`Mesa ${displayTableName(table.name)} es sala de espera (no reservable)`);
+        }
+      }
     }
 
     for (const table of tables) {
