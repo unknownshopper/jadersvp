@@ -369,6 +369,7 @@ html[data-offline="true"] .requires-online {
 .up-marker.reservada { border-color: #6d28d9; background: rgba(109, 40, 217, 0.92); color: #ffffff; }
 .up-marker.porlimpiar { border-color: #b7950b; opacity: 0.78; }
 .up-marker.espera { border-color: #64748b; border-style: dashed; background: rgba(100, 116, 139, 0.10); color: rgba(100, 116, 139, 0.95); cursor: default; }
+.up-marker.espera > span { font-size: 9px; line-height: 1; text-align: center; }
 .up-marker.selected {
   outline: 2px solid rgba(168, 85, 247, 0.95);
   outline-offset: 2px;

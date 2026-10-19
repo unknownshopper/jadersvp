@@ -57,12 +57,15 @@ export function isWaitingRoomTableName(name: string | null | undefined) {
   return Number.isFinite(n) && n >= 30 && n <= 39;
 }
 
-// Display aliases: waiting-room tables are called "Sala N" for staff.
+// Display aliases: upstairs waiting-room spots are named for staff.
 export const TABLE_DISPLAY_NAMES: Record<string, string> = {
   "31": "Sala 1",
   "32": "Sala 2",
   "33": "Sala 3",
-  "36": "Sala 4"
+  "36": "Sala 4",
+  "37": "Periquera 1",
+  "38": "Periquera 2",
+  "39": "Periquera 3"
 };
 
 export function displayTableName(name: string | null | undefined) {
