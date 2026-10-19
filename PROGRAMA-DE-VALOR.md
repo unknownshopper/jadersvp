@@ -32,7 +32,15 @@ La tablet de recepción trabaja en modo aplicación (PWA instalada) con la sesi�
 1. Al llegar el cliente **"con reservación"**, localiza su reserva comenzando con su **número o nombre** — al teclear, el sistema sugiere clientes registrados; al elegir uno, se autocompleta teléfono/correo y se muestra su **última visita** y cuántas veces ha venido.
 2. **Sienta** la reserva en la(s) mesa(s) asignada(s) — el croquis la marca OCUPADA.
 3. **Sin reserva (walk-in):** crea la reserva en el momento con la mesa libre seleccionada.
-   - **Si no quieren dar su número**, explícalo por el sistema: *"El sistema me pide un número para poder asignar la mesa — sin él, podría asignar la mesa donde están sentados a una reserva en línea."* El número es lo que les aparta la mesa, no un capricho.
+
+#### Pedir el número (speech estandarizado)
+
+Pídelo con seguridad y da el motivo **antes** de que pregunten — justificar primero siembra la sospecha. Empieza por la opción 1 y escala solo si hay resistencia:
+
+1. **Beneficio directo (la de por defecto):** *"¿Me regala un WhatsApp? Es para enviarle la confirmación de su mesa — llega al momento y ya tiene comprobante."*
+2. **Privacidad (cuando notas dudas):** *"Su número se usa únicamente para confirmar y avisar de su mesa — no se comparte, no se vende y no recibe publicidad. Puede ver el aviso de privacidad en la carta."*
+3. **El sistema (cuando insisten en negarse):** *"El sistema me pide un número para poder asignar la mesa — sin él, podría asignar la mesa donde están sentados a una reserva en línea."*
+4. **Beneficio recurrente:** *"Con su número el sistema lo reconoce en su próxima visita — le agilizamos el registro y vemos cuántas veces nos ha visitado."*
 4. **Mesas llenas:** usa *Guardar en lista de espera* (nombre + teléfono + mesas requeridas). Al liberarse mesas, *Confirmar* las asigna y puede avisar por WhatsApp.
 
 ### Control de acceso: la hostess nunca abandona su sitio
