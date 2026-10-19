@@ -1077,7 +1077,7 @@ export default function HostessForm({
                 const t = tableByName.get(String(m.label)) ?? null;
                 const s = t ? effectiveStatusAt(t, reservedForMs) : "LIBRE";
                 const isSelected = t ? selectedTableIds.includes(t.id) : false;
-                const cls = `up-marker ${m.kind} ${waitingRoom ? "espera" : statusClass(s)} ${isSelected ? "selected" : ""}`;
+                const cls = `up-marker ${m.kind} ${waitingRoom && s === "LIBRE" ? "espera" : statusClass(s)} ${isSelected ? "selected" : ""}`;
                 return (
                   <button
                     key={`${m.kind}-${m.label}-${i}`}
@@ -1086,8 +1086,9 @@ export default function HostessForm({
                     style={{ left: `${m.x}%`, top: `${m.y}%`, transform: "translate(-50%, -50%)" } as any}
                     title={waitingRoom ? `${displayTableName(m.label)} · Sala de espera` : `Mesa ${m.label}`}
                     onClick={() => {
-                      if (waitingRoom || !t) return;
+                      if (!t) return;
                       const es = effectiveStatusAt(t, reservedForMs);
+                      if (waitingRoom && es === "LIBRE") return;
                       if (es !== "LIBRE") {
                         router.push(`/hostess?focusTableId=${encodeURIComponent(t.id)}`);
                         return;
@@ -1193,7 +1194,7 @@ export default function HostessForm({
                 <div key={t.id} className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 900 }}>
-                      Mesa {t.name}
+                      {displayTableName(t.name)}
                       {moved ? (
                         <span className="small" style={{ fontWeight: 700, opacity: 0.75 }}>
                           {" "}
@@ -1222,8 +1223,8 @@ export default function HostessForm({
                         e.preventDefault();
                         const ok = window.confirm(
                           moved
-                            ? `¿Liberar Mesa ${String(t.name)} y regresarla a su lugar?`
-                            : `¿Liberar Mesa ${String(t.name)}?`
+                            ? `¿Liberar ${displayTableName(t.name)} y regresarla a su lugar?`
+                            : `¿Liberar ${displayTableName(t.name)}?`
                         );
                         if (!ok) return;
                         setIsSubmitting(true);

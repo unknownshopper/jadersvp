@@ -13,7 +13,7 @@ function getBaseUrl(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await requireRole(["CAJA", "ADMIN", "DIRECTOR"]);
+    await requireRole(["HOSTESS", "CAJA", "ADMIN", "DIRECTOR"]);
 
     const baseUrl = getBaseUrl(req);
     const form = await req.formData();
@@ -23,14 +23,14 @@ export async function POST(req: Request) {
     const toTableId = String(form.get("toTableId") ?? "").trim();
 
     if (!reservationId || !fromTableId || !toTableId) {
-      return NextResponse.redirect(new URL("/caja?err=Faltan+datos", baseUrl));
+      return NextResponse.redirect(new URL("/hostess?err=Faltan+datos", baseUrl));
     }
 
     await moveSeatedReservation({ reservationId, fromTableId, toTableId });
 
-    return NextResponse.redirect(new URL("/caja?ok=Mesa+cambiada", baseUrl));
+    return NextResponse.redirect(new URL("/hostess?ok=Mesa+cambiada", baseUrl));
   } catch (err: any) {
     const msg = typeof err?.message === "string" ? err.message : "No se pudo cambiar mesa";
-    return NextResponse.redirect(new URL(`/caja?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
+    return NextResponse.redirect(new URL(`/hostess?err=${encodeURIComponent(msg)}`, getBaseUrl(req)));
   }
 }

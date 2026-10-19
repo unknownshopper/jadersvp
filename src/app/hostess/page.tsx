@@ -166,7 +166,6 @@ export default async function HostessPage({
   const addableTables = focusedVisit?.status === "SEATED"
     ? tables
         .filter((t) => t.status === "LIBRE")
-        .filter((t) => !isWaitingRoomTableName(t.name))
         .filter((t) => !focusedVisit.activeTableIds.includes(String(t.id)))
         .sort((a, b) => {
           const an = Number.parseInt(String(a.name), 10);
@@ -404,24 +403,45 @@ export default async function HostessPage({
                   ) : null}
                   {focusedVisit.notes ? <div style={{ marginTop: 6 }}>Notas: {focusedVisit.notes}</div> : null}
                   {focusedVisit.status === "SEATED" && addableTables.length > 0 ? (
-                    <QueueableForm action="/api/tables/add" style={{ marginTop: 10 }}>
-                      <input type="hidden" name="reservationId" value={focusedVisit.id} />
-                      <div className="row" style={{ gap: 8, alignItems: "center" }}>
-                        <select className="input" name="tableId" required defaultValue="">
-                          <option value="" disabled>
-                            Sumar mesa al grupo…
-                          </option>
-                          {addableTables.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              Mesa {displayTableName(t.name)}
+                    <>
+                      <QueueableForm action="/api/tables/add" style={{ marginTop: 10 }}>
+                        <input type="hidden" name="reservationId" value={focusedVisit.id} />
+                        <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                          <select className="input" name="tableId" required defaultValue="">
+                            <option value="" disabled>
+                              Sumar mesa al grupo…
                             </option>
-                          ))}
-                        </select>
-                        <button className="btn secondary" type="submit" style={{ flex: "0 0 auto" }}>
-                          Sumar
-                        </button>
-                      </div>
-                    </QueueableForm>
+                            {addableTables.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                Mesa {displayTableName(t.name)}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="btn secondary" type="submit" style={{ flex: "0 0 auto" }}>
+                            Sumar
+                          </button>
+                        </div>
+                      </QueueableForm>
+                      <QueueableForm action="/api/tables/move" style={{ marginTop: 8 }}>
+                        <input type="hidden" name="reservationId" value={focusedVisit.id} />
+                        <input type="hidden" name="fromTableId" value={focusedTable.id} />
+                        <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                          <select className="input" name="toTableId" required defaultValue="">
+                            <option value="" disabled>
+                              Mover esta mesa a…
+                            </option>
+                            {addableTables.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                Mesa {displayTableName(t.name)}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="btn secondary" type="submit" style={{ flex: "0 0 auto" }}>
+                            Mover
+                          </button>
+                        </div>
+                      </QueueableForm>
+                    </>
                   ) : null}
                 </div>
               )}
@@ -623,7 +643,6 @@ export default async function HostessPage({
                           </option>
                           {tables
                             .filter((t) => t.status === "LIBRE")
-                            .filter((t) => !isWaitingRoomTableName(t.name))
                             .map((t) => (
                               <option key={t.id} value={t.id}>
                                 {displayTableName(t.name)}

@@ -921,9 +921,6 @@ export async function confirmWaitlistReservation(params: {
     }
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
     for (const t of tables) {
-      if (isWaitingRoomTableName(t.name)) throw new Error(`Mesa ${t.name} es sala de espera`);
-    }
-    for (const t of tables) {
       if (!isOperationallyFreeTable(t as any, now)) throw new Error("Table not free");
     }
 
@@ -1175,9 +1172,6 @@ export async function seatReservation(params: {
     }
 
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
-    for (const t of tables) {
-      if (isWaitingRoomTableName(t.name)) throw new Error(`Mesa ${t.name} es sala de espera`);
-    }
     const now = Date.now();
     for (const t of tables) {
       if (!isFreeForReservation(t as any, now)) {
@@ -1250,7 +1244,6 @@ export async function moveSeatedReservation(params: {
 
     const fromTable = fromDoc.data() as CafeTable;
     const toTable = toDoc.data() as CafeTable;
-    if (isWaitingRoomTableName(toTable.name)) throw new Error("Mesa destino es sala de espera");
     if (toTable.status !== "LIBRE") throw new Error("Mesa destino no está libre");
     if (fromTable.status !== "OCUPADA" && fromTable.status !== "RESERVADA") {
       throw new Error("Mesa origen no está ocupada");
@@ -1316,7 +1309,6 @@ export async function walkInAssign(params: {
     const tableDoc = await tx.get(tableRef);
     if (!tableDoc.exists) throw new Error("Table not found");
     const table = tableDoc.data() as CafeTable;
-    if (isWaitingRoomTableName(table.name)) throw new Error(`Mesa ${table.name} es sala de espera`);
 
     if (!isOperationallyFreeTable(table as any, Date.now())) throw new Error("Table not free");
 
@@ -2105,7 +2097,6 @@ export async function addTableToReservation(params: {
     if (reservation.status !== "SEATED") throw new Error("Solo se puede sumar mesa a un grupo ya sentado");
 
     const table = { id: tableDoc.id, ...(tableDoc.data() as Omit<CafeTable, "id">) } as CafeTable;
-    if (isWaitingRoomTableName(table.name)) throw new Error(`Mesa ${table.name} es sala de espera`);
     if (!isOperationallyFreeTable(table as any, Date.now())) throw new Error("Table not free");
 
     const base = Array.isArray(reservation.tableIds)
