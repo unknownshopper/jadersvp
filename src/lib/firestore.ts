@@ -1173,13 +1173,46 @@ export async function seatReservation(params: {
 
     const tables = tableDocs.map((d: any) => ({ id: String(d.id), ...(d.data() as Omit<CafeTable, "id">) })) as CafeTable[];
     const now = Date.now();
-    for (const t of tables) {
-      if (!isFreeForReservation(t as any, now)) {
-        const s = String((t as any)?.status ?? "");
-        const next = typeof (t as any)?.nextReservedFor === "number" ? Number((t as any).nextReservedFor) : null;
-        const rf = typeof reservationReservedFor === "number" ? reservationReservedFor : null;
-        throw new Error(`Table not free (status=${s}${next ? `, next=${next}` : ""}${rf ? `, reservedFor=${rf}` : ""})`);
+
+    // A RESERVADA table blocked by nextReservedFor may point to a reservation
+    // that no longer exists or is no longer live — treat that pointer as stale.
+    const hasLiveReservationAt = async (tid: string, atMs: number) => {
+      const [byTable, byTables] = await Promise.all([
+        tx.get(db.collection("reservations").where("tableId", "==", tid)),
+        tx.get(db.collection("reservations").where("tableIds", "array-contains", tid))
+      ]);
+      const seen = new Set<string>();
+      for (const d of [...byTable.docs, ...byTables.docs]) {
+        if (seen.has(d.id)) continue;
+        seen.add(d.id);
+        if (d.id === reservation.id) continue;
+        const r = d.data() as any;
+        const st = String(r?.status ?? "");
+        if (st !== "RESERVED" && st !== "WAITING" && st !== "OFFERED") continue;
+        const rf = typeof r?.reservedFor === "number" ? Number(r.reservedFor) : null;
+        if (rf && Math.abs(rf - atMs) <= 5 * 60 * 1000) return true;
       }
+      return false;
+    };
+
+    for (const t of tables) {
+      // Idempotent: a table already occupied by this same reservation is fine
+      // (double tap or queued retry).
+      if (String((t as any).currentReservationId ?? "") === reservation.id) continue;
+      if (isFreeForReservation(t as any, now)) continue;
+
+      const status = String((t as any)?.status ?? "");
+      const next = typeof (t as any)?.nextReservedFor === "number" ? Number((t as any).nextReservedFor) : null;
+
+      if (status === "RESERVADA" && next) {
+        const live = await hasLiveReservationAt(String(t.id), next);
+        if (!live) {
+          (t as any).nextReservedFor = null;
+          continue;
+        }
+      }
+
+      throw new Error(`Mesa ${displayTableName(t.name)} no está libre (${status || "?"})`);
     }
 
     const ts = nowMs();
