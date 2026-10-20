@@ -65,6 +65,8 @@ Desde tu lugar también **vigilas el salón**: si una mesa levanta la mano o sol
 - "Permítanme acompañarlos — las mesas se asignan desde recepción para darles el mejor lugar disponible."
 - "Un momento por favor — esa mesa está reservada. Regálenme su nombre y les asigno una libre enseguida."
 
+**Pickup (para llevar):** cliente que solo viene a comprar café, pan o comida y se va — también pasa por tu registro. En la tarjeta **Pickups** de `/hostess` capturas nombre y listo; el teléfono es **opcional** (si lo da, queda ligado a su ficha de cliente). El cliente escoge su pan en el mostrador; si su pedido tarda, puede esperar en el **sofá de molido y tostado** o en una **sala/periquera** de planta alta con cuenta solo de bebidas. Cuando recibe su pedido y sale, presionas **Entregado** para cerrarlo.
+
 **Despedida (siempre, a cada cliente que sale):**
 
 - "Gracias por su visita, ¡los esperamos pronto!"

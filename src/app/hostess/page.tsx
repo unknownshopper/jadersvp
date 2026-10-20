@@ -1,4 +1,4 @@
-import { firebaseReady, getFloorplanPositions, listTables, listWaitingReservations, listWaitlistReservations } from "@/lib/firestore";
+import { firebaseReady, getFloorplanPositions, listOpenPickups, listTables, listWaitingReservations, listWaitlistReservations } from "@/lib/firestore";
 import HostessForm from "./HostessForm";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
@@ -96,14 +96,15 @@ export default async function HostessPage({
   })();
 
   const ready = firebaseReady();
-  const [tables, waitingWrapped, waitlistWrapped, floorplan] = ready
+  const [tables, waitingWrapped, waitlistWrapped, floorplan, openPickups] = ready
     ? await Promise.all([
         listTables(),
         listWaitingReservations({ allStatuses: false }),
         listWaitlistReservations({ includeOffered: false }),
-        getFloorplanPositions()
+        getFloorplanPositions(),
+        listOpenPickups()
       ])
-    : [[], [], [], null];
+    : [[], [], [], null, []];
 
   const focusedTable = selectedTableId ? tables.find((t) => t.id === selectedTableId) ?? null : null;
 
@@ -538,6 +539,50 @@ export default async function HostessPage({
       </div>
 
       <div className="hostess-page-right grid" style={{ gap: 16 }}>
+        <div className="card">
+        <h3 style={{ marginTop: 0 }}>Pickups (para llevar)</h3>
+        <div className="small" style={{ marginBottom: 10 }}>
+          Cliente que solo compra y se va — sin reserva, sin mesa. Si espera su pedido puede usar el sofá o una sala de espera.
+        </div>
+        <QueueableForm action="/api/pickups/open">
+          <div className="grid" style={{ gap: 8 }}>
+            <input className="input" name="customerName" placeholder="Nombre del cliente" required />
+            <input className="input" name="phone" placeholder="Teléfono (opcional)" inputMode="tel" />
+            <input className="input" name="note" placeholder="Pedido (opcional): pan, café, comida…" />
+            <button className="btn" type="submit">
+              Registrar pickup
+            </button>
+          </div>
+        </QueueableForm>
+        <div className="grid" style={{ marginTop: 10 }}>
+          {openPickups.length === 0 ? <div className="small">Sin pickups activos</div> : null}
+          {openPickups.map((p) => (
+            <div key={p.id} className="card">
+              <div className="row" style={{ justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <div className="row" style={{ fontWeight: 800, gap: 10, alignItems: "center" }}>
+                    <span className="badge" style={{ opacity: 0.8 }}>
+                      {formatTimeHHMM(p.createdAt)}
+                    </span>
+                    <div style={{ fontSize: 16 }}>{p.customerName}</div>
+                  </div>
+                  <div className="small">
+                    PICKUP{p.phone ? ` · ${p.phone}` : " · sin teléfono"}
+                    {p.note ? ` · ${p.note}` : ""}
+                  </div>
+                </div>
+                <QueueableForm action="/api/pickups/close" style={{ flex: "0 0 auto" }}>
+                  <input type="hidden" name="pickupId" value={p.id} />
+                  <button className="btn secondary" type="submit">
+                    Entregado
+                  </button>
+                </QueueableForm>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
         <div className="card">
         <h3 style={{ marginTop: 0 }}>Lista de espera / Reservas</h3>
         <div className="grid">

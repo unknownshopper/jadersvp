@@ -826,6 +826,78 @@ export async function findOrCreateCustomer(input: {
   };
 }
 
+export type Pickup = {
+  id: string;
+  customerName: string;
+  phone: string | null;
+  customerId: string | null;
+  note: string | null;
+  status: "OPEN" | "DONE";
+  createdAt: number;
+  closedAt: number | null;
+  updatedAt: number;
+};
+
+// Pickup: a customer who only comes in to buy and leave (coffee, bread, food
+// to go). Registered without reservation or table. The phone is optional —
+// a customer record is only linked/created when a phone is given, so we do
+// not recreate anonymous customer records.
+export async function createPickup(params: {
+  customerName: string;
+  phone?: string | null;
+  note?: string | null;
+}): Promise<{ pickupId: string }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const customerName = String(params.customerName ?? "").trim();
+  if (!customerName) throw new Error("Falta nombre");
+  const phone = normalizePhone(params.phone);
+  const note = String(params.note ?? "").trim() || null;
+
+  let customerId: string | null = null;
+  if (phone) {
+    const { customer } = await findOrCreateCustomer({ name: customerName, phone });
+    customerId = customer.id;
+  }
+
+  const ts = nowMs();
+  const ref = await db.collection("pickups").add({
+    customerName,
+    phone: phone || null,
+    customerId,
+    note,
+    status: "OPEN",
+    createdAt: ts,
+    closedAt: null,
+    updatedAt: ts
+  });
+  return { pickupId: ref.id };
+}
+
+export async function closePickup(params: { pickupId: string }) {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+  const id = String(params.pickupId ?? "").trim();
+  if (!id) throw new Error("Falta pickup");
+  const ts = nowMs();
+  await db
+    .collection("pickups")
+    .doc(id)
+    .set({ status: "DONE", closedAt: ts, updatedAt: ts }, { merge: true });
+}
+
+export async function listOpenPickups(params?: { limit?: number }): Promise<Pickup[]> {
+  const db = getFirestore();
+  if (!db) return [];
+  const limit = Math.max(1, Math.min(100, params?.limit ?? 50));
+  const snap = await db.collection("pickups").orderBy("createdAt", "desc").limit(200).get();
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<Pickup, "id">) }) as Pickup)
+    .filter((p) => p.status === "OPEN")
+    .slice(0, limit);
+}
+
 export async function createReservation(input: Omit<Reservation, "id" | "createdAt" | "updatedAt">) {
   const db = getFirestore();
   if (!db) throw new Error("Firestore not configured");
