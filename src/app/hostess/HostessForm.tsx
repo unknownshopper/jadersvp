@@ -1167,7 +1167,7 @@ export default function HostessForm({
                 </span>
                 <span className="table-legend-item">
                   <span className="table-legend-dot espera" />
-                  Sala de espera (30–39)
+                  Espera: Emesa · Periquera · Sala
                 </span>
                 <span className="table-legend-item">
                   <span className="table-legend-dot selected" />

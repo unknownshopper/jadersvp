@@ -51,21 +51,27 @@ export function defaultPositionFor(floor: "down" | "up", label: string) {
   return floor === "up" ? DEFAULT_UP_POSITIONS[label] ?? null : DEFAULT_DOWN_POSITIONS[label] ?? null;
 }
 
-// Tables 30–39 (upstairs) are the waiting room: never reservable or seatable.
+// Tables 30–39 (upstairs) are the waiting room: never reservable, but
+// occupiable immediately for drinks while the group waits for a real table.
 export function isWaitingRoomTableName(name: string | null | undefined) {
   const n = Number.parseInt(String(name ?? "").trim(), 10);
   return Number.isFinite(n) && n >= 30 && n <= 39;
 }
 
-// Display aliases: upstairs waiting-room spots are named for staff.
+// Display aliases: upstairs waiting-room spots are named for staff. Only the
+// plain tables get the "Emesa" prefix so they are not confused with
+// operational tables; salas and periqueras already read as waiting spots.
 export const TABLE_DISPLAY_NAMES: Record<string, string> = {
+  "30": "Emesa 30",
+  "34": "Emesa 34",
+  "35": "Emesa 35",
+  "37": "Periquera 1",
+  "38": "Periquera 2",
+  "39": "Periquera 3",
   "31": "Sala 1",
   "32": "Sala 2",
   "33": "Sala 3",
-  "36": "Sala 4",
-  "37": "Periquera 1",
-  "38": "Periquera 2",
-  "39": "Periquera 3"
+  "36": "Sala 4"
 };
 
 export function displayTableName(name: string | null | undefined) {
