@@ -568,7 +568,7 @@ export default function HostessForm({
 
             const dial = normalizeDialCode(phoneCountry);
             const nationalDigits = String(phoneNational || "").replace(/\D/g, "");
-            const wantsPhone = nationalDigits.length > 0 || String(phoneCountry || "").trim().length > 0;
+            const wantsPhone = nationalDigits.length > 0;
             if (wantsPhone) {
               if (!dial || dial === "+") {
                 window.alert("LADA inválida. Ejemplo: +52, +48, +972");
