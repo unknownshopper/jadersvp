@@ -1143,8 +1143,10 @@ export default function HostessForm({
               })
             )}
 
+            </div>
+
             <div className="table-map-legend">
-              <div className="small" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <div className="small" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 <span className="table-legend-item">
                   <span className="table-legend-dot libre" />
                   Libre
@@ -1175,7 +1177,6 @@ export default function HostessForm({
                 </span>
               </div>
               <div className="small" style={{ opacity: 0.8 }}>Toca una mesa libre para seleccionarla.</div>
-            </div>
             </div>
           </>
         )}
