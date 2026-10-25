@@ -128,6 +128,19 @@ export default function AdminCustomersClient({
     };
   }, [phoneFilter, q]);
 
+  type Group = {
+    key: string;
+    ids: string[];
+    name: string;
+    extraNames: string[];
+    phone: string;
+    emails: string[];
+    visitsCount: number;
+    surveysCount: number;
+    lastVisitAt: number | null;
+    visits: Array<{ reservationId: string; at: number }>;
+  };
+
   const visible = useMemo(() => {
     const baseRows = remoteRows ? remoteRows : segmentRows ? segmentRows : rows;
     const qq = String(q || "").trim().toLowerCase();
@@ -146,15 +159,58 @@ export default function AdminCustomersClient({
         })
       : base;
 
-    const sorted = searched.slice().sort((a, b) => {
+    // One card per phone number: repeated numbers merge into a single
+    // recurring-customer card with the combined visit history.
+    const byKey = new Map<string, Group>();
+    for (const r of searched) {
+      const digits = String(r.phone || "").replace(/\D/g, "");
+      const key = digits ? `p:${digits}` : `id:${r.id}`;
+      let g = byKey.get(key);
+      if (!g) {
+        g = {
+          key,
+          ids: [],
+          name: "",
+          extraNames: [],
+          phone: String(r.phone || ""),
+          emails: [],
+          visitsCount: 0,
+          surveysCount: 0,
+          lastVisitAt: null,
+          visits: []
+        };
+        byKey.set(key, g);
+      }
+      g.ids.push(r.id);
+      const nm = String(r.name || "").trim();
+      if (nm) {
+        if (!g.name) g.name = nm;
+        else if (nm.toLowerCase() !== g.name.toLowerCase() && !g.extraNames.includes(nm)) g.extraNames.push(nm);
+      }
+      const em = String(r.email || "").trim();
+      if (em && !g.emails.includes(em)) g.emails.push(em);
+      g.visitsCount += Number(r.visitsCount ?? 0);
+      g.surveysCount += Number(r.surveysCount ?? 0);
+      for (const v of r.visits ?? []) g.visits.push(v);
+      if (r.lastVisitAt != null && (g.lastVisitAt == null || r.lastVisitAt > g.lastVisitAt)) {
+        g.lastVisitAt = r.lastVisitAt;
+      }
+    }
+
+    const grouped = Array.from(byKey.values()).map((g) => ({
+      ...g,
+      name: g.name || "(Sin nombre)",
+      visits: g.visits.slice().sort((a, b) => b.at - a.at)
+    }));
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    grouped.sort((a, b) => {
       const shouldGroupPhoneFirst = sortKey === "name" || sortKey === "last";
       if (shouldGroupPhoneFirst) {
         const aHasPhone = Boolean(String(a.phone || "").trim());
         const bHasPhone = Boolean(String(b.phone || "").trim());
         if (aHasPhone !== bHasPhone) return aHasPhone ? -1 : 1;
       }
-
-      const dir = sortDir === "asc" ? 1 : -1;
 
       if (sortKey === "visits") {
         const av = Number(a.visitsCount ?? 0);
@@ -174,37 +230,46 @@ export default function AdminCustomersClient({
         if (aTs !== bTs) return (aTs - bTs) * dir;
       }
 
-      // name
       const cmp = String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base" });
       return cmp * dir;
     });
 
-    return sorted;
+    return grouped;
   }, [rows, remoteRows, segmentRows, phoneFilter, sortKey, sortDir, q]);
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const selectedIds = useMemo(() => Object.keys(selected).filter((id) => selected[id]), [selected]);
 
   const allVisibleSelected = useMemo(() => {
     if (visible.length === 0) return false;
-    return visible.every((r) => Boolean(selected[r.id]));
+    return visible.every((g) => g.ids.every((id) => Boolean(selected[id])));
   }, [visible, selected]);
 
   const someVisibleSelected = useMemo(() => {
-    return visible.some((r) => Boolean(selected[r.id]));
+    return visible.some((g) => g.ids.some((id) => Boolean(selected[id])));
   }, [visible, selected]);
 
   function toggleAllVisible() {
     setSelected((prev) => {
       const next: Record<string, boolean> = { ...prev };
       const want = !allVisibleSelected;
-      for (const r of visible) next[r.id] = want;
+      for (const g of visible) for (const id of g.ids) next[id] = want;
       return next;
     });
   }
 
-  function toggleOne(id: string) {
-    setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+  function toggleGroup(ids: string[]) {
+    setSelected((prev) => {
+      const next: Record<string, boolean> = { ...prev };
+      const want = !ids.every((id) => Boolean(prev[id]));
+      for (const id of ids) next[id] = want;
+      return next;
+    });
+  }
+
+  function toggleExpanded(key: string) {
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   async function onDeleteSelected() {
@@ -386,42 +451,108 @@ export default function AdminCustomersClient({
         </button>
       </div>
 
-      {visible.map((c) => (
-        <div key={c.id} className="card" style={{ padding: 10 }}>
-          <div className="row" style={{ gap: 10, alignItems: "center" }}>
-            {canDelete ? (
-              <label
-                style={{
-                  flex: "0 0 auto",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer"
-                }}
-              >
-                <input type="checkbox" checked={Boolean(selected[c.id])} onChange={() => toggleOne(c.id)} />
-              </label>
-            ) : null}
+      {visible.map((g) => {
+        const isOpen = Boolean(expanded[g.key]);
+        const allSel = g.ids.every((id) => Boolean(selected[id]));
+        const someSel = g.ids.some((id) => Boolean(selected[id]));
+        return (
+          <div key={g.key} className="card" style={{ padding: 10 }}>
+            <div className="row" style={{ gap: 10, alignItems: "center" }}>
+              {canDelete ? (
+                <label
+                  style={{
+                    flex: "0 0 auto",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer"
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={allSel}
+                    ref={(el) => {
+                      if (el) el.indeterminate = !allSel && someSel;
+                    }}
+                    onChange={() => toggleGroup(g.ids)}
+                  />
+                </label>
+              ) : null}
 
-            <div style={{ flex: 2, fontWeight: 800 }}>{c.name || "(Sin nombre)"}</div>
-            <div style={{ flex: 1 }} className="small">
-              {c.phone || "—"}
+              <button
+                type="button"
+                onClick={() => toggleExpanded(g.key)}
+                style={{
+                  flex: 2,
+                  textAlign: "left",
+                  fontWeight: 800,
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: "inherit"
+                }}
+                title="Ver historial de visitas"
+              >
+                {isOpen ? "▾" : "▸"} {g.name}
+                {g.extraNames.length ? (
+                  <span className="small" style={{ fontWeight: 700, opacity: 0.7 }}>
+                    {" "}+{g.extraNames.length} nombre(s)
+                  </span>
+                ) : null}
+              </button>
+              <div style={{ flex: 1 }} className="small">
+                {g.phone || "—"}
+              </div>
+              <div style={{ flex: 2 }} className="small">
+                {g.emails.join(" · ") || "—"}
+              </div>
+              <div style={{ flex: 1 }} className="small">
+                {g.lastVisitAt ? formatDateDDMMYY(g.lastVisitAt) : "—"}
+              </div>
+              <div style={{ flex: 1, textAlign: "right" }}>
+                {g.visitsCount > 0 ? (
+                  <span className="badge" style={{ fontWeight: 900 }}>
+                    ×{g.visitsCount}
+                  </span>
+                ) : (
+                  <span className="small">0</span>
+                )}
+              </div>
+              <div style={{ flex: 1, textAlign: "right" }} className="small">
+                {g.surveysCount}
+              </div>
             </div>
-            <div style={{ flex: 2 }} className="small">
-              {c.email || "—"}
-            </div>
-            <div style={{ flex: 1 }} className="small">
-              {c.lastVisitAt ? formatDateDDMMYY(c.lastVisitAt) : "—"}
-            </div>
-            <div style={{ flex: 1, textAlign: "right" }} className="small">
-              {c.visitsCount}
-            </div>
-            <div style={{ flex: 1, textAlign: "right" }} className="small">
-              {c.surveysCount}
-            </div>
+
+            {isOpen ? (
+              <div style={{ marginTop: 8, borderTop: "1px solid rgba(15, 23, 42, 0.10)", paddingTop: 8 }}>
+                <div className="small" style={{ fontWeight: 800, marginBottom: 6 }}>
+                  Visitas ({g.visitsCount})
+                </div>
+                {g.visits.length === 0 ? (
+                  <div className="small" style={{ opacity: 0.7 }}>
+                    Sin reservaciones registradas
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {g.visits.map((v) => (
+                      <span key={v.reservationId} className="badge">
+                        {formatDateDDMMYY(v.at)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {g.extraNames.length ? (
+                  <div className="small" style={{ marginTop: 8 }}>
+                    También registrado como: {g.extraNames.join(" · ")}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
