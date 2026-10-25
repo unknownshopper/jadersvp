@@ -82,6 +82,13 @@
         }
       },
       {
+        "source": "/cdb.html",
+        "run": {
+          "serviceId": "cafejadersvp",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/login",
         "run": {
           "serviceId": "cafejadersvp",
