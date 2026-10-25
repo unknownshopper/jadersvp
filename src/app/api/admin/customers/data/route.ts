@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
   const surveyIds = new Set<string>(surveySnap.docs.map((d: any) => String(d.id)));
 
-  const byCustomer = new Map<string, Array<{ reservationId: string; at: number; hasSurvey: boolean }>>();
+  const byCustomer = new Map<string, Array<{ reservationId: string; at: number; name: string; hasSurvey: boolean }>>();
   for (const d of resSnap.docs) {
     const data = d.data() as any;
     const cid = String(data?.customerId ?? "");
@@ -33,6 +33,7 @@ export async function GET(req: Request) {
     byCustomer.get(cid)!.push({
       reservationId: String(d.id),
       at,
+      name: String(data?.customerNameSnapshot ?? "").trim(),
       hasSurvey: surveyIds.has(String(d.id))
     });
   }
@@ -42,7 +43,7 @@ export async function GET(req: Request) {
     const visits = (byCustomer.get(String(d.id)) ?? [])
       .slice()
       .sort((a, b) => b.at - a.at)
-      .map((v) => ({ reservationId: v.reservationId, at: v.at }));
+      .map((v) => ({ reservationId: v.reservationId, at: v.at, name: v.name }));
     const surveysCount = (byCustomer.get(String(d.id)) ?? []).reduce((acc, v) => acc + (v.hasSurvey ? 1 : 0), 0);
     return {
       id: String(d.id),

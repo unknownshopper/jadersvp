@@ -155,7 +155,23 @@
         padding-top: 8px;
       }
 
-      .visit-list { display: flex; flex-wrap: wrap; gap: 6px; }
+      .visit-rows {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 4px 18px;
+      }
+
+      .visit-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding: 3px 0;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+        font-size: 13px;
+      }
+
+      .visit-date { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .visit-name { font-weight: 700; overflow-wrap: anywhere; }
 
       .sin-tel { color: var(--danger); font-weight: 800; }
       .sub { color: var(--muted); font-size: 12px; }
@@ -343,7 +359,12 @@
                   <div class="sub" style="font-weight:800;margin-bottom:6px">Visitas (${g.visitsCount})</div>
                   ${g.visits.length === 0
                     ? '<div class="sub">Sin reservaciones registradas</div>'
-                    : `<div class="visit-list">${g.visits.map((v) => `<span class="badge">${fmtDate(v.at)}</span>`).join("")}</div>`}
+                    : `<div class="visit-rows">${g.visits
+                        .map(
+                          (v) =>
+                            `<div class="visit-row"><span class="visit-date">${fmtDate(v.at)}</span><span class="visit-name">${esc(v.name) || '<span class="dash">—</span>'}</span></div>`
+                        )
+                        .join("")}</div>`}
                   ${g.extraNames.length ? `<div class="sub" style="margin-top:8px">También registrado como: ${esc(g.extraNames.join(" · "))}</div>` : ""}
                 </div>`
               : "";
