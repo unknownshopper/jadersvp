@@ -97,6 +97,30 @@
         flex-wrap: wrap;
       }
 
+      .hrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 0 12px 4px;
+        margin-bottom: 4px;
+      }
+
+      .hcol {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      .hcol:hover { color: var(--text); }
+      .hcol.sorted { color: var(--brand); }
+      .hcol.name { flex: 2 1 180px; }
+
       .name-btn {
         flex: 2 1 180px;
         text-align: left;
@@ -176,10 +200,17 @@
         <button class="chip" data-filter="with">Con teléfono</button>
         <button class="chip" data-filter="without">Sin teléfono</button>
         <input type="search" id="q" placeholder="Buscar (nombre, teléfono, correo)" />
-        <button class="chip active" data-sort="name">Nombre</button>
-        <button class="chip" data-sort="last">Última visita</button>
-        <button class="chip" data-sort="visits">Visitas</button>
         <button class="btn danger" id="delBtn" disabled>Eliminar seleccionados (0)</button>
+      </div>
+
+      <div class="hrow" id="hrow">
+        <div style="flex:0 0 30px"></div>
+        <div class="hcol name" data-sort="name">Nombre</div>
+        <div class="hcol col" data-sort="phone">Teléfono</div>
+        <div class="hcol col-wide" data-sort="email">Correo</div>
+        <div class="hcol col" data-sort="last">Última visita</div>
+        <div class="hcol col right" data-sort="visits">Visitas</div>
+        <div class="hcol col right" data-sort="surveys">Encuestas</div>
       </div>
 
       <div id="list" class="grid">
@@ -281,6 +312,12 @@
             const bv = b.lastVisitAt ?? 0;
             if (av !== bv) return (av - bv) * sortDir;
           }
+          if (sortKey === "phone" || sortKey === "email") {
+            const av = sortKey === "phone" ? String(a.phone || "") : a.emails.join(" ");
+            const bv = sortKey === "phone" ? String(b.phone || "") : b.emails.join(" ");
+            const cmp = av.localeCompare(bv, "es", { sensitivity: "base" });
+            if (cmp !== 0) return cmp * sortDir;
+          }
           return a.name.localeCompare(b.name, "es", { sensitivity: "base" }) * (sortKey === "name" ? sortDir : 1);
         });
         return grouped;
@@ -368,18 +405,30 @@
         });
       });
 
-      document.querySelectorAll("[data-sort]").forEach((b) => {
-        b.addEventListener("click", () => {
-          const k = b.getAttribute("data-sort");
+      function paintHeaders() {
+        document.querySelectorAll("#hrow [data-sort]").forEach((h) => {
+          const k = h.getAttribute("data-sort");
+          const label = h.getAttribute("data-label") || h.textContent.replace(/[ ▲▼]+$/, "");
+          h.setAttribute("data-label", label);
+          const active = k === sortKey;
+          h.classList.toggle("sorted", active);
+          h.textContent = label + (active ? (sortDir === 1 ? " ▲" : " ▼") : "");
+        });
+      }
+
+      document.querySelectorAll("#hrow [data-sort]").forEach((h) => {
+        h.addEventListener("click", () => {
+          const k = h.getAttribute("data-sort");
           if (sortKey === k) sortDir = -sortDir;
           else {
             sortKey = k;
-            sortDir = k === "name" ? 1 : -1;
+            sortDir = k === "name" || k === "phone" || k === "email" ? 1 : -1;
           }
-          document.querySelectorAll("[data-sort]").forEach((x) => x.classList.toggle("active", x === b));
+          paintHeaders();
           render();
         });
       });
+      paintHeaders();
 
       selAllEl.addEventListener("change", () => {
         const groups = visible();
