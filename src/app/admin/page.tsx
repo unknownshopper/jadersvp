@@ -1,7 +1,6 @@
-import { adminCustomersTable, adminSummary, firebaseReady } from "@/lib/firestore";
+import { adminSummary, firebaseReady } from "@/lib/firestore";
 import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
-import AdminCustomersClient from "./AdminCustomersClient";
 import { formatDateDDMMYY } from "@/lib/dateFormat";
 
 function startOfDay(d: Date) {
@@ -25,7 +24,6 @@ export default async function AdminPage({
   const range = (searchParams?.range ?? "day") as "day" | "week" | "month";
   const ready = firebaseReady();
   const summary = ready ? await adminSummary(range) : null;
-  const customersTable = ready ? await adminCustomersTable({ limit: 250 }) : [];
 
   return (
     <div className="grid" style={{ gap: 16 }}>
@@ -190,17 +188,19 @@ export default async function AdminPage({
         </div>
       ) : null}
 
-      <details className="card" style={{ opacity: 0.98 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 900 }}>Base de datos (clientes)</summary>
-        <div className="small" style={{ marginTop: 10, marginBottom: 10 }}>
-          Total: {summary?.customersCount ?? 0}
+      <div className="card">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 4 }}>Base de datos (clientes)</h3>
+            <div className="small">
+              Total: {summary?.customersCount ?? 0} · Con teléfono: {summary?.customersWithPhoneCount ?? 0} · Sin teléfono: {summary?.customersWithoutPhoneCount ?? 0}
+            </div>
+          </div>
+          <a className="btn secondary" href="/cdb.html">
+            Abrir Data
+          </a>
         </div>
-        <div className="row" style={{ gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          <span className="badge">Con teléfono: {summary?.customersWithPhoneCount ?? 0}</span>
-          <span className="badge">Sin teléfono: {summary?.customersWithoutPhoneCount ?? 0}</span>
-        </div>
-        <AdminCustomersClient rows={customersTable as any} canDelete={canDelete} />
-      </details>
+      </div>
     </div>
   );
 }

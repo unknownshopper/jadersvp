@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Café Jade · Base de datos de clientes</title>
+    <meta name="description" content="Base de datos de clientes: número, última visita, recurrencia e historial." />
+    <style>
+      :root {
+        --bg: #07110c;
+        --card: rgba(255, 255, 255, 0.06);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.66);
+        --line: rgba(255, 255, 255, 0.14);
+        --brand: #2bb673;
+        --danger: #ff6b5e;
+        --radius: 14px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background:
+          radial-gradient(900px 500px at 10% -10%, rgba(43, 182, 115, 0.18), transparent 60%),
+          linear-gradient(180deg, #07110c, #05110b);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 18px 14px 40px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      h1 { font-size: 20px; margin: 0; letter-spacing: 0.2px; }
+      .muted { color: var(--muted); font-size: 13px; }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 14px 0;
+      }
+
+      .chip {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .chip.active { border-color: var(--brand); }
+      .chip.danger { border-color: rgba(255, 107, 94, 0.6); }
+
+      input[type="search"] {
+        flex: 1 1 240px;
+        min-width: 200px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 14px;
+      }
+
+      .grid { display: grid; gap: 8px; }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+      }
+
+      .crow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .name-btn {
+        flex: 2 1 180px;
+        text-align: left;
+        font-weight: 800;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        color: var(--text);
+        font: inherit;
+      }
+
+      .col { flex: 1 1 110px; }
+      .col-wide { flex: 2 1 160px; }
+      .right { text-align: right; }
+
+      .badge {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 10px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .badge.recur { border-color: var(--brand); color: var(--brand); }
+
+      .visits {
+        margin-top: 8px;
+        border-top: 1px solid var(--line);
+        padding-top: 8px;
+      }
+
+      .visit-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+      .sin-tel { color: var(--danger); font-weight: 800; }
+      .sub { color: var(--muted); font-size: 12px; }
+      .center { padding: 48px 20px; text-align: center; }
+
+      .btn {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 14px;
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 700;
+        background: var(--card);
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .btn.danger { border-color: rgba(255, 107, 94, 0.6); color: var(--danger); }
+      .btn:disabled { opacity: 0.5; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>Base de datos (clientes)</h1>
+          <div class="muted" id="stats">Cargando…</div>
+        </div>
+        <div class="toolbar" style="margin: 0">
+          <a class="btn" href="/admin">Admin</a>
+          <a class="btn" href="/hostess">Hostess</a>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <label class="chip" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="selAll" />
+          Seleccionar
+        </label>
+        <button class="chip active" data-filter="all">Todos</button>
+        <button class="chip" data-filter="with">Con teléfono</button>
+        <button class="chip" data-filter="without">Sin teléfono</button>
+        <input type="search" id="q" placeholder="Buscar (nombre, teléfono, correo)" />
+        <button class="chip active" data-sort="name">Nombre</button>
+        <button class="chip" data-sort="last">Última visita</button>
+        <button class="chip" data-sort="visits">Visitas</button>
+        <button class="btn danger" id="delBtn" disabled>Eliminar seleccionados (0)</button>
+      </div>
+
+      <div id="list" class="grid">
+        <div class="card center muted">Cargando clientes…</div>
+      </div>
+    </div>
+
+    <script>
+      const listEl = document.getElementById("list");
+      const statsEl = document.getElementById("stats");
+      const qEl = document.getElementById("q");
+      const selAllEl = document.getElementById("selAll");
+      const delBtn = document.getElementById("delBtn");
+
+      let rows = [];
+      let phoneFilter = "all";
+      let sortKey = "name";
+      let sortDir = 1;
+      const selected = new Set();
+      const expanded = new Set();
+
+      function esc(s) {
+        return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      }
+
+      function fmtDate(ms) {
+        const d = new Date(ms);
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${dd}/${mm}/${yy}`;
+      }
+
+      function digits(s) {
+        return String(s ?? "").replace(/\D/g, "");
+      }
+
+      function group(rows) {
+        const byKey = new Map();
+        for (const r of rows) {
+          const d = digits(r.phone);
+          const key = d ? `p:${d}` : `id:${r.id}`;
+          let g = byKey.get(key);
+          if (!g) {
+            g = {
+              key,
+              ids: [],
+              name: "",
+              extraNames: [],
+              phone: r.phone || "",
+              emails: [],
+              visitsCount: 0,
+              surveysCount: 0,
+              lastVisitAt: null,
+              visits: []
+            };
+            byKey.set(key, g);
+          }
+          g.ids.push(r.id);
+          const nm = String(r.name || "").trim();
+          if (nm) {
+            if (!g.name) g.name = nm;
+            else if (nm.toLowerCase() !== g.name.toLowerCase() && !g.extraNames.includes(nm)) g.extraNames.push(nm);
+          }
+          const em = String(r.email || "").trim();
+          if (em && !g.emails.includes(em)) g.emails.push(em);
+          g.visitsCount += Number(r.visitsCount || 0);
+          g.surveysCount += Number(r.surveysCount || 0);
+          for (const v of r.visits || []) g.visits.push(v);
+          if (r.lastVisitAt != null && (g.lastVisitAt == null || r.lastVisitAt > g.lastVisitAt)) g.lastVisitAt = r.lastVisitAt;
+        }
+        for (const g of byKey.values()) {
+          g.name = g.name || "(Sin nombre)";
+          g.visits.sort((a, b) => b.at - a.at);
+        }
+        return [...byKey.values()];
+      }
+
+      function visible() {
+        const qq = String(qEl.value || "").trim().toLowerCase();
+        let base = rows.filter((r) => {
+          const has = Boolean(String(r.phone || "").trim());
+          if (phoneFilter === "with") return has;
+          if (phoneFilter === "without") return !has;
+          return true;
+        });
+        if (qq) {
+          base = base.filter((r) => `${r.name} ${r.phone} ${r.email || ""}`.toLowerCase().includes(qq));
+        }
+        const grouped = group(base);
+        grouped.sort((a, b) => {
+          if (sortKey === "visits" || sortKey === "surveys") {
+            const av = Number(a[sortKey === "visits" ? "visitsCount" : "surveysCount"] || 0);
+            const bv = Number(b[sortKey === "visits" ? "visitsCount" : "surveysCount"] || 0);
+            if (av !== bv) return (av - bv) * sortDir;
+          }
+          if (sortKey === "last") {
+            const av = a.lastVisitAt ?? 0;
+            const bv = b.lastVisitAt ?? 0;
+            if (av !== bv) return (av - bv) * sortDir;
+          }
+          return a.name.localeCompare(b.name, "es", { sensitivity: "base" }) * (sortKey === "name" ? sortDir : 1);
+        });
+        return grouped;
+      }
+
+      function render() {
+        const groups = visible();
+        const withPhone = rows.filter((r) => String(r.phone || "").trim()).length;
+        statsEl.textContent = `Total: ${rows.length} · Con teléfono: ${withPhone} · Sin teléfono: ${rows.length - withPhone} · Mostrando ${groups.length} ficha(s)`;
+
+        if (!groups.length) {
+          listEl.innerHTML = '<div class="card center muted">Sin resultados</div>';
+          return;
+        }
+
+        listEl.innerHTML = groups
+          .map((g) => {
+            const isOpen = expanded.has(g.key);
+            const allSel = g.ids.every((id) => selected.has(id));
+            const emails = g.emails.join(" · ") || "—";
+            const visitsHtml = isOpen
+              ? `<div class="visits">
+                  <div class="sub" style="font-weight:800;margin-bottom:6px">Visitas (${g.visitsCount})</div>
+                  ${g.visits.length === 0
+                    ? '<div class="sub">Sin reservaciones registradas</div>'
+                    : `<div class="visit-list">${g.visits.map((v) => `<span class="badge">${fmtDate(v.at)}</span>`).join("")}</div>`}
+                  ${g.extraNames.length ? `<div class="sub" style="margin-top:8px">También registrado como: ${esc(g.extraNames.join(" · "))}</div>` : ""}
+                </div>`
+              : "";
+            return `<div class="card">
+              <div class="crow">
+                <label style="flex:0 0 auto;display:inline-flex;align-items:center;cursor:pointer">
+                  <input type="checkbox" data-sel="${esc(g.key)}" ${allSel ? "checked" : ""} />
+                </label>
+                <button class="name-btn" data-toggle="${esc(g.key)}" title="Ver historial de visitas">
+                  ${isOpen ? "▾" : "▸"} ${esc(g.name)}${g.extraNames.length ? ` <span class="sub">+${g.extraNames.length} nombre(s)</span>` : ""}
+                </button>
+                <div class="col sub">${esc(g.phone) || '<span class="sin-tel">sin teléfono</span>'}</div>
+                <div class="col-wide sub">${esc(emails)}</div>
+                <div class="col sub">${g.lastVisitAt ? fmtDate(g.lastVisitAt) : "—"}</div>
+                <div class="col right">${g.visitsCount > 0 ? `<span class="badge recur">×${g.visitsCount}</span>` : '<span class="sub">0</span>'}</div>
+                <div class="col right sub">${g.surveysCount}</div>
+              </div>
+              ${visitsHtml}
+            </div>`;
+          })
+          .join("");
+
+        listEl.querySelectorAll("[data-toggle]").forEach((b) => {
+          b.addEventListener("click", () => {
+            const k = b.getAttribute("data-toggle");
+            if (expanded.has(k)) expanded.delete(k);
+            else expanded.add(k);
+            render();
+          });
+        });
+        listEl.querySelectorAll("[data-sel]").forEach((c) => {
+          c.addEventListener("change", () => {
+            const k = c.getAttribute("data-sel");
+            const g = groups.find((x) => x.key === k);
+            if (!g) return;
+            const want = c.checked;
+            for (const id of g.ids) {
+              if (want) selected.add(id);
+              else selected.delete(id);
+            }
+            updateDelBtn();
+          });
+        });
+      }
+
+      function updateDelBtn() {
+        delBtn.disabled = selected.size === 0;
+        delBtn.textContent = `Eliminar seleccionados (${selected.size})`;
+      }
+
+      qEl.addEventListener("input", render);
+
+      document.querySelectorAll("[data-filter]").forEach((b) => {
+        b.addEventListener("click", () => {
+          document.querySelectorAll("[data-filter]").forEach((x) => x.classList.remove("active"));
+          b.classList.add("active");
+          phoneFilter = b.getAttribute("data-filter");
+          render();
+        });
+      });
+
+      document.querySelectorAll("[data-sort]").forEach((b) => {
+        b.addEventListener("click", () => {
+          const k = b.getAttribute("data-sort");
+          if (sortKey === k) sortDir = -sortDir;
+          else {
+            sortKey = k;
+            sortDir = k === "name" ? 1 : -1;
+          }
+          document.querySelectorAll("[data-sort]").forEach((x) => x.classList.toggle("active", x === b));
+          render();
+        });
+      });
+
+      selAllEl.addEventListener("change", () => {
+        const groups = visible();
+        const want = selAllEl.checked;
+        for (const g of groups) for (const id of g.ids) {
+          if (want) selected.add(id);
+          else selected.delete(id);
+        }
+        render();
+        updateDelBtn();
+      });
+
+      delBtn.addEventListener("click", async () => {
+        if (!selected.size) return;
+        if (!window.confirm(`Eliminar ${selected.size} ficha(s) de cliente? Esto también borra reservas/encuestas relacionadas.`)) return;
+        const res = await fetch("/api/admin/customers/delete-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ customerIds: [...selected] })
+        });
+        if (res.redirected) {
+          window.location.assign(res.url);
+          return;
+        }
+        if (!res.ok) {
+          window.alert((await res.text().catch(() => "")) || "No se pudo borrar");
+          return;
+        }
+        window.location.reload();
+      });
+
+      (async function load() {
+        try {
+          const res = await fetch("/api/admin/customers/data?limit=2000", { credentials: "same-origin" });
+          if (res.status === 401 || res.status === 403) {
+            listEl.innerHTML = `<div class="card center">Este visor es solo para ADMIN.<br /><a class="btn" href="/login">Ir a iniciar sesión</a></div>`;
+            statsEl.textContent = "Sin acceso";
+            return;
+          }
+          if (!res.ok) throw new Error(await res.text());
+          const json = await res.json();
+          rows = Array.isArray(json?.rows) ? json.rows : [];
+          render();
+        } catch (err) {
+          statsEl.textContent = "Error";
+          listEl.innerHTML = `<div class="card center">No se pudo cargar la base de datos.<br /><span class="sub">${esc(err?.message || err)}</span></div>`;
+        }
+      })();
+    </script>
+  </body>
+</html>

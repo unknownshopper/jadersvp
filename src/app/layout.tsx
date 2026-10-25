@@ -101,6 +101,12 @@ export default async function RootLayout({
               ) : null}
 
               {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
+                <a className="badge" href="/cdb.html">
+                  Data
+                </a>
+              ) : null}
+
+              {user?.role === "ADMIN" || user?.role === "DIRECTOR" ? (
                 <a className="badge" href="/admin/encuestas">
                   Visor
                 </a>
