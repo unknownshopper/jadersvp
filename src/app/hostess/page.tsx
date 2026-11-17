@@ -4,7 +4,7 @@ import { getSessionUser, requireRole } from "@/lib/serverAuth";
 import { redirect } from "next/navigation";
 import OfflineBanner from "../OfflineBanner";
 import QueueableForm from "../QueueableForm";
-import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM } from "@/lib/dateFormat";
+import { formatDateDDMMYY, formatDateTimeDDMMYYHHMM, formatTimeHHMM, toInputDateTimeParts } from "@/lib/dateFormat";
 import { displayTableName, isWaitingRoomTableName } from "@/lib/floorplan";
 
 export const dynamic = "force-dynamic";
@@ -531,6 +531,37 @@ export default async function HostessPage({
                       ) : null}
                     </div>
                   </div>
+                  {r.status !== "SEATED" ? (
+                    <details style={{ marginTop: 8 }}>
+                      <summary className="small" style={{ cursor: "pointer", fontWeight: 700 }}>
+                        Cambiar hora
+                      </summary>
+                      <QueueableForm action="/api/reservations/reschedule" style={{ marginTop: 8 }}>
+                        <input type="hidden" name="reservationId" value={r.id} />
+                        <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <input
+                            className="input"
+                            type="date"
+                            name="reservedDate"
+                            required
+                            defaultValue={r.reservedFor ? toInputDateTimeParts(r.reservedFor).date : toInputDateTimeParts(now).date}
+                            style={{ flex: "1 1 140px" }}
+                          />
+                          <input
+                            className="input"
+                            type="time"
+                            name="reservedTime"
+                            required
+                            defaultValue={r.reservedFor ? toInputDateTimeParts(r.reservedFor).time : toInputDateTimeParts(now).time}
+                            style={{ flex: "0 0 110px" }}
+                          />
+                          <button className="btn secondary" type="submit">
+                            Mover
+                          </button>
+                        </div>
+                      </QueueableForm>
+                    </details>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -729,6 +760,37 @@ export default async function HostessPage({
                   ) : null}
                 </div>
               </div>
+              {r.status !== "SEATED" ? (
+                <details style={{ marginTop: 8 }}>
+                  <summary className="small" style={{ cursor: "pointer", fontWeight: 700 }}>
+                    Cambiar hora
+                  </summary>
+                  <QueueableForm action="/api/reservations/reschedule" style={{ marginTop: 8 }}>
+                    <input type="hidden" name="reservationId" value={r.id} />
+                    <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <input
+                        className="input"
+                        type="date"
+                        name="reservedDate"
+                        required
+                        defaultValue={r.reservedFor ? toInputDateTimeParts(r.reservedFor).date : toInputDateTimeParts(now).date}
+                        style={{ flex: "1 1 140px" }}
+                      />
+                      <input
+                        className="input"
+                        type="time"
+                        name="reservedTime"
+                        required
+                        defaultValue={r.reservedFor ? toInputDateTimeParts(r.reservedFor).time : toInputDateTimeParts(now).time}
+                        style={{ flex: "0 0 110px" }}
+                      />
+                      <button className="btn secondary" type="submit">
+                        Mover
+                      </button>
+                    </div>
+                  </QueueableForm>
+                </details>
+              ) : null}
             </div>
           ))}
         </div>
@@ -825,6 +887,37 @@ export default async function HostessPage({
                   ) : null}
                 </div>
               </div>
+              {r.status !== "SEATED" ? (
+                <details style={{ marginTop: 8 }}>
+                  <summary className="small" style={{ cursor: "pointer", fontWeight: 700 }}>
+                    Cambiar hora
+                  </summary>
+                  <QueueableForm action="/api/reservations/reschedule" style={{ marginTop: 8 }}>
+                    <input type="hidden" name="reservationId" value={r.id} />
+                    <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <input
+                        className="input"
+                        type="date"
+                        name="reservedDate"
+                        required
+                        defaultValue={r.reservedFor ? toInputDateTimeParts(r.reservedFor).date : toInputDateTimeParts(now).date}
+                        style={{ flex: "1 1 140px" }}
+                      />
+                      <input
+                        className="input"
+                        type="time"
+                        name="reservedTime"
+                        required
+                        defaultValue={r.reservedFor ? toInputDateTimeParts(r.reservedFor).time : toInputDateTimeParts(now).time}
+                        style={{ flex: "0 0 110px" }}
+                      />
+                      <button className="btn secondary" type="submit">
+                        Mover
+                      </button>
+                    </div>
+                  </QueueableForm>
+                </details>
+              ) : null}
             </div>
           ))}
         </div>

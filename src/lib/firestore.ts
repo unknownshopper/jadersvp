@@ -1320,6 +1320,84 @@ export async function seatReservation(params: {
   return { reservationId };
 }
 
+// Move a not-yet-seated reservation to a new date/time. Applies the same
+// 90+30 min spacing rule as reserveTables against other live reservations
+// on its tables, and re-points nextReservedFor when it belongs to this one.
+export async function rescheduleReservation(params: {
+  reservationId: string;
+  reservedFor: number;
+}): Promise<{ reservationId: string }> {
+  const db = getFirestore();
+  if (!db) throw new Error("Firestore not configured");
+
+  const reservationId = String(params.reservationId || "").trim();
+  const reservedFor = Number(params.reservedFor);
+  if (!reservationId) throw new Error("Falta reservación");
+  if (!Number.isFinite(reservedFor) || reservedFor <= 0) throw new Error("Fecha inválida");
+
+  const reservationRef = db.collection("reservations").doc(reservationId);
+
+  await db.runTransaction(async (tx: any) => {
+    const resDoc = await tx.get(reservationRef);
+    if (!resDoc.exists) throw new Error("Reservation not found");
+
+    const reservation = { id: resDoc.id, ...(resDoc.data() as Omit<Reservation, "id">) } as Reservation;
+    const status = String(reservation.status ?? "");
+    if (status !== "RESERVED" && status !== "WAITING" && status !== "OFFERED" && status !== "WAITLIST") {
+      throw new Error(`La reservación ya no se puede mover (${status})`);
+    }
+
+    const oldFor = typeof (reservation as any).reservedFor === "number" ? Number((reservation as any).reservedFor) : null;
+    const tableIds = Array.isArray(reservation.tableIds)
+      ? reservation.tableIds.map((x) => String(x)).filter(Boolean)
+      : reservation.tableId
+        ? [String(reservation.tableId)]
+        : [];
+
+    const tableRefs = tableIds.map((id) => db.collection("tables").doc(id));
+    const tableDocs = await Promise.all(tableRefs.map((ref) => tx.get(ref)));
+
+    // Conflict check: another live reservation within the 120-min block on
+    // any of this reservation's tables.
+    const blockMs = (90 + 30) * 60 * 1000;
+    for (const tdoc of tableDocs) {
+      if (!tdoc.exists) continue;
+      const [byTable, byTables] = await Promise.all([
+        tx.get(db.collection("reservations").where("tableId", "==", String(tdoc.id))),
+        tx.get(db.collection("reservations").where("tableIds", "array-contains", String(tdoc.id)))
+      ]);
+      const seen = new Set<string>();
+      for (const d of [...byTable.docs, ...byTables.docs]) {
+        if (seen.has(d.id) || d.id === reservation.id) continue;
+        seen.add(d.id);
+        const r = d.data() as any;
+        const st = String(r?.status ?? "");
+        if (st !== "RESERVED" && st !== "WAITING" && st !== "OFFERED") continue;
+        const rf = typeof r?.reservedFor === "number" ? Number(r.reservedFor) : null;
+        if (rf && Math.abs(rf - reservedFor) < blockMs) {
+          const tname = String((tdoc.data() as any)?.name ?? tdoc.id);
+          throw new Error(`Mesa ${displayTableName(tname)} ya tiene otra reserva cerca de esa hora`);
+        }
+      }
+    }
+
+    const ts = nowMs();
+    for (let i = 0; i < tableDocs.length; i++) {
+      const tdoc = tableDocs[i];
+      if (!tdoc.exists) continue;
+      const next = (tdoc.data() as any).nextReservedFor as number | null | undefined;
+      // Re-point nextReservedFor only when it belongs to this reservation.
+      if (next && oldFor && Math.abs(Number(next) - oldFor) <= 5 * 60 * 1000) {
+        tx.update(tableRefs[i], { nextReservedFor: reservedFor, updatedAt: ts });
+      }
+    }
+
+    tx.update(reservationRef, { reservedFor, updatedAt: ts });
+  });
+
+  return { reservationId };
+}
+
 export async function moveSeatedReservation(params: {
   reservationId: string;
   fromTableId: string;
